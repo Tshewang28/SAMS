@@ -1,6 +1,7 @@
 // ============================================================
 // SAMS REGISTER.JS
 // Supabase-first registration
+// Profile creation is handled by Supabase database trigger
 // ============================================================
 
 (function () {
@@ -90,7 +91,6 @@
                 type === "Staff"
                     ? "block"
                     : "none";
-
         }
 
 
@@ -100,7 +100,6 @@
                 type === "Student"
                     ? "block"
                     : "none";
-
         }
 
 
@@ -110,12 +109,10 @@
                 type === "Administrator"
                     ? "block"
                     : "none";
-
         }
 
 
         showMessage("");
-
     }
 
 
@@ -125,7 +122,6 @@
             "change",
             updateAccountSections
         );
-
     }
 
 
@@ -135,7 +131,6 @@
             "change",
             updateAccountSections
         );
-
     }
 
 
@@ -145,7 +140,6 @@
             "change",
             updateAccountSections
         );
-
     }
 
 
@@ -200,7 +194,6 @@
 
                         button.textContent =
                             "Show";
-
                     }
 
                 }
@@ -262,7 +255,6 @@
             );
 
             return false;
-
         }
 
 
@@ -274,7 +266,6 @@
             );
 
             return false;
-
         }
 
 
@@ -289,7 +280,6 @@
             );
 
             return false;
-
         }
 
 
@@ -460,7 +450,6 @@
             );
 
             return false;
-
         }
 
 
@@ -472,7 +461,6 @@
             );
 
             return false;
-
         }
 
 
@@ -484,7 +472,6 @@
             );
 
             return false;
-
         }
 
 
@@ -500,7 +487,6 @@
             );
 
             return false;
-
         }
 
 
@@ -526,7 +512,6 @@
             );
 
             return false;
-
         }
 
 
@@ -538,7 +523,6 @@
             );
 
             return false;
-
         }
 
 
@@ -550,7 +534,6 @@
             );
 
             return false;
-
         }
 
 
@@ -566,7 +549,6 @@
             );
 
             return false;
-
         }
 
 
@@ -592,7 +574,6 @@
             );
 
             return false;
-
         }
 
 
@@ -604,7 +585,6 @@
             );
 
             return false;
-
         }
 
 
@@ -620,7 +600,6 @@
             );
 
             return false;
-
         }
 
 
@@ -648,11 +627,9 @@
             );
 
             return false;
-
         }
 
         return true;
-
     }
 
 
@@ -678,7 +655,6 @@
         if (result.error) {
 
             throw result.error;
-
         }
 
 
@@ -697,25 +673,24 @@
     async function administratorExists() {
 
         const result =
-    await window.samsSupabase
-        .from("profiles")
-        .select(
-            "id",
-            {
-                count: "exact",
-                head: true
-            }
-        )
-        .eq(
-            "role",
-            "admin"
-        );
+            await window.samsSupabase
+                .from("profiles")
+                .select(
+                    "id",
+                    {
+                        count: "exact",
+                        head: true
+                    }
+                )
+                .eq(
+                    "role",
+                    "admin"
+                );
 
 
         if (result.error) {
 
             throw result.error;
-
         }
 
 
@@ -762,7 +737,6 @@
         if (result.error) {
 
             throw result.error;
-
         }
 
 
@@ -771,56 +745,10 @@
             throw new Error(
                 "Supabase did not return a user account."
             );
-
         }
 
 
         return result.data;
-
-    }
-
-
-    // =========================================================
-    // CREATE PROFILE
-    // =========================================================
-
-    async function createProfile({
-        userId,
-        fullName,
-        email,
-        employeeCode,
-        role,
-        active
-    }) {
-
-        const result =
-       await window.samsSupabase
-    .from("profiles")
-    .insert({
-
-        id: userId,
-        full_name: fullName,
-        email: email,
-        employee_code: employeeCode || null,
-        role: role,
-        active: active
-
-    });
-
-
-        if (result.error) {
-
-            console.error(
-                "SAMS profile creation error:",
-                result.error
-            );
-
-            throw result.error;
-
-        }
-
-
-        return true;
 
     }
 
@@ -840,7 +768,6 @@
         ) {
 
             return;
-
         }
 
 
@@ -849,10 +776,6 @@
             ""
         );
 
-
-        // ------------------------------------------------------
-        // Only one Administrator
-        // ------------------------------------------------------
 
         const adminExists =
             await administratorExists();
@@ -865,17 +788,11 @@
                 "An Administrator account already exists. Only one Administrator account is permitted.",
 
                 "error"
-
             );
 
             return;
-
         }
 
-
-        // ------------------------------------------------------
-        // Check duplicate profile email
-        // ------------------------------------------------------
 
         const existingProfile =
             await profileExistsByEmail(
@@ -890,11 +807,9 @@
                 "A SAMS profile already exists for this email address.",
 
                 "error"
-
             );
 
             return;
-
         }
 
 
@@ -904,84 +819,23 @@
         );
 
 
-        const authData =
-            await createAuthUser(
+        await createAuthUser(
 
-                data.email,
+            data.email,
 
-                data.password,
+            data.password,
 
-                {
+            {
 
-                    account_type:
-                        "Administrator",
+                account_type:
+                    "Administrator",
 
-                    full_name:
-                        data.fullName
+                full_name:
+                    data.fullName
 
-                }
+            }
 
-            );
-
-
-        const user =
-            authData.user;
-
-
-        /*
-         * Administrator is active immediately.
-         */
-
-        try {
-
-            await createProfile({
-
-                userId:
-                    user.id,
-
-                fullName:
-                    data.fullName,
-
-                email:
-                    data.email,
-
-                employeeCode:
-                    null,
-
-                role:
-                    "administrator",
-
-                active:
-                    true
-
-            });
-
-        }
-
-        catch (profileError) {
-
-            /*
-             * Auth account may already exist even if
-             * profile creation fails.
-             */
-
-            console.error(
-                "Administrator profile error:",
-                profileError
-            );
-
-
-            showMessage(
-
-                "Administrator account was created, but the SAMS profile could not be created. Please contact the administrator and check Supabase profiles permissions.",
-
-                "error"
-
-            );
-
-            return;
-
-        }
+        );
 
 
         showMessage(
@@ -989,7 +843,6 @@
             "Administrator account created successfully. You can now sign in.",
 
             "success"
-
         );
 
     }
@@ -1010,7 +863,6 @@
         ) {
 
             return;
-
         }
 
 
@@ -1019,10 +871,6 @@
             ""
         );
 
-
-        // ------------------------------------------------------
-        // Duplicate profile email
-        // ------------------------------------------------------
 
         const existingProfile =
             await profileExistsByEmail(
@@ -1037,11 +885,9 @@
                 "A SAMS profile already exists for this email address.",
 
                 "error"
-
             );
 
             return;
-
         }
 
 
@@ -1051,96 +897,33 @@
         );
 
 
-        const authData =
-            await createAuthUser(
+        await createAuthUser(
 
-                data.email,
+            data.email,
 
-                data.password,
+            data.password,
 
-                {
+            {
 
-                    account_type:
-                        "Staff",
+                account_type:
+                    "Staff",
 
-                    full_name:
-                        data.fullName,
-
-                    employee_code:
-                        data.employeeCode
-
-                }
-
-            );
-
-
-        const user =
-            authData.user;
-
-
-        /*
-         * Staff accounts start:
-         *
-         * role   = pending
-         * active = false
-         *
-         * Administrator later approves and assigns
-         * the actual role.
-         */
-
-        try {
-
-            await createProfile({
-
-                userId:
-                    user.id,
-
-                fullName:
+                full_name:
                     data.fullName,
 
-                email:
-                    data.email,
+                employee_code:
+                    data.employeeCode
 
-                employeeCode:
-                    data.employeeCode,
+            }
 
-                role:
-                    "pending",
-
-                active:
-                    false
-
-            });
-
-        }
-
-        catch (profileError) {
-
-            console.error(
-                "Staff profile error:",
-                profileError
-            );
-
-
-            showMessage(
-
-                "Staff account was created, but the SAMS profile could not be created. Please contact the administrator.",
-
-                "error"
-
-            );
-
-            return;
-
-        }
+        );
 
 
         showMessage(
 
-            "Staff account created successfully. Your account is waiting for Administrator approval.",
+            "Staff account created successfully. Your account is now waiting for Administrator approval.",
 
             "success"
-
         );
 
     }
@@ -1161,7 +944,6 @@
         ) {
 
             return;
-
         }
 
 
@@ -1170,10 +952,6 @@
             ""
         );
 
-
-        // ------------------------------------------------------
-        // Duplicate profile email
-        // ------------------------------------------------------
 
         const existingProfile =
             await profileExistsByEmail(
@@ -1188,11 +966,9 @@
                 "A SAMS profile already exists for this email address.",
 
                 "error"
-
             );
 
             return;
-
         }
 
 
@@ -1202,86 +978,26 @@
         );
 
 
-        const authData =
-            await createAuthUser(
+        await createAuthUser(
 
-                data.email,
+            data.email,
 
-                data.password,
+            data.password,
 
-                {
+            {
 
-                    account_type:
-                        "Student",
+                account_type:
+                    "Student",
 
-                    full_name:
-                        data.fullName,
-
-                    student_code:
-                        data.studentCode
-
-                }
-
-            );
-
-
-        const user =
-            authData.user;
-
-
-        /*
-         * Student accounts are active immediately.
-         *
-         * The current profiles table has no student_code
-         * column, so the Student Code is kept in the
-         * Supabase Auth metadata for now.
-         */
-
-        try {
-
-            await createProfile({
-
-                userId:
-                    user.id,
-
-                fullName:
+                full_name:
                     data.fullName,
 
-                email:
-                    data.email,
+                student_code:
+                    data.studentCode
 
-                employeeCode:
-                    data.studentCode,
+            }
 
-                role:
-                    "student",
-
-                active:
-                    true
-
-            });
-
-        }
-
-        catch (profileError) {
-
-            console.error(
-                "Student profile error:",
-                profileError
-            );
-
-
-            showMessage(
-
-                "Student account was created, but the SAMS profile could not be created. Please contact the administrator.",
-
-                "error"
-
-            );
-
-            return;
-
-        }
+        );
 
 
         showMessage(
@@ -1289,7 +1005,6 @@
             "Student account created successfully. You can now sign in.",
 
             "success"
-
         );
 
     }
@@ -1318,11 +1033,9 @@
                         "Please select an Account Type.",
 
                         "error"
-
                     );
 
                     return;
-
                 }
 
 
@@ -1331,7 +1044,6 @@
                 ) {
 
                     return;
-
                 }
 
 
@@ -1383,7 +1095,6 @@
                             "Invalid account type.",
 
                             "error"
-
                         );
 
                     }
@@ -1409,7 +1120,6 @@
 
                         message =
                             error.message;
-
                     }
 
 
@@ -1449,7 +1159,7 @@
                     ) {
 
                         message =
-                            "Supabase security policy prevented the SAMS profile from being created.";
+                            "Supabase security policy prevented this operation.";
 
                     }
 
@@ -1460,7 +1170,7 @@
                     ) {
 
                         message =
-                            "The SAMS database rejected the profile information. Check the profiles table and role settings.";
+                            "The SAMS database rejected the registration information.";
 
                     }
 
@@ -1479,7 +1189,6 @@
 
                     registerButton.textContent =
                         originalText;
-
                 }
 
             }
