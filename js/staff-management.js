@@ -183,8 +183,7 @@
             "viceprincipal": "Vice Principal",
             "vp": "Vice Principal",
             "class teacher": "Class Teacher",
-            "teacher": "Class Teacher",
-            "non class teacher": "Non-Class Teacher",
+                "non class teacher": "Non-Class Teacher",
             "non-class teacher": "Non-Class Teacher",
             "assessor": "Assessor",
             "student": "Student"
