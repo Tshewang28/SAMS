@@ -81,209 +81,115 @@
                 return false;
             }
 
-
-            // -------------------------------------------------
-            // Convert SAMS display roles to Supabase enum roles
-            // -------------------------------------------------
-
-            const normalizedRole =
-                role
-                    .toLowerCase()
-                    .replace(/[-_]/g, ' ')
-                    .trim();
-
-
-            const roleMap = {
-
-                'administrator':
-                    'admin',
-
-                'admin':
-                    'admin',
-
-                'principal':
-                    'principal',
-
-                'vice principal':
-                    'vice_principal',
-
-                'vp':
-                    'vice_principal',
-
-                'class teacher':
-                    'class_teacher',
-
-                'non class teacher':
-                    'non_class_teacher',
-
-                'teacher':
-                    'class_teacher',
-
-                'assessor':
-                    'assessor',
-
-                'student':
-                    'student'
-
-            };
-
-
-            /*
-             * "Pending" is a SAMS UI/approval state.
-             *
-             * It is NOT a value in the Supabase user_role enum.
-             *
-             * Therefore, an unassigned staff member is stored
-             * as non_class_teacher until an Administrator assigns
-             * the permanent role.
-             */
-
-            const databaseRole =
-                roleMap[normalizedRole] ||
-                'non_class_teacher';
-
-
             const profileData = {
-
                 full_name:
                     account.name ||
                     account.full_name ||
                     '',
-
-                email:
-                    email || null,
-
+                email: email || null,
                 employee_code:
                     account.employeeId ||
                     account.employeeCode ||
                     '',
-
-                role:
-                    databaseRole,
-
+                role: ({
+                    'administrator': 'admin',
+                    'admin': 'admin',
+                    'principal': 'principal',
+                    'vice principal': 'vice_principal',
+                    'class teacher': 'class_teacher',
+                    'non class teacher': 'non_class_teacher',
+                    'non-class teacher': 'non_class_teacher',
+                    'assessor': 'assessor'
+                }[role.toLowerCase().replace(/[-_]+/g, ' ')] || 'non_class_teacher'),
                 active:
-                    String(
-                        account.status ||
-                        ''
-                    ).toLowerCase() === 'active',
-
+                    String(account.status || '').toLowerCase() === 'active',
                 is_assessor:
                     account.isAssessor === true ||
                     account.is_assessor === true ||
                     account.appointedAssessor === true ||
                     account.appointed_assessor === true
-
             };
 
-
-            // -------------------------------------------------
-            // Prefer the Auth UUID when available
-            // -------------------------------------------------
-
+            // Prefer the Auth UUID when the local account contains it.
             if (
                 authId &&
-                /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-                    authId
-                )
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(authId)
             ) {
-
-                profileData.id =
-                    authId;
-
+                profileData.id = authId;
 
                 const result =
                     await window.samsSupabase
                         .from('profiles')
                         .upsert(
                             profileData,
-                            {
-                                onConflict:
-                                    'id'
-                            }
+                            { onConflict: 'id' }
                         );
 
-
                 if (result.error) {
-
                     throw result.error;
-
                 }
 
-
                 return true;
-
             }
 
-
-            // -------------------------------------------------
-            // If there is no Auth UUID, update an existing
-            // profile by email.
-            //
-            // We deliberately do NOT invent a UUID.
-            // -------------------------------------------------
-
+            // If there is no Auth UUID, update an existing profile
+            // by email. We deliberately do NOT invent a UUID.
             if (email) {
 
                 const found =
                     await window.samsSupabase
                         .from('profiles')
                         .select('id')
-                        .eq(
-                            'email',
-                            email
-                        )
+                        .eq('email', email)
                         .maybeSingle();
 
-
                 if (found.error) {
-
                     throw found.error;
-
                 }
-
 
                 if (found.data?.id) {
 
                     const result =
                         await window.samsSupabase
-                            .update(
-                                profileData
-                            )
-                            .eq(
-                                'id',
-                                found.data.id
-                            );
-
+                            .from('profiles')
+                            .update(profileData)
+                            .eq('id', found.data.id);
 
                     if (result.error) {
-
                         throw result.error;
-
                     }
 
-
                     return true;
-
                 }
-
             }
 
+            console.warn(
+                'SAMS: no existing Supabase Auth/profile ID found for staff account:',
+                email || authId
+            );
 
             return false;
 
         } catch (error) {
 
             console.error(
-                'Could not sync staff profile to Supabase:',
+                'SAMS staff profile synchronization failed:',
                 error
             );
 
             return false;
-
         }
-
     }
 
+
+    async function syncAllStaffProfilesToSupabase() {
+
+        const staff = getStaffAccounts();
+
+        for (const account of staff) {
+            await syncStaffProfileToSupabase(account);
+        }
+    }
 
 
     // =================================================
@@ -300,9 +206,249 @@
     }
 
 
+    // =================================================
+    // CURRENT USER
+    // =================================================
+
+    function getCurrentUser() {
+
+        const savedUser =
+            sessionStorage.getItem(
+                'sams_current_user'
+            );
+
+
+        if (savedUser) {
+
+            try {
+
+                return JSON.parse(
+                    savedUser
+                );
+
+            } catch (error) {
+
+                console.error(
+                    'Invalid current user session.',
+                    error
+                );
+
+            }
+
+        }
+
+
+        const email =
+            sessionStorage.getItem(
+                'sams_email'
+            );
+
+
+        if (!email) {
+            return null;
+        }
+
+
+        const accounts =
+            getAccounts();
+
+
+        return accounts.find(
+            function (account) {
+
+                return (
+                    account.email &&
+                    account.email.toLowerCase() ===
+                    email.toLowerCase()
+                );
+
+            }
+        ) || null;
+
+    }
+
 
     // =================================================
-    // FIND STAFF
+    // CHECK ADMINISTRATOR ACCESS
+    // =================================================
+
+    const currentUser =
+        getCurrentUser();
+
+
+    if (!currentUser) {
+
+        window.location.href =
+            'index.html';
+
+        return;
+
+    }
+
+
+    const currentRole =
+        String(
+            currentUser.role ||
+            currentUser.accountType ||
+            currentUser.type ||
+            ''
+        )
+        .trim()
+        .toLowerCase();
+
+
+    if (
+        currentRole !==
+        'administrator'
+    ) {
+
+        alert(
+            'Access denied. Only the Administrator can access Staff Management.'
+        );
+
+        window.location.href =
+            'dashboard.html';
+
+        return;
+
+    }
+
+
+    // =================================================
+    // ELEMENTS
+    // =================================================
+
+    const tableBody =
+        document.getElementById(
+            'staffTableBody'
+        );
+
+
+    const emptyState =
+        document.getElementById(
+            'emptyState'
+        );
+
+
+    const pendingCount =
+        document.getElementById(
+            'pendingCount'
+        );
+
+
+    const approvedCount =
+        document.getElementById(
+            'approvedCount'
+        );
+
+
+    const rejectedCount =
+        document.getElementById(
+            'rejectedCount'
+        );
+
+
+    const filterStatus =
+        document.getElementById(
+            'filterStatus'
+        );
+
+
+    const message =
+        document.getElementById(
+            'approvalMessage'
+        );
+
+
+    const adminUserName =
+        document.getElementById(
+            'adminUserName'
+        );
+
+
+    // =================================================
+    // DISPLAY ADMIN NAME
+    // =================================================
+
+    if (
+        adminUserName &&
+        currentUser.name
+    ) {
+
+        adminUserName.textContent =
+            currentUser.name;
+
+    }
+
+
+    // =================================================
+    // SHOW MESSAGE
+    // =================================================
+
+    function showMessage(
+        text,
+        type = 'success'
+    ) {
+
+        if (!message) {
+            return;
+        }
+
+
+        message.textContent =
+            text;
+
+
+        message.className =
+            'approval-message ' +
+            type;
+
+
+        setTimeout(
+            function () {
+
+                message.textContent =
+                    '';
+
+                message.className =
+                    'approval-message';
+
+            },
+            3000
+        );
+
+    }
+
+
+    // =================================================
+    // GET STAFF ACCOUNTS
+    // =================================================
+
+    function getStaffAccounts() {
+
+        return getAccounts().filter(
+            function (account) {
+
+                const type =
+                    String(
+                        account.accountType ||
+                        account.type ||
+                        ''
+                    )
+                    .trim()
+                    .toLowerCase();
+
+
+                return type === 'staff';
+
+            }
+        );
+
+    }
+
+
+    // =================================================
+    // FIND STAFF BY EMPLOYEE ID
     // =================================================
 
     function findStaffByEmployeeId(
@@ -312,61 +458,180 @@
         const accounts =
             getAccounts();
 
+
         return accounts.find(
             function (account) {
 
-                return String(
-                    account.employeeId ||
-                    account.employee_code ||
-                    ''
-                ).trim() === String(
-                    employeeId
-                ).trim();
+                return (
+                    account.employeeId &&
+                    String(
+                        account.employeeId
+                    ).trim() ===
+                    String(
+                        employeeId
+                    ).trim()
+                );
 
             }
-        ) || null;
+        );
 
     }
 
 
-
     // =================================================
-    // MESSAGE
+    // UPDATE SUMMARY
     // =================================================
 
-    function showMessage(
-        message,
-        type = 'success'
-    ) {
+    function updateSummary() {
 
-        const element =
-            document.getElementById(
-                'adminMessage'
-            );
+        const staff =
+            getStaffAccounts();
 
 
-        if (!element) {
-            return;
+        const pending =
+            staff.filter(
+                function (account) {
+
+                    return (
+                        String(
+                            account.status ||
+                            ''
+                        )
+                        .toLowerCase() ===
+                        'pending'
+                    );
+
+                }
+            ).length;
+
+
+        const active =
+            staff.filter(
+                function (account) {
+
+                    return (
+                        String(
+                            account.status ||
+                            ''
+                        )
+                        .toLowerCase() ===
+                        'active'
+                    );
+
+                }
+            ).length;
+
+
+        const rejected =
+            staff.filter(
+                function (account) {
+
+                    return (
+                        String(
+                            account.status ||
+                            ''
+                        )
+                        .toLowerCase() ===
+                        'rejected'
+                    );
+
+                }
+            ).length;
+
+
+        if (pendingCount) {
+
+            pendingCount.textContent =
+                pending;
+
         }
 
 
-        element.textContent =
-            message;
+        if (approvedCount) {
+
+            approvedCount.textContent =
+                active;
+
+        }
 
 
-        element.className =
-            'admin-message ' +
-            type;
+        if (rejectedCount) {
+
+            rejectedCount.textContent =
+                rejected;
+
+        }
 
     }
 
+
+    // =================================================
+    // STATUS CLASS
+    // =================================================
+
+    function getStatusClass(
+        status
+    ) {
+
+        const cleanStatus =
+            String(
+                status || ''
+            )
+            .toLowerCase();
+
+
+        if (
+            cleanStatus ===
+            'pending'
+        ) {
+
+            return 'status-pending';
+
+        }
+
+
+        if (
+            cleanStatus ===
+            'active'
+        ) {
+
+            return 'status-active';
+
+        }
+
+
+        if (
+            cleanStatus ===
+            'rejected'
+        ) {
+
+            return 'status-rejected';
+
+        }
+
+
+        if (
+            cleanStatus ===
+            'inactive'
+        ) {
+
+            return 'status-inactive';
+
+        }
+
+
+        return 'status-inactive';
+
+    }
 
 
     // =================================================
     // ESCAPE HTML
     // =================================================
 
-    function escapeHTML(value) {
+    function escapeHTML(
+        value
+    ) {
 
         return String(
             value ?? ''
@@ -395,7 +660,6 @@
     }
 
 
-
     // =================================================
     // ROLE OPTIONS
     // =================================================
@@ -405,85 +669,35 @@
         currentRole
     ) {
 
-        const selectedRole =
-            currentRole ||
-            'Pending';
+        const validRoles = [
+            "Class Teacher",
+            "Non-Class Teacher",
+            "Vice Principal",
+            "Principal",
+            "Administrator"
+        ];
 
+        const selectedRole =
+            validRoles.includes(currentRole)
+                ? currentRole
+                : "Non-Class Teacher";
 
         return `
-
             <select
                 class="role-select"
-                data-employee-id="${escapeHTML(
-                    employeeId
-                )}"
+                data-employee-id="${escapeHTML(employeeId)}"
             >
-
-                <option
-                    value="Pending"
-                    ${selectedRole === 'Pending'
-                        ? 'selected'
-                        : ''}
-                >
-                    Pending
-                </option>
-
-
-                <option
-                    value="Vice Principal"
-                    ${selectedRole === 'Vice Principal'
-                        ? 'selected'
-                        : ''}
-                >
-                    Vice Principal
-                </option>
-
-
-                <option
-                    value="Class Teacher"
-                    ${selectedRole === 'Class Teacher'
-                        ? 'selected'
-                        : ''}
-                >
-                    Class Teacher
-                </option>
-
-
-                <option
-                    value="Non-Class Teacher"
-                    ${selectedRole === 'Non-Class Teacher'
-                        ? 'selected'
-                        : ''}
-                >
-                    Non-Class Teacher
-                </option>
-
-
-                <option
-                    value="Principal"
-                    ${selectedRole === 'Principal'
-                        ? 'selected'
-                        : ''}
-                >
-                    Principal
-                </option>
-
-
-                <option
-                    value="Administrator"
-                    ${selectedRole === 'Administrator'
-                        ? 'selected'
-                        : ''}
-                >
-                    Administrator
-                </option>
-
+                ${validRoles.map(role => `
+                    <option
+                        value="${role}"
+                        ${selectedRole === role ? "selected" : ""}
+                    >
+                        ${role}
+                    </option>
+                `).join("")}
             </select>
-
         `;
-
     }
-
 
 
     // =================================================
@@ -571,6 +785,72 @@
                     Assign Role
                 </button>
 
+
+                <button
+                    type="button"
+                    class="approval-btn deactivate"
+                    data-action="deactivate"
+                    data-employee-id="${escapeHTML(
+                        employeeId
+                    )}"
+                >
+                    Deactivate
+                </button>
+
+            `;
+
+        }
+
+
+        // ---------------------------------------------
+        // REJECTED
+        // ---------------------------------------------
+
+        else if (
+            status ===
+            'rejected'
+        ) {
+
+            html += `
+
+                <button
+                    type="button"
+                    class="approval-btn activate"
+                    data-action="activate"
+                    data-employee-id="${escapeHTML(
+                        employeeId
+                    )}"
+                >
+                    Re-activate
+                </button>
+
+            `;
+
+        }
+
+
+        // ---------------------------------------------
+        // INACTIVE
+        // ---------------------------------------------
+
+        else if (
+            status ===
+            'inactive'
+        ) {
+
+            html += `
+
+                <button
+                    type="button"
+                    class="approval-btn activate"
+                    data-action="activate"
+                    data-employee-id="${escapeHTML(
+                        employeeId
+                    )}"
+                >
+                    Activate
+                </button>
+
             `;
 
         }
@@ -581,43 +861,53 @@
     }
 
 
-
     // =================================================
-    // RENDER STAFF
+    // RENDER STAFF TABLE
     // =================================================
 
     function renderStaff() {
-
-        const tableBody =
-            document.getElementById(
-                'staffTableBody'
-            );
-
 
         if (!tableBody) {
             return;
         }
 
 
-        const accounts =
-            getAccounts();
-
-
         const staff =
-            accounts.filter(
-                function (account) {
+            getStaffAccounts();
 
-                    return (
-                        String(
-                            account.accountType ||
-                            account.type ||
-                            ''
-                        ).toLowerCase()
-                        === 'staff'
-                    );
 
-                }
-            );
+        const selectedStatus =
+            filterStatus
+                ? filterStatus.value
+                : 'all';
+
+
+        let filteredStaff =
+            staff;
+
+
+        if (
+            selectedStatus !==
+            'all'
+        ) {
+
+            filteredStaff =
+                staff.filter(
+                    function (account) {
+
+                        return (
+                            String(
+                                account.status ||
+                                ''
+                            )
+                            .toLowerCase() ===
+                            selectedStatus
+                        );
+
+                    }
+                );
+
+        }
 
 
         tableBody.innerHTML =
@@ -625,51 +915,42 @@
 
 
         if (
-            staff.length ===
+            filteredStaff.length ===
             0
         ) {
 
-            tableBody.innerHTML = `
+            if (emptyState) {
 
-                <tr>
+                emptyState.style.display =
+                    'block';
 
-                    <td
-                        colspan="6"
-                        class="empty-state"
-                    >
-                        No staff accounts found.
-                    </td>
+            }
 
-                </tr>
-
-            `;
-
-            updateSummary();
 
             return;
 
         }
 
 
-        staff.forEach(
+        if (emptyState) {
+
+            emptyState.style.display =
+                'none';
+
+        }
+
+
+        filteredStaff.forEach(
             function (account) {
+
+                const row =
+                    document.createElement(
+                        'tr'
+                    );
+
 
                 const employeeId =
                     account.employeeId ||
-                    account.employee_code ||
-                    'Not available';
-
-
-                const name =
-                    account.name ||
-                    account.full_name ||
-                    'Not available';
-
-
-                const email =
-                    account.email ||
-                    account.educationalEmail ||
-                    account.educational_email ||
                     'Not available';
 
 
@@ -683,13 +964,9 @@
                     'Pending';
 
 
-                const row =
-                    document.createElement(
-                        'tr'
-                    );
-
-
                 row.innerHTML = `
+
+                    <!-- EMPLOYEE ID -->
 
                     <td>
 
@@ -702,23 +979,53 @@
                     </td>
 
 
+                    <!-- STAFF NAME -->
+
                     <td>
 
-                        ${escapeHTML(
-                            name
-                        )}
+                        <div class="staff-name">
+                            ${escapeHTML(
+                                account.name ||
+                                'Unnamed Staff'
+                            )}
+                        </div>
 
                     </td>
 
 
+                    <!-- EMAIL -->
+
                     <td>
 
-                        ${escapeHTML(
-                            email
-                        )}
+                        <div class="staff-email">
+                            ${escapeHTML(
+                                account.email ||
+                                ''
+                            )}
+                        </div>
 
                     </td>
 
+
+                    <!-- STATUS -->
+
+                    <td>
+
+                        <span
+                            class="status-badge
+                            ${getStatusClass(
+                                status
+                            )}"
+                        >
+                            ${escapeHTML(
+                                status
+                            )}
+                        </span>
+
+                    </td>
+
+
+                    <!-- ROLE -->
 
                     <td>
 
@@ -730,28 +1037,7 @@
                     </td>
 
 
-                    <td>
-
-                        <span
-                            class="status-badge
-                            ${String(
-                                status
-                            )
-                            .toLowerCase()
-                            .replace(
-                                /\s+/g,
-                                '-'
-                            )}"
-                        >
-
-                            ${escapeHTML(
-                                status
-                            )}
-
-                        </span>
-
-                    </td>
-
+                    <!-- ACTION -->
 
                     <td>
 
@@ -777,115 +1063,7 @@
             }
         );
 
-
-        updateSummary();
-
     }
-
-
-
-    // =================================================
-    // UPDATE SUMMARY
-    // =================================================
-
-    function updateSummary() {
-
-        const accounts =
-            getAccounts();
-
-
-        const staff =
-            accounts.filter(
-                function (account) {
-
-                    return (
-                        String(
-                            account.accountType ||
-                            account.type ||
-                            ''
-                        ).toLowerCase()
-                        === 'staff'
-                    );
-
-                }
-            );
-
-
-        const pending =
-            staff.filter(
-                function (account) {
-
-                    return (
-                        String(
-                            account.status ||
-                            ''
-                        ).toLowerCase()
-                        === 'pending'
-                    );
-
-                }
-            ).length;
-
-
-        const active =
-            staff.filter(
-                function (account) {
-
-                    return (
-                        String(
-                            account.status ||
-                            ''
-                        ).toLowerCase()
-                        === 'active'
-                    );
-
-                }
-            ).length;
-
-
-        const pendingElement =
-            document.getElementById(
-                'pendingCount'
-            );
-
-
-        const activeElement =
-            document.getElementById(
-                'activeCount'
-            );
-
-
-        const totalElement =
-            document.getElementById(
-                'totalStaffCount'
-            );
-
-
-        if (pendingElement) {
-
-            pendingElement.textContent =
-                pending;
-
-        }
-
-
-        if (activeElement) {
-
-            activeElement.textContent =
-                active;
-
-        }
-
-
-        if (totalElement) {
-
-            totalElement.textContent =
-                staff.length;
-
-        }
-
-    }
-
 
 
     // =================================================
@@ -922,21 +1100,12 @@
             'Active';
 
 
-        /*
-         * Do NOT automatically assign a permanent
-         * application role.
-         *
-         * "Pending" is a UI approval state only.
-         *
-         * syncStaffProfileToSupabase() converts
-         * Pending to the valid database role:
-         *
-         * non_class_teacher
-         */
-
-
-        account.role =
-            'Pending';
+        // Keep the database role valid while approval is represented
+        // by active=false/true. New staff profiles begin as
+        // non_class_teacher until the Administrator assigns the role.
+        if (!account.role || String(account.role).toLowerCase() === 'pending') {
+            account.role = 'Non-Class Teacher';
+        }
 
 
         account.accountType =
@@ -956,11 +1125,7 @@
             accounts
         );
 
-
-        await syncStaffProfileToSupabase(
-            account
-        );
-
+        await syncStaffProfileToSupabase(account);
 
         showMessage(
             'Staff account approved. Please assign the staff role.'
@@ -972,7 +1137,6 @@
         renderStaff();
 
     }
-
 
 
     // =================================================
@@ -1016,51 +1180,26 @@
             getAccounts();
 
 
-        const index =
-            accounts.findIndex(
-                function (item) {
-
-                    return (
-                        String(
-                            item.employeeId ||
-                            item.employee_code ||
-                            ''
-                        ).trim()
-                        ===
-                        String(
-                            employeeId
-                        ).trim()
-                    );
-
-                }
+        const target =
+            findStaffByEmployeeId(
+                employeeId
             );
 
 
-        if (
-            index ===
-            -1
-        ) {
-
-            showMessage(
-                'Staff account could not be found.',
-                'error'
-            );
-
-            return;
-
-        }
+        target.status =
+            'Rejected';
 
 
-        accounts.splice(
-            index,
-            1
-        );
+        target.rejectedAt =
+            new Date()
+                .toISOString();
 
 
         saveAccounts(
             accounts
         );
 
+        await syncStaffProfileToSupabase(target);
 
         showMessage(
             'Staff account rejected.'
@@ -1074,15 +1213,152 @@
     }
 
 
+    // =================================================
+    // DEACTIVATE STAFF
+    // =================================================
+
+    async function deactivateStaff(
+        employeeId
+    ) {
+
+        const account =
+            findStaffByEmployeeId(
+                employeeId
+            );
+
+
+        if (!account) {
+
+            showMessage(
+                'Staff account could not be found.',
+                'error'
+            );
+
+            return;
+
+        }
+
+
+        const confirmed =
+            window.confirm(
+                'Are you sure you want to deactivate this Staff account?'
+            );
+
+
+        if (!confirmed) {
+            return;
+        }
+
+
+        const accounts =
+            getAccounts();
+
+
+        const target =
+            findStaffByEmployeeId(
+                employeeId
+            );
+
+
+        target.status =
+            'Inactive';
+
+
+        target.deactivatedAt =
+            new Date()
+                .toISOString();
+
+
+        saveAccounts(
+            accounts
+        );
+
+        await syncStaffProfileToSupabase(target);
+
+        showMessage(
+            'Staff account deactivated.'
+        );
+
+
+        updateSummary();
+
+        renderStaff();
+
+    }
+
+
+    // =================================================
+    // ACTIVATE STAFF
+    // =================================================
+
+    async function activateStaff(
+        employeeId
+    ) {
+
+        const accounts =
+            getAccounts();
+
+
+        const account =
+            findStaffByEmployeeId(
+                employeeId
+            );
+
+
+        if (!account) {
+
+            showMessage(
+                'Staff account could not be found.',
+                'error'
+            );
+
+            return;
+
+        }
+
+
+        account.status =
+            'Active';
+
+
+        account.activatedAt =
+            new Date()
+                .toISOString();
+
+
+        saveAccounts(
+            accounts
+        );
+
+        await syncStaffProfileToSupabase(account);
+
+        showMessage(
+            'Staff account activated.'
+        );
+
+
+        updateSummary();
+
+        renderStaff();
+
+    }
+
 
     // =================================================
     // ASSIGN ROLE
     // =================================================
 
     async function assignRole(
-        employeeId,
-        select
+        employeeId
     ) {
+
+        const select =
+            document.querySelector(
+                `.role-select[data-employee-id="${CSS.escape(
+                    String(employeeId)
+                )}"]`
+            );
+
 
         if (!select) {
 
@@ -1158,26 +1434,7 @@
             accounts
         );
 
-
-        const synced =
-            await syncStaffProfileToSupabase(
-                account
-            );
-
-
-        if (!synced) {
-
-            showMessage(
-                'Role was saved locally, but the SAMS profile could not be synchronized.',
-                'error'
-            );
-
-            renderStaff();
-
-            return;
-
-        }
-
+        await syncStaffProfileToSupabase(account);
 
         showMessage(
             'Role assigned successfully.'
@@ -1189,16 +1446,9 @@
     }
 
 
-
     // =================================================
     // TABLE BUTTON ACTIONS
     // =================================================
-
-    const tableBody =
-        document.getElementById(
-            'staffTableBody'
-        );
-
 
     if (tableBody) {
 
@@ -1228,7 +1478,7 @@
                 if (!employeeId) {
 
                     showMessage(
-                        'Employee ID could not be identified.',
+                        'Employee ID is missing.',
                         'error'
                     );
 
@@ -1237,46 +1487,98 @@
                 }
 
 
-                if (
-                    action ===
-                    'approve'
-                ) {
+                switch (action) {
 
-                    approveStaff(
-                        employeeId
-                    );
+                    case 'approve':
 
-                }
-
-
-                else if (
-                    action ===
-                    'reject'
-                ) {
-
-                    rejectStaff(
-                        employeeId
-                    );
-
-                }
-
-
-                else if (
-                    action ===
-                    'role'
-                ) {
-
-                    const select =
-                        tableBody.querySelector(
-                            `select.role-select[data-employee-id="${CSS.escape(
-                                employeeId
-                            )}"]`
+                        approveStaff(
+                            employeeId
                         );
 
+                        break;
+
+
+                    case 'reject':
+
+                        rejectStaff(
+                            employeeId
+                        );
+
+                        break;
+
+
+                    case 'role':
+
+                        assignRole(
+                            employeeId
+                        );
+
+                        break;
+
+
+                    case 'deactivate':
+
+                        deactivateStaff(
+                            employeeId
+                        );
+
+                        break;
+
+
+                    case 'activate':
+
+                        activateStaff(
+                            employeeId
+                        );
+
+                        break;
+
+                }
+
+            }
+        );
+
+    }
+
+
+    // =================================================
+    // ROLE DROPDOWN CHANGE
+    // =================================================
+
+    if (tableBody) {
+
+        tableBody.addEventListener(
+            'change',
+            function (event) {
+
+                if (
+                    !event.target.classList.contains(
+                        'role-select'
+                    )
+                ) {
+                    return;
+                }
+
+
+                const employeeId =
+                    event.target.dataset.employeeId;
+
+
+                if (!employeeId) {
+                    return;
+                }
+
+
+                // Only save when a real role
+                // is selected.
+
+                if (
+                    event.target.value !==
+                    'Pending'
+                ) {
 
                     assignRole(
-                        employeeId,
-                        select
+                        employeeId
                     );
 
                 }
@@ -1287,14 +1589,60 @@
     }
 
 
+    // =================================================
+    // FILTER
+    // =================================================
+
+    if (filterStatus) {
+
+        filterStatus.addEventListener(
+            'change',
+            function () {
+
+                renderStaff();
+
+            }
+        );
+
+    }
+
 
     // =================================================
-    // INITIAL RENDER
+    // BACK TO DASHBOARD
     // =================================================
 
-    renderStaff();
+    const backDashboardBtn =
+        document.getElementById(
+            'backDashboardBtn'
+        );
+
+
+    if (backDashboardBtn) {
+
+        backDashboardBtn.addEventListener(
+            'click',
+            function () {
+
+                window.location.href =
+                    'dashboard.html';
+
+            }
+        );
+
+    }
+
+
+    // =================================================
+    // INITIAL LOAD
+    // =================================================
 
     updateSummary();
 
+    renderStaff();
+
+    // Synchronize existing local staff profiles to Supabase once.
+    // This allows the same activated/assigned account to be recognized
+    // from another device when the corresponding Auth/profile ID exists.
+    syncAllStaffProfilesToSupabase();
 
 })();
