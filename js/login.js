@@ -207,11 +207,8 @@
             non_class_teacher:
                 "Non-Class Teacher",
 
-            teacher:
-                "Non-Class Teacher",
-
             assessor:
-                "Assessor",
+                "Non-Class Teacher",
 
             student:
                 "Student"
@@ -257,10 +254,6 @@
             "class_teacher",
 
             "non_class_teacher",
-
-            "teacher",
-
-            "assessor",
 
             "student"
 
