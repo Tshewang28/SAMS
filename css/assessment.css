@@ -1,0 +1,14 @@
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:#f5f7fb;color:#172033}.container{max-width:1300px;margin:auto;padding:30px}.page-header,.panel-head{display:flex;justify-content:space-between;align-items:center;gap:20px}.page-header{margin-bottom:22px}.eyebrow{font-size:11px;letter-spacing:.12em;font-weight:800;color:#6b7280}.page-header h1{margin:5px 0}.page-header p,.panel-head p{color:#6b7280;margin:0}.primary,.secondary,.action{border:0;border-radius:8px;padding:10px 15px;font-weight:700;cursor:pointer}.primary{background:#2563eb;color:white}.secondary{background:#e5e7eb;color:#374151}.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}.panel-head{padding:19px;border-bottom:1px solid #e5e7eb}.panel-head h2{margin:0 0 4px}.panel-head select,select,input,textarea{border:1px solid #d1d5db;border-radius:8px;padding:10px;font:inherit;background:white}select{min-width:210px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:800px}th,td{text-align:left;padding:14px 16px;border-bottom:1px solid #e5e7eb;vertical-align:top}th{font-size:12px;text-transform:uppercase;color:#6b7280;background:#f9fafb}.empty{text-align:center;color:#6b7280;padding:40px}.modal{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;padding:20px}.hidden{display:none}.modal-box{width:min(650px,100%);background:white;border-radius:14px}.modal-head{padding:20px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between}.modal-head h2{margin:0 0 5px}.modal-head p{margin:0;color:#6b7280;font-size:12px}.close{border:0;background:none;font-size:27px;color:#6b7280}.modal-box form{padding:20px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.modal-box form>div{margin-bottom:16px}.modal-box label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}.modal-box input,.modal-box textarea,.modal-box select{width:100%}.modal-box textarea{resize:vertical}.actions{display:flex;justify-content:flex-end;gap:8px}@media(max-width:650px){.container{padding:18px}.page-header,.panel-head{flex-direction:column;align-items:stretch}.form-grid{grid-template-columns:1fr}}
+
+.special-note{margin-top:14px;padding:13px 15px;border:1px dashed #93c5fd;background:#eff6ff;color:#1e40af;border-radius:9px;font-size:13px;line-height:1.5}
+
+.hidden{display:none!important}.special-note{margin-bottom:16px;padding:12px 14px;border:1px dashed #93c5fd;background:#eff6ff;color:#1e40af;border-radius:8px;font-size:13px;line-height:1.5}.special-point select{background:#f8fafc;color:#1d4ed8;font-weight:700}
+
+.header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.back-dashboard{text-decoration:none;display:inline-block;white-space:nowrap}
+
+/* Assessment criteria configuration is Administration-only. */
+#addCriteriaBtn.hidden,
+#actionHeader.hidden,
+.action-cell.hidden {
+  display: none !important;
+}

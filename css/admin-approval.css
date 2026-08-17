@@ -1,0 +1,864 @@
+/* =====================================================
+   SAMS - ADMINISTRATOR APPROVAL PAGE
+   ===================================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --primary: #123b5d;
+    --primary-light: #1976a8;
+    --primary-soft: #eef7fc;
+
+    --text: #17324d;
+    --muted: #7a8795;
+
+    --border: #dfe5ec;
+    --background: #f4f7fb;
+    --white: #ffffff;
+
+    --success: #23804b;
+    --success-bg: #edf8f1;
+
+    --warning: #8a6817;
+    --warning-bg: #fff8e6;
+
+    --danger: #c0392b;
+    --danger-bg: #fff0ef;
+
+    --shadow:
+        0 8px 25px
+        rgba(31, 41, 55, 0.07);
+}
+
+
+/* =====================================================
+   PAGE
+   ===================================================== */
+
+.admin-page {
+    min-height: 100vh;
+
+    background: var(--background);
+
+    padding: 30px;
+}
+
+
+/* =====================================================
+   MAIN CONTAINER
+   ===================================================== */
+
+.admin-container {
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto;
+}
+
+
+/* =====================================================
+   HEADER
+   ===================================================== */
+
+.admin-header {
+    background: var(--white);
+
+    border: 1px solid var(--border);
+
+    border-radius: 12px;
+
+    padding: 22px 25px;
+
+    margin-bottom: 20px;
+
+    box-shadow: var(--shadow);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+.admin-header h1 {
+    margin: 0;
+
+    color: var(--text);
+
+    font-size: 25px;
+}
+
+.admin-header p {
+    margin: 6px 0 0;
+
+    color: var(--muted);
+
+    font-size: 13px;
+}
+
+.admin-user {
+    text-align: right;
+}
+
+.admin-user-name {
+    color: var(--text);
+
+    font-size: 14px;
+
+    font-weight: 700;
+}
+
+.admin-user-role {
+    margin-top: 4px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+
+/* =====================================================
+   BACK BUTTON
+   ===================================================== */
+
+.back-dashboard {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    margin-bottom: 18px;
+
+    padding: 0;
+
+    border: none;
+
+    background: transparent;
+
+    color: var(--primary-light);
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.back-dashboard:hover {
+    color: var(--primary);
+}
+
+
+/* =====================================================
+   SUMMARY CARDS
+   ===================================================== */
+
+.approval-summary {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 16px;
+
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    background: var(--white);
+
+    border: 1px solid var(--border);
+
+    border-radius: 10px;
+
+    padding: 20px;
+
+    box-shadow: var(--shadow);
+}
+
+.summary-card-label {
+    color: var(--muted);
+
+    font-size: 12px;
+
+    font-weight: 600;
+}
+
+.summary-card-number {
+    margin-top: 8px;
+
+    color: var(--text);
+
+    font-size: 28px;
+
+    font-weight: 800;
+}
+
+.summary-card.pending {
+    border-left: 4px solid #f0a51a;
+}
+
+.summary-card.approved {
+    border-left: 4px solid var(--success);
+}
+
+.summary-card.rejected {
+    border-left: 4px solid var(--danger);
+}
+
+
+/* =====================================================
+   CONTENT CARD
+   ===================================================== */
+
+.approval-card {
+    background: var(--white);
+
+    border: 1px solid var(--border);
+
+    border-radius: 12px;
+
+    box-shadow: var(--shadow);
+
+    overflow: hidden;
+}
+
+.approval-card-header {
+    padding: 20px 22px;
+
+    border-bottom: 1px solid var(--border);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+}
+
+.approval-card-header h2 {
+    margin: 0;
+
+    color: var(--text);
+
+    font-size: 18px;
+}
+
+.approval-card-header p {
+    margin: 5px 0 0;
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+
+/* =====================================================
+   FILTER
+   ===================================================== */
+
+.approval-filter {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+.approval-filter label {
+    color: var(--muted);
+
+    font-size: 12px;
+
+    font-weight: 600;
+}
+
+.approval-filter select {
+    height: 38px;
+
+    padding: 0 12px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 7px;
+
+    background: white;
+
+    color: var(--text);
+
+    font-size: 12px;
+
+    outline: none;
+}
+
+.approval-filter select:focus {
+    border-color: var(--primary-light);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(25, 118, 168, 0.10);
+}
+
+
+/* =====================================================
+   TABLE
+   ===================================================== */
+
+.approval-table-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+.approval-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    min-width: 850px;
+}
+
+.approval-table th {
+    padding: 13px 15px;
+
+    background: #f7f9fb;
+
+    border-bottom: 1px solid var(--border);
+
+    color: #526273;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    text-align: left;
+
+    white-space: nowrap;
+}
+
+.approval-table td {
+    padding: 15px;
+
+    border-bottom: 1px solid #edf0f4;
+
+    color: var(--text);
+
+    font-size: 12px;
+
+    vertical-align: middle;
+}
+
+.approval-table tbody tr:hover {
+    background: #fbfcfd;
+}
+
+.approval-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+/* =====================================================
+   STAFF NAME
+   ===================================================== */
+
+.staff-name {
+    font-weight: 700;
+
+    color: var(--text);
+}
+
+.staff-email {
+    margin-top: 3px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+
+/* =====================================================
+   STATUS BADGES
+   ===================================================== */
+
+.status-badge {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    min-width: 72px;
+
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    font-size: 10px;
+
+    font-weight: 700;
+}
+
+.status-pending {
+    background: var(--warning-bg);
+
+    color: var(--warning);
+}
+
+.status-active,
+.status-approved {
+    background: var(--success-bg);
+
+    color: var(--success);
+}
+
+.status-rejected {
+    background: var(--danger-bg);
+
+    color: var(--danger);
+}
+
+.status-inactive {
+    background: #f0f2f4;
+
+    color: #687584;
+}
+
+
+/* =====================================================
+   ROLE
+   ===================================================== */
+
+.role-badge {
+    display: inline-block;
+
+    padding: 5px 9px;
+
+    border-radius: 6px;
+
+    background: var(--primary-soft);
+
+    color: var(--primary-light);
+
+    font-size: 10px;
+
+    font-weight: 700;
+}
+
+
+/* =====================================================
+   ACTION BUTTONS
+   ===================================================== */
+
+.approval-actions {
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    flex-wrap: wrap;
+}
+
+.approval-btn {
+    min-height: 32px;
+
+    padding: 6px 11px;
+
+    border: 1px solid transparent;
+
+    border-radius: 6px;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.approval-btn.approve {
+    background: var(--success);
+
+    color: white;
+}
+
+.approval-btn.approve:hover {
+    background: #1b693e;
+}
+
+.approval-btn.reject {
+    background: var(--danger);
+
+    color: white;
+}
+
+.approval-btn.reject:hover {
+    background: #a93226;
+}
+
+.approval-btn.edit {
+    background: var(--primary-soft);
+
+    color: var(--primary-light);
+
+    border-color: #cfe4f2;
+}
+
+.approval-btn.edit:hover {
+    background: #dceff9;
+}
+
+.approval-btn.activate {
+    background: var(--success-bg);
+
+    color: var(--success);
+
+    border-color: #c8e6d2;
+}
+
+.approval-btn.deactivate {
+    background: #f4f5f7;
+
+    color: #687584;
+
+    border-color: #dfe3e8;
+}
+
+.approval-btn.delete {
+    background: var(--danger-bg);
+
+    color: var(--danger);
+
+    border-color: #f1ceca;
+}
+
+
+/* =====================================================
+   EMPTY STATE
+   ===================================================== */
+
+.empty-state {
+    padding: 65px 25px;
+
+    text-align: center;
+
+    color: var(--muted);
+}
+
+.empty-state-icon {
+    width: 62px;
+
+    height: 62px;
+
+    margin: 0 auto 15px;
+
+    border-radius: 50%;
+
+    background: #f0f3f6;
+
+    color: #8a96a3;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-weight: 800;
+
+    font-size: 14px;
+}
+
+.empty-state h3 {
+    margin: 0 0 6px;
+
+    color: var(--text);
+
+    font-size: 16px;
+}
+
+.empty-state p {
+    margin: 0;
+
+    font-size: 12px;
+}
+
+
+/* =====================================================
+   MESSAGE
+   ===================================================== */
+
+.approval-message {
+    margin: 0 22px 20px;
+
+    padding: 12px 14px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+.approval-message.success {
+    background: var(--success-bg);
+
+    border: 1px solid #c8e6d2;
+
+    color: var(--success);
+}
+
+.approval-message.error {
+    background: var(--danger-bg);
+
+    border: 1px solid #f1ceca;
+
+    color: var(--danger);
+}
+
+
+/* =====================================================
+   ROLE ASSIGNMENT
+   ===================================================== */
+
+.role-select {
+    width: 100%;
+
+    min-width: 150px;
+
+    height: 35px;
+
+    padding: 0 9px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 6px;
+
+    background: white;
+
+    color: var(--text);
+
+    font-size: 11px;
+
+    outline: none;
+}
+
+.role-select:focus {
+    border-color: var(--primary-light);
+}
+
+
+/* =====================================================
+   MODAL
+   ===================================================== */
+
+.approval-modal {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 100;
+
+    display: none;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 20px;
+
+    background:
+        rgba(13, 31, 48, 0.45);
+}
+
+.approval-modal.show {
+    display: flex;
+}
+
+.approval-modal-card {
+    width: 100%;
+
+    max-width: 480px;
+
+    max-height: 90vh;
+
+    overflow-y: auto;
+
+    background: white;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 20px 55px
+        rgba(0, 0, 0, 0.18);
+}
+
+.approval-modal-header {
+    padding: 18px 20px;
+
+    border-bottom: 1px solid var(--border);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+}
+
+.approval-modal-header h2 {
+    margin: 0;
+
+    font-size: 17px;
+
+    color: var(--text);
+}
+
+.modal-close {
+    border: none;
+
+    background: transparent;
+
+    color: var(--muted);
+
+    font-size: 22px;
+
+    cursor: pointer;
+}
+
+.approval-modal-body {
+    padding: 20px;
+}
+
+.approval-modal-footer {
+    padding: 15px 20px;
+
+    border-top: 1px solid var(--border);
+
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 9px;
+}
+
+
+/* =====================================================
+   FORM
+   ===================================================== */
+
+.approval-form-group {
+    margin-bottom: 16px;
+}
+
+.approval-form-group label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: #374151;
+
+    font-size: 12px;
+
+    font-weight: 600;
+}
+
+.approval-form-group input,
+.approval-form-group select {
+    width: 100%;
+
+    height: 42px;
+
+    padding: 0 11px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 7px;
+
+    background: white;
+
+    color: var(--text);
+
+    font-size: 12px;
+
+    outline: none;
+}
+
+.approval-form-group input:focus,
+.approval-form-group select:focus {
+    border-color: var(--primary-light);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(25, 118, 168, 0.10);
+}
+
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 850px) {
+
+    .admin-page {
+        padding: 18px;
+    }
+
+    .approval-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+    .admin-user {
+        text-align: left;
+    }
+
+    .approval-card-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+    .approval-filter {
+        width: 100%;
+    }
+
+    .approval-filter select {
+        flex: 1;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .admin-page {
+        padding: 12px;
+    }
+
+    .admin-header {
+        padding: 18px;
+    }
+
+    .admin-header h1 {
+        font-size: 21px;
+    }
+
+    .approval-card-header {
+        padding: 16px;
+    }
+
+}

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reports | SAMS</title>
+<link rel="stylesheet" href="css/reports.css">
+</head>
+<body>
+<div class="reports-page">
+  <header class="reports-header">
+    <div>
+      <span class="brand-kicker">SAMS • REPORTS</span>
+      <h1>Assessment Reports</h1>
+      <p>Clear, accurate reports generated directly from Assessment Results.</p>
+    </div>
+    <a class="back-btn" href="dashboard.html">← Back to Dashboard</a>
+  </header>
+
+  <main class="reports-main">
+    <section class="report-hero">
+      <div class="hero-icon">▤</div>
+      <div>
+        <span class="eyebrow">AUTOMATIC REPORTING</span>
+        <h2>Assessment results, presented clearly.</h2>
+        <p>Individual reports keep Discipline deductions student-specific. Class reports show the complete class picture.</p>
+      </div>
+    </section>
+
+    <section class="report-choice-grid">
+      <button class="report-choice active" id="individualTab" type="button">
+        <span class="choice-icon">👤</span>
+        <span><strong>Individual Student Report</strong><small>View one student's complete result.</small></span>
+      </button>
+      <button class="report-choice" id="classTab" type="button">
+        <span class="choice-icon">🏫</span>
+        <span><strong>Class Report</strong><small>View every student's result in a class.</small></span>
+      </button>
+    </section>
+
+    <section id="individualReport" class="report-panel">
+      <div class="panel-heading">
+        <div><span class="eyebrow">INDIVIDUAL STUDENT</span><h2>Student Report</h2></div>
+      </div>
+      <div class="selection-grid">
+        <label>Class / Grade<select id="individualClass"><option value="">Select Class</option></select></label>
+        <label>Section / Stream<select id="individualSection" disabled><option value="">Select Section / Stream</option></select></label>
+        <label>Student<select id="individualStudent" disabled><option value="">Select Student</option></select></label>
+      </div>
+      <div id="individualEmpty" class="empty-state">Select a class, section and student to view the report.</div>
+      <div id="individualResult" class="result-area hidden"></div>
+    </section>
+
+    <section id="classReport" class="report-panel hidden">
+      <div class="panel-heading">
+        <div><span class="eyebrow">CLASS REPORT</span><h2>Class Assessment Report</h2></div>
+      </div>
+      <div class="selection-grid class-selection">
+        <label>Class / Grade<select id="classReportClass"><option value="">Select Class</option></select></label>
+        <label>Section / Stream<select id="classReportSection" disabled><option value="">Select Section / Stream</option></select></label>
+      </div>
+      <div id="classEmpty" class="empty-state">Select a class and section to view the report.</div>
+      <div id="classResult" class="result-area hidden"></div>
+    </section>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/sams-cloud.js"></script>
+<script src="js/auth-sync.js"></script>
+<script src="js/reports.js"></script>
+</body>
+</html>

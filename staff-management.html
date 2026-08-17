@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Management | SAMS</title>
+<link rel="stylesheet" href="css/classes.css">
+<style>
+/* STAFF MANAGEMENT — classes.html visual language */
+.staff-table-wrap{overflow-x:auto;}
+.staff-table{width:100%;border-collapse:collapse;min-width:900px;}
+.staff-table th{background:#f5f8fb;color:#55718d;text-align:left;font-size:13px;letter-spacing:.04em;padding:15px 18px;border-bottom:1px solid #dfe7ef;}
+.staff-table td{padding:17px 18px;border-bottom:1px solid #e8eef4;color:#284c70;vertical-align:middle;}
+.staff-table tbody tr:hover{background:#fbfdff;}
+.staff-name{font-weight:700;color:#163b63;font-size:15px;}
+.staff-email{font-size:13px;color:#70839a;margin-top:4px;}
+.role-badge,.status-badge,.assessor-badge{display:inline-flex;align-items:center;padding:7px 11px;border-radius:999px;font-size:12px;font-weight:700;background:#eef5fb;color:#1d5d93;}
+.status-badge.active{background:#e1f5ea;color:#16804a;}
+.status-badge.pending{background:#fff3d6;color:#9a6800;}
+.status-badge.rejected{background:#fde8e8;color:#b42318;}
+.assessor-badge.yes{background:#e7f7ef;color:#14804a;}
+.assessor-badge.no{background:#f0f3f6;color:#718096;}
+.action-group{display:flex;gap:8px;flex-wrap:wrap;}
+.action-btn{border:0;border-radius:7px;padding:8px 12px;font-weight:700;cursor:pointer;font-size:13px;}
+.action-btn.edit{background:#e8f1fa;color:#16598d;}
+.action-btn.delete{background:#fde7e7;color:#b42318;}
+.action-btn.assessor{background:#e8f5ee;color:#137444;}
+.action-btn.remove-assessor{background:#eaf0f6;color:#345b7e;}
+.view-only-notice{margin:18px 24px;padding:12px 14px;background:#f4f8fc;border:1px solid #dbe7f1;border-radius:8px;color:#60758b;font-size:13px;}
+.view-only-notice strong{color:#164a7b;}
+.empty-state{text-align:center;padding:35px!important;color:#718096!important;}
+/* compact modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(18,48,78,.48);display:none;align-items:center;justify-content:center;z-index:2000;padding:18px;}
+.modal-backdrop.show{display:flex;}
+.modal{width:min(620px,100%);max-height:calc(100vh - 36px);overflow:auto;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+/* Staff Management modal must override the legacy .modal rule from classes.css. */
+#staffModal > .modal{display:block;position:relative;inset:auto;width:min(620px,100%);max-height:calc(100vh - 36px);overflow:auto;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:17px 20px;border-bottom:1px solid #e3eaf1;}
+.modal-header h3{margin:0;color:#163b63;font-size:21px;}
+.modal-close{border:0;background:transparent;font-size:26px;color:#718096;cursor:pointer;}
+.modal-body{padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group label{font-size:13px;font-weight:700;color:#55718d;}
+.form-group input,.form-group select{width:100%;padding:11px 12px;border:1px solid #d4e0eb;border-radius:7px;font-size:14px;color:#284c70;background:#fff;}
+.modal-footer{padding:14px 20px;border-top:1px solid #e3eaf1;display:flex;justify-content:flex-end;gap:9px;position:sticky;bottom:0;background:#fff;}
+.btn{border:0;border-radius:7px;padding:10px 15px;font-weight:700;cursor:pointer;}
+.btn-primary{background:#164a7b;color:#fff;}
+.btn-secondary{background:#edf2f6;color:#345b7e;}
+@media(max-width:700px){.modal-body{grid-template-columns:1fr;}.modal{max-height:calc(100vh - 20px);}.main-content{padding:22px 14px!important;}}
+</style>
+<style>
+/* Final Staff Management responsive refinements */
+.action-btn.approve{background:#e2f6ea;color:#147a46;}
+.action-btn.reject{background:#fff0f0;color:#b42318;}
+.staff-table td:last-child{min-width:230px;}
+@media(max-width:900px){
+  .staff-table{min-width:820px;}
+  .class-card{overflow:hidden;}
+}
+@media(max-width:650px){
+  .modal-backdrop{padding:8px;align-items:flex-start;overflow:auto;}
+  .modal{width:100%;max-height:calc(100vh - 16px);margin-top:8px;border-radius:10px;}
+  .modal-header{padding:12px 15px;}
+  .modal-header h3{font-size:18px;}
+  .modal-body{padding:13px 15px;gap:10px;grid-template-columns:1fr 1fr;}
+  .form-group label{font-size:12px;}
+  .form-group input,.form-group select{padding:9px 10px;font-size:13px;}
+  .modal-footer{padding:10px 15px;}
+  .btn{padding:9px 12px;}
+}
+@media(max-width:480px){
+  .modal-body{grid-template-columns:1fr;}
+}
+</style>
+
+
+<style>
+/* Staff Management — intentionally follows the Classes page visual language. */
+.staff-management-card{overflow:hidden;}
+.staff-summary-strip{grid-template-columns:repeat(3,1fr);}
+.staff-table-wrap{width:100%;overflow-x:auto;}
+.staff-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.staff-table th{background:#f5f8fb;color:#55718d;text-align:left;font-size:13px;letter-spacing:.04em;padding:15px 18px;border-bottom:1px solid #dfe7ef;white-space:nowrap;}
+.staff-table td{padding:16px 18px;border-bottom:1px solid #e8eef4;color:#284c70;vertical-align:middle;}
+.staff-table tbody tr:hover{background:#fbfdff;}
+.staff-table th:nth-child(1){width:24%;}.staff-table th:nth-child(2){width:15%;}.staff-table th:nth-child(3){width:23%;}.staff-table th:nth-child(4){width:12%;}.staff-table th:nth-child(5){width:11%;}.staff-table th:nth-child(6){width:15%;}
+.staff-person{display:flex;align-items:center;gap:12px;min-width:0;}
+.staff-avatar{width:40px;height:40px;flex:0 0 40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#edf4fb;color:#164a7b;font-weight:800;font-size:14px;}
+.staff-name{font-weight:700;color:#163b63;font-size:15px;line-height:1.25;}
+.staff-email,.employee-id{font-size:13px;color:#70839a;margin-top:4px;overflow-wrap:anywhere;}
+.employee-id{margin-top:2px;}
+.role-badge,.status-badge,.assessor-badge{display:inline-flex;align-items:center;padding:7px 11px;border-radius:999px;font-size:12px;font-weight:700;background:#eef5fb;color:#1d5d93;white-space:nowrap;}
+.status-badge.active{background:#e1f5ea;color:#16804a;}.status-badge.pending{background:#fff3d6;color:#9a6800;}.status-badge.rejected{background:#fde8e8;color:#b42318;}
+.assessor-badge.yes{background:#e7f7ef;color:#14804a;}.assessor-badge.no{background:#f0f3f6;color:#718096;}
+.action-buttons,.action-group{display:flex;gap:7px;flex-wrap:wrap;}
+.action-button,.action-btn{border:0;border-radius:7px;padding:7px 10px;font-weight:700;cursor:pointer;font-size:12px;white-space:nowrap;}
+.approve-button{background:#e2f6ea;color:#147a46;}.reject-button,.delete-button{background:#fde7e7;color:#b42318;}.assessor-button{background:#e8f5ee;color:#137444;}
+.role-select{width:100%;max-width:170px;padding:8px 10px;border:1px solid #d4e0eb;border-radius:7px;background:#fff;color:#284c70;font-size:13px;}
+.read-only-role{font-weight:700;color:#345b7e;}
+.assignment-inline{display:flex;gap:6px;align-items:end;flex-wrap:wrap;}
+.assignment-field{display:flex;flex-direction:column;gap:3px;min-width:70px;}.assignment-field label{font-size:10px;font-weight:700;color:#7890a7;text-transform:uppercase;}
+.assignment-select{padding:7px 8px;border:1px solid #d4e0eb;border-radius:6px;background:#fff;color:#284c70;font-size:12px;}
+.no-assignment{color:#718096;font-size:13px;}.read-only-assignment{font-weight:600;color:#55718d;}
+.empty-state{text-align:center;padding:38px!important;color:#718096!important;}
+.view-only-notice{margin:18px 24px;padding:12px 14px;background:#f4f8fc;border:1px solid #dbe7f1;border-radius:8px;color:#60758b;font-size:13px;}
+.view-only-notice strong{color:#164a7b;}
+@media(max-width:1050px){.staff-table{min-width:900px;table-layout:auto;}.staff-table-wrap{overflow-x:auto;}}
+@media(max-width:700px){.staff-summary-strip{grid-template-columns:1fr;}.staff-table{min-width:900px;}.main-content{padding:22px 14px!important;}}
+</style>
+
+<style>
+/* Final compact staff table: all seven columns fit on desktop without horizontal shifting. */
+.staff-table-wrap{width:100%;overflow-x:hidden;}
+.staff-table{width:100%;min-width:0!important;table-layout:fixed;}
+.staff-table th,.staff-table td{padding-left:10px!important;padding-right:10px!important;}
+.staff-table th:nth-child(1),.staff-table td:nth-child(1){width:5%!important;text-align:center;}
+.staff-table th:nth-child(2),.staff-table td:nth-child(2){width:25%!important;}
+.staff-table th:nth-child(3),.staff-table td:nth-child(3){width:15%!important;}
+.staff-table th:nth-child(4),.staff-table td:nth-child(4){width:20%!important;}
+.staff-table th:nth-child(5),.staff-table td:nth-child(5){width:9%!important;text-align:center;}
+.staff-table th:nth-child(6),.staff-table td:nth-child(6){width:10%!important;text-align:center;}
+.staff-table th:nth-child(7),.staff-table td:nth-child(7){width:16%!important;}
+.staff-table .sl-number{font-weight:700;color:#58708b;}
+.staff-table .staff-person{gap:8px;}
+.staff-table .staff-avatar{width:34px;height:34px;flex:0 0 34px;font-size:12px;}
+.staff-table .staff-name{font-size:14px;}
+.staff-table .staff-email,.staff-table .employee-id{font-size:11px;}
+.staff-table .action-buttons,.staff-table .action-group{gap:4px;flex-wrap:nowrap;}
+.staff-table .action-button,.staff-table .action-btn{padding:6px 7px;font-size:11px;}
+@media(max-width:1050px){.staff-table-wrap{overflow-x:auto;}.staff-table{min-width:760px!important;}}
+@media(max-width:700px){.staff-table-wrap{overflow-x:auto;}.staff-table{min-width:760px!important;}.staff-table th,.staff-table td{padding-left:8px!important;padding-right:8px!important;}}
+</style>
+</head>
+<body>
+<div class="classes-page">
+  <header class="classes-header">
+    <div class="header-left">
+      <div class="sams-logo">SAMS</div>
+      <div class="header-divider"></div>
+      <div class="header-title">
+        <h1>Staff Management</h1>
+        <p>Manage SAMS staff users, roles and assessor appointments</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="notification"><span class="notification-icon">♧</span><span id="notificationCount" class="notification-count">0</span></div>
+      <div class="current-user">
+        <div class="current-user-text"><strong id="userName">User</strong><span id="userRole">Loading...</span></div>
+        <div id="userAvatar" class="user-avatar">U</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="page-title-row">
+      <div>
+        <h2>Staff Management</h2>
+        <p>View registered staff, approve accounts, assign roles and manage assessor appointments.</p>
+      </div>
+      <button id="backDashboard" class="back-dashboard" type="button">← Back to Dashboard</button>
+    </div>
+
+    <section class="class-card staff-management-card">
+      <div class="class-card-header">
+        <div>
+          <h3>Staff Users</h3>
+          <p id="pageDescription">Registered SAMS staff accounts</p>
+        </div>
+        <div class="class-card-actions" id="principalActions">
+          <button class="primary-button" id="addStaffButton" type="button">＋ Add Staff</button>
+        </div>
+      </div>
+
+      <div class="class-info-strip staff-summary-strip">
+        <div><span>TOTAL STAFF</span><strong id="totalStaffCount">0</strong></div>
+        <div><span>ACTIVE</span><strong id="activeStaffCount">0</strong></div>
+        <div><span>PENDING APPROVAL</span><strong id="pendingStaffCount">0</strong></div>
+      </div>
+
+      <div class="view-only-notice" style="display:none;">
+        <strong>View Only</strong> — You can view the staff list, but you cannot change staff accounts.
+      </div>
+
+      <div class="staff-table-wrap">
+        <table class="staff-table">
+          <thead>
+            <tr>
+              <th class="sl-col">#</th>
+              <th>STAFF</th>
+              <th>ROLE</th>
+              <th>CLASS / SECTION</th>
+              <th>ASSESSOR</th>
+              <th>STATUS</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="staffTableBody">
+            <tr><td colspan="7" class="empty-state">Loading staff users...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">© <span id="footerYear"></span> Student Assessment Management System. All rights reserved.</footer>
+  <button id="logoutButton" type="button" style="display:none">Logout</button>
+<!-- =========================================================
+     ADD / EDIT STAFF MODAL
+     PRINCIPAL ONLY
+     ========================================================= -->
+
+<div
+    class="modal-backdrop"
+    id="staffModal"
+>
+
+    <div class="modal">
+
+
+        <div class="modal-header">
+
+            <h3 id="modalTitle">
+                Add Staff
+            </h3>
+
+            <button
+                class="modal-close"
+                id="closeModalButton"
+                type="button"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+
+            <input
+                type="hidden"
+                id="staffId"
+            >
+
+
+            <div class="form-group">
+
+                <label for="staffName">
+                    Full Name
+                </label>
+
+                <input
+                    id="staffName"
+                    type="text"
+                    placeholder="Enter full name"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="staffEmail">
+                    Educational Email
+                </label>
+
+                <input
+                    id="staffEmail"
+                    type="email"
+                    placeholder="name@education.gov.bt"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="staffRole">
+                    Role
+                </label>
+
+                <select id="staffRole">
+
+                    <option value="class_teacher">
+                        Class Teacher
+                    </option>
+
+                    <option value="assessor">
+                        Assessor
+                    </option>
+
+                    <option value="principal">
+                        Principal
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="form-group">
+                <label for="staffClass">Class</label>
+                <select id="staffClass">
+                    <option value="">Select Class</option>
+                    <option value="IV">IV</option>
+                    <option value="V">V</option>
+                    <option value="VI">VI</option>
+                    <option value="VII">VII</option>
+                    <option value="VIII">VIII</option>
+                    <option value="IX">IX</option>
+                    <option value="X">X</option>
+                    <option value="XI">XI</option>
+                    <option value="XII">XII</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="staffSection">Section</label>
+                <select id="staffSection">
+                    <option value="">Select Section</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                </select>
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="staffStatus">
+                    Status
+                </label>
+
+                <select id="staffStatus">
+
+                    <option value="pending">
+                        Pending
+                    </option>
+
+                    <option value="active">
+                        Active
+                    </option>
+
+                    <option value="inactive">
+                        Inactive
+                    </option>
+
+                    <option value="rejected">
+                        Rejected
+                    </option>
+
+                </select>
+
+            </div>
+
+
+        </div>
+
+
+        <div class="modal-footer">
+
+            <button
+                class="btn btn-secondary"
+                id="cancelModalButton"
+                type="button"
+            >
+                Cancel
+            </button>
+
+            <button
+                class="btn btn-primary"
+                id="saveStaffButton"
+                type="button"
+            >
+                Save Staff
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     SCRIPTS
+     ========================================================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="js/supabase-config.js"></script>
+
+<script src="js/sams-cloud.js"></script>
+
+<script src="js/auth-sync.js"></script>
+
+
+<script>
+"use strict";
+
+/* =========================================================
+   SAMS STAFF MANAGEMENT - CLEAN REPLACEMENT SCRIPT
+   ========================================================= */
+
+let currentUser = null;
+let currentRole = "";
+let staffList = [];
+let editingStaffId = null;
+
+function normaliseRole(role) {
+    return String(role || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[-_]+/g, " ")
+        .replace(/\s+/g, " ");
+}
+
+function isAdministrator(role) {
+    const r = normaliseRole(role);
+    return r === "administrator" || r === "admin" || r === "administration";
+}
+
+function isPrincipal(role) {
+    const r = normaliseRole(role);
+    return r === "principal" || r === "school principal";
+}
+
+function isVicePrincipal(role) {
+    const r = normaliseRole(role);
+    return r === "vice principal" || r === "viceprincipal" || r === "vp";
+}
+
+function isClassTeacher(role) {
+    const r = normaliseRole(role);
+    return r === "class teacher" || r === "classteacher";
+}
+
+function isTeacher(role) {
+    return normaliseRole(role) === "teacher";
+}
+
+function isNonClassTeacher(role) {
+    const r = normaliseRole(role);
+    return r === "non class teacher" || r === "non-class teacher";
+}
+
+/* Principal, Vice Principal and Administrator may manage staff. */
+function hasFullStaffManagementAccess(role) {
+    return isAdministrator(role) || isPrincipal(role) || isVicePrincipal(role);
+}
+
+function isStaffViewOnly(role) {
+    return isClassTeacher(role) || isTeacher(role) || isNonClassTeacher(role);
+}
+
+/*
+ * ASSESSOR ELIGIBILITY
+ * ---------------------------------------------------------
+ * Administration, Principal and Vice Principal MANAGE
+ * assessor appointments.
+ *
+ * The person being appointed as an assessor may be:
+ *   - Vice Principal
+ *   - Non-Class Teacher
+ *
+ * Class Teachers must NEVER be appointed as assessors.
+ * Administrator and Principal remain management roles and
+ * are not automatically made assessors by this button.
+ */
+function isAssessorEligible(staff) {
+    const role = normaliseRole(
+        staff?.role ||
+        staff?.staffRole ||
+        staff?.position ||
+        staff?.userRole ||
+        ""
+    );
+
+    return (
+        role === "vice principal" ||
+        role === "non class teacher" ||
+        role === "non-class teacher"
+    );
+}
+
+/* =========================================================
+   CURRENT USER
+   ========================================================= */
+
+function getAccounts() {
+    try {
+        const raw = localStorage.getItem("sams_accounts");
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.warn("Unable to read sams_accounts:", error);
+        return [];
+    }
+}
+
+function getStoredUser() {
+    const sessionEmail = String(sessionStorage.getItem("sams_email") || "")
+        .trim()
+        .toLowerCase();
+
+    if (sessionEmail) {
+        const account = getAccounts().find(item => {
+            const email = String(
+                item?.email || item?.educationalEmail || item?.educational_email || ""
+            ).trim().toLowerCase();
+            return email === sessionEmail;
+        });
+        if (account) return account;
+    }
+
+    try {
+        const saved = sessionStorage.getItem("sams_current_user");
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === "object") return parsed;
+        }
+    } catch (error) {
+        console.warn("Unable to read sams_current_user:", error);
+    }
+
+    const fallbackKeys = [
+        "samsCurrentUser", "currentUser", "samsUser", "user", "loggedInUser", "authUser"
+    ];
+
+    for (const key of fallbackKeys) {
+        try {
+            const saved = localStorage.getItem(key);
+            if (!saved) continue;
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === "object") return parsed;
+        } catch (error) {
+            console.warn("Unable to read user:", key);
+        }
+    }
+
+    return null;
+}
+
+function getUserRole(user) {
+    if (!user) return "";
+    return normaliseRole(
+        user.role ||
+        user.staffRole ||
+        user.userRole ||
+        user.user_role ||
+        user.designation ||
+        user.position ||
+        user.account_role ||
+        user.accountType ||
+        ""
+    );
+}
+
+function currentUserIsAssessor() {
+    return currentUser?.isAssessor === true ||
+        currentUser?.is_assessor === true ||
+        String(currentUser?.isAssessor || currentUser?.is_assessor || "").toLowerCase() === "true";
+}
+
+/* =========================================================
+   PAGE PERMISSIONS
+   ========================================================= */
+
+function applyPermissions() {
+    const role = normaliseRole(currentRole);
+    const assessmentNav = document.getElementById("assessmentNav");
+    const principalActions = document.getElementById("principalActions");
+    const actionsHeader = document.getElementById("actionsHeader");
+    const description = document.getElementById("pageDescription");
+    const notice = document.querySelector(".view-only-notice");
+
+    document.body.classList.remove("class-teacher", "principal", "view-only");
+
+    const fullAccess = hasFullStaffManagementAccess(role);
+    const assessmentAccess = isPrincipal(role) || (isVicePrincipal(role) && currentUserIsAssessor());
+
+    if (fullAccess) {
+        document.body.classList.add("principal");
+        if (principalActions) principalActions.style.display = "flex";
+        if (actionsHeader) actionsHeader.style.display = "table-cell";
+        if (notice) notice.style.display = "none";
+        if (description) description.textContent = "View all registered SAMS staff. Only Administrator, Principal and Vice Principal can edit, delete, approve or manage assessor appointments.";
+    } else {
+        document.body.classList.add("view-only");
+        if (principalActions) principalActions.style.display = "none";
+        if (actionsHeader) actionsHeader.style.display = "none";
+        if (notice) notice.style.display = "block";
+        if (description) description.textContent = "All registered SAMS staff are visible. Staff management actions are restricted to Administrator, Principal and Vice Principal.";
+    }
+
+    if (assessmentNav) {
+        assessmentNav.style.display = assessmentAccess ? "flex" : "none";
+    }
+}
+
+function updateUserDisplay() {
+    const nameElement = document.getElementById("userName");
+    const roleElement = document.getElementById("userRole");
+    const avatarElement = document.getElementById("userAvatar");
+
+    const name = currentUser?.name ||
+        currentUser?.full_name ||
+        currentUser?.fullName ||
+        currentUser?.staffName ||
+        currentUser?.display_name ||
+        currentUser?.email ||
+        "User";
+
+    const displayRole = currentRole
+        ? currentRole.replace(/\b\w/g, c => c.toUpperCase())
+        : "User";
+
+    if (nameElement) nameElement.textContent = name;
+    if (roleElement) roleElement.textContent = displayRole;
+    if (avatarElement) avatarElement.textContent = String(name).charAt(0).toUpperCase();
+}
+
+function showDate() {
+    const element = document.getElementById("currentDate");
+    if (!element) return;
+    element.textContent = new Date().toLocaleDateString("en-GB", {
+        day: "numeric", month: "long", year: "numeric"
+    });
+}
+
+function requireManagementAccess() {
+    if (!hasFullStaffManagementAccess(currentRole)) {
+        alert("Staff management changes are not available for your role.");
+        return false;
+    }
+    return true;
+}
+
+/* =========================================================
+   STAFF DATA
+   ========================================================= */
+
+function isStaffAccount(account) {
+    if (!account || typeof account !== "object") return false;
+    const role = normaliseRole(
+        account.role || account.staffRole || account.userRole || account.position || account.accountType || ""
+    );
+    const type = normaliseRole(account.accountType || account.type || "");
+    return type === "staff" || !!account.email || !!account.educationalEmail || !!role;
+}
+
+function getLocalStaff() {
+    const accounts = getAccounts().filter(isStaffAccount);
+    if (accounts.length) return accounts;
+
+    const keys = ["samsStaff", "staffUsers", "staff", "users", "samsUsers"];
+    for (const key of keys) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) continue;
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed;
+            if (parsed?.users && Array.isArray(parsed.users)) return parsed.users;
+            if (parsed?.staff && Array.isArray(parsed.staff)) return parsed.staff;
+        } catch (error) {
+            console.warn("Could not read staff data:", key);
+        }
+    }
+    return [];
+}
+
+function normaliseStaff(staff, index) {
+    let role = normaliseRole(
+        staff.role || staff.user_role || staff.userRole || staff.staffRole || staff.position || ""
+    );
+
+    return {
+        id: staff.id || staff.user_id || staff.userId || `staff-${index}`,
+        name: staff.name || staff.full_name || staff.fullName || staff.display_name || staff.username || staff.email || "Unnamed User",
+        email: staff.email || staff.educational_email || staff.educationalEmail || "",
+        role,
+        assignedClass: staff.assigned_class || staff.assignedClass || "",
+        assignedSection: staff.assigned_section || staff.assignedSection || "",
+        classSection: [staff.assigned_class, staff.assigned_section].filter(Boolean).join(" ") || staff.class_section || staff.classSection || "—",
+        assessor: staff.isAssessor === true || staff.is_assessor === true || staff.assessor === true || String(staff.isAssessor || staff.is_assessor || staff.assessor || "").toLowerCase() === "true",
+        status: normaliseRole(staff.status || (staff.active === true ? "active" : "pending")),
+        raw: staff
+    };
+}
+
+async function loadStaff() {
+    const tbody = document.getElementById("staffTableBody");
+    if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-state">Loading registered staff...</td></tr>`;
+    }
+
+    try {
+        if (!window.samsSupabase) {
+            staffList = getLocalStaff().map(normaliseStaff).filter(s => normaliseRole(s.role) !== "student");
+            renderStaff();
+            return;
+        }
+
+        let data = null;
+        let error = null;
+
+        const fullQuery = await window.samsSupabase
+            .from("profiles")
+            .select("id, full_name, email, employee_code, role, active, status, is_assessor, assigned_class, assigned_section, created_at")
+            .order("created_at", { ascending: true });
+
+        data = fullQuery.data;
+        error = fullQuery.error;
+
+        // Some older SAMS databases may not yet have optional staff fields.
+        // Fall back to the original core profile columns so the staff list
+        // still loads instead of becoming blank.
+        if (error) {
+            console.warn("Optional staff profile columns unavailable; loading core profile fields.", error);
+            const coreQuery = await window.samsSupabase
+                .from("profiles")
+                .select("id, full_name, email, employee_code, role, active, is_assessor, created_at")
+                .order("created_at", { ascending: true });
+            data = coreQuery.data;
+            error = coreQuery.error;
+        }
+
+        if (error) throw error;
+
+        const profiles = Array.isArray(data) ? data : [];
+
+        // Central Supabase database is the source of truth.
+        // Students are excluded; every registered non-student staff profile is shown.
+        staffList = profiles
+            .filter(p => !isExplicitStudentProfile(p))
+            .map((p, index) => normaliseStaff({
+                ...p,
+                name: p.full_name || p.email || "Unnamed Staff"
+            }, index));
+
+        renderStaff();
+    } catch (error) {
+        console.error("Unable to load staff from Supabase:", error);
+        staffList = getLocalStaff().map(normaliseStaff).filter(s => normaliseRole(s.role) !== "student");
+        renderStaff();
+    }
+}
+
+function isExplicitStudentProfile(profile) {
+    const role = normaliseRole(profile?.role || profile?.account_type || profile?.accountType || profile?.type || "");
+    return role === "student";
+}
+
+async function syncStaffProfileToSupabase(item) {
+    if (!window.samsSupabase || !item) return true;
+
+    const email = String(item.email || "").trim().toLowerCase();
+    if (!email) return false;
+
+    const roleMap = {
+        "administrator": "admin",
+        "admin": "admin",
+        "principal": "principal",
+        "vice principal": "vice_principal",
+        "viceprincipal": "vice_principal",
+        "vp": "vice_principal",
+        "class teacher": "class_teacher",
+        "classteacher": "class_teacher",
+        "teacher": "class_teacher",
+        "non class teacher": "non_class_teacher",
+        "non-class teacher": "non_class_teacher",
+        "non_class_teacher": "non_class_teacher",
+        "assessor": "assessor"
+    };
+
+    let profileId = String(item.id || "").trim();
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    if (!uuidPattern.test(profileId)) {
+        const lookup = await window.samsSupabase
+            .from("profiles")
+            .select("id")
+            .eq("email", email)
+            .maybeSingle();
+
+        if (lookup.error || !lookup.data?.id) {
+            console.error("Could not find SAMS profile for", email, lookup.error);
+            return false;
+        }
+        profileId = lookup.data.id;
+    }
+
+    const dbRole = roleMap[normaliseRole(item.role)];
+    if (!dbRole) {
+        console.error("Unsupported SAMS role:", item.role);
+        return false;
+    }
+
+    const isActive = normaliseRole(item.status) === "active";
+    const payload = {
+        full_name: item.name,
+        role: dbRole,
+        active: isActive,
+        status: isActive ? "Active" : normaliseRole(item.status) === "rejected" ? "Rejected" : "Pending",
+        is_assessor: item.assessor === true,
+        assigned_class: item.assignedClass || "",
+        assigned_section: item.assignedSection || ""
+    };
+
+    console.log("SAMS profile update", { profileId, email, payload });
+
+    // First try the complete staff profile update.
+    let result = await window.samsSupabase
+        .from("profiles")
+        .update(payload)
+        .eq("id", profileId);
+
+    // Some older SAMS databases may not contain optional columns.
+    // Retry with the essential columns if that is the only problem.
+    if (result.error) {
+        console.warn("Full profile update failed; retrying core columns.", result.error);
+        result = await window.samsSupabase
+            .from("profiles")
+            .update({
+                full_name: item.name,
+                role: dbRole,
+                active: isActive,
+                is_assessor: item.assessor === true
+            })
+            .eq("id", profileId);
+    }
+
+    if (result.error) {
+        console.error("SAMS profile update failed:", result.error);
+        return false;
+    }
+
+    return true;
+}
+
+function saveStaffData() {
+    try {
+        /* Keep the legacy staff key for compatibility. */
+        localStorage.setItem("samsStaff", JSON.stringify(staffList.map(item => ({
+            ...item.raw,
+            id: item.id,
+            name: item.name,
+            email: item.email,
+            role: item.role,
+            classSection: item.classSection,
+            assignedClass: item.assignedClass || "",
+            assignedSection: item.assignedSection || "",
+            assessor: item.assessor,
+            isAssessor: item.assessor,
+            status: item.status
+        }))));
+
+        /* Also update canonical sams_accounts without deleting unrelated accounts. */
+        const accounts = getAccounts();
+        const byEmail = new Map();
+        accounts.forEach((account, index) => {
+            const email = String(account.email || account.educationalEmail || account.educational_email || "").trim().toLowerCase();
+            if (email) byEmail.set(email, index);
+        });
+
+        staffList.forEach(item => {
+            const email = String(item.email || "").trim().toLowerCase();
+            const record = {
+                ...(item.raw || {}),
+                id: item.id,
+                name: item.name,
+                email: item.email,
+                role: item.role,
+                classSection: item.classSection === "—" ? "" : item.classSection,
+                assignedClass: item.assignedClass || "",
+                assignedSection: item.assignedSection || "",
+                assessor: item.assessor,
+                isAssessor: item.assessor,
+                status: item.status,
+                accountType: "staff"
+            };
+
+            if (email && byEmail.has(email)) {
+                accounts[byEmail.get(email)] = { ...accounts[byEmail.get(email)], ...record };
+            } else {
+                accounts.push(record);
+            }
+        });
+
+        localStorage.setItem("sams_accounts", JSON.stringify(accounts));
+        return true;
+    } catch (error) {
+        console.error("Unable to save staff:", error);
+        alert("The staff record could not be saved in this browser.");
+        return false;
+    }
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function escapeAttribute(value) {
+    return String(value ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+function createRoleBadge(role) {
+    const r = normaliseRole(role);
+    const labelMap = {
+        administrator: "Administrator",
+        admin: "Administrator",
+        principal: "Principal",
+        "vice principal": "Vice Principal",
+        "class teacher": "Class Teacher",
+        teacher: "Teacher",
+        "non class teacher": "Non-Class Teacher",
+        assessor: "Assessor",
+        pending: "Pending"
+    };
+    return `<span class="role-badge">${escapeHtml(labelMap[r] || role || "Pending")}</span>`;
+}
+
+function createStaffRow(staff, index) {
+    const rawStatus = normaliseRole(staff.status || "pending");
+    const status = rawStatus === "active" || rawStatus === "approved" ? "active" : rawStatus === "rejected" ? "rejected" : "pending";
+    const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+    const statusBadge = `<span class="status-badge ${status}">${statusLabel}</span>`;
+    const assessorText = staff.assessor
+        ? `<span class="assessor-badge yes">Yes</span>`
+        : `<span class="assessor-badge no">No</span>`;
+    const managementAccess = hasFullStaffManagementAccess(currentRole);
+    const pendingActions = status === "pending" ? `
+        <button class="action-btn approve" type="button" onclick="approveStaff('${escapeAttribute(staff.id)}')">✓ Approve</button>
+        <button class="action-btn reject" type="button" onclick="rejectStaff('${escapeAttribute(staff.id)}')">Reject</button>` : "";
+    const actions = managementAccess ? `
+        <div class="action-group">
+            ${pendingActions}
+            <button class="action-btn edit" type="button" onclick="editStaff('${escapeAttribute(staff.id)}')">Edit</button>
+            ${isAssessorEligible(staff) ? `<button class="action-btn assessor" type="button" onclick="toggleAssessor('${escapeAttribute(staff.id)}')">${staff.assessor ? "Remove Assessor" : "Appoint Assessor"}</button>` : ""}
+            <button class="action-btn delete" type="button" onclick="deleteStaff('${escapeAttribute(staff.id)}')">Delete</button>
+        </div>` : "";
+
+    const assignment = staff.classSection && staff.classSection !== "—"
+        ? escapeHtml(staff.classSection)
+        : "—";
+
+    return `<tr>
+        <td>${index + 1}</td>
+        <td><div class="staff-name">${escapeHtml(staff.name)}</div><div class="staff-email">${escapeHtml(staff.email || "—")}</div></td>
+        <td>${createRoleBadge(staff.role)}</td>
+        <td>${assignment}</td>
+        <td>${assessorText}</td>
+        <td>${statusBadge}</td>
+        <td style="display:${managementAccess ? "table-cell" : "none"};">${actions}</td>
+    </tr>`;
+}
+
+function renderStaff() {
+    const tbody = document.getElementById("staffTableBody");
+    if (!tbody) return;
+
+    const total = staffList.length;
+    const active = staffList.filter(s => { const x = normaliseRole(s.status); return x === "active" || x === "approved"; }).length;
+    const pending = staffList.filter(s => { const x = normaliseRole(s.status); return x === "pending" || !x; }).length;
+    const totalEl = document.getElementById("totalStaffCount");
+    const activeEl = document.getElementById("activeStaffCount");
+    const pendingEl = document.getElementById("pendingStaffCount");
+    if (totalEl) totalEl.textContent = total;
+    if (activeEl) activeEl.textContent = active;
+    if (pendingEl) pendingEl.textContent = pending;
+    const notification = document.getElementById("notificationCount");
+    if (notification) notification.textContent = pending;
+
+    if (!staffList.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-state">
+                    <strong>No staff users found</strong>
+                    Staff accounts will appear here after they are registered.
+                </td>
+            </tr>`;
+        return;
+    }
+
+    tbody.innerHTML = staffList.map(createStaffRow).join("");
+}
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+function setupRoleOptions() {
+    const select = document.getElementById("staffRole");
+    if (!select) return;
+
+    select.innerHTML = `
+        <option value="class teacher">Class Teacher</option>
+        <option value="teacher">Teacher</option>
+        <option value="non class teacher">Non-Class Teacher</option>
+        <option value="vice principal">Vice Principal</option>
+        <option value="principal">Principal</option>
+        <option value="administrator">Administrator</option>`;
+}
+
+function openModal(staff = null) {
+    if (!requireManagementAccess()) return;
+
+    setupRoleOptions();
+
+    const staffRole = document.getElementById("staffRole");
+    if (staffRole) {
+        staffRole.addEventListener("change", updateRoleDependentFields);
+    }
+
+    const modal = document.getElementById("staffModal");
+    const title = document.getElementById("modalTitle");
+    const id = document.getElementById("staffId");
+    const name = document.getElementById("staffName");
+    const email = document.getElementById("staffEmail");
+    const role = document.getElementById("staffRole");
+    const classSelect = document.getElementById("staffClass");
+    const sectionSelect = document.getElementById("staffSection");
+    const status = document.getElementById("staffStatus");
+
+    if (!modal || !title || !id || !name || !email || !role || !classSelect || !sectionSelect || !status) return;
+
+    if (staff) {
+        editingStaffId = staff.id;
+        title.textContent = "Edit Staff";
+        id.value = staff.id;
+        name.value = staff.name;
+        email.value = staff.email;
+        role.value = normaliseRole(staff.role) || "class teacher";
+        classSelect.value = staff.assignedClass || "";
+        sectionSelect.value = staff.assignedSection || "";
+        status.value = staff.status || "pending";
+    } else {
+        editingStaffId = null;
+        title.textContent = "Add Staff";
+        id.value = "";
+        name.value = "";
+        email.value = "";
+        role.value = "class teacher";
+        classSelect.value = "";
+        sectionSelect.value = "";
+        status.value = "pending";
+    }
+
+    modal.classList.add("show");
+    updateRoleDependentFields();
+}
+
+function updateRoleDependentFields() {
+    const role = normaliseRole(document.getElementById("staffRole")?.value || "");
+    const classSelect = document.getElementById("staffClass");
+    const sectionSelect = document.getElementById("staffSection");
+    if (!classSelect || !sectionSelect) return;
+
+    const needsClassAssignment = isClassTeacher(role);
+    [classSelect, sectionSelect].forEach(el => {
+        el.disabled = !needsClassAssignment;
+        el.style.opacity = needsClassAssignment ? "1" : "0.65";
+    });
+
+    if (!needsClassAssignment) {
+        classSelect.value = "";
+        sectionSelect.value = "";
+    }
+}
+
+function closeModal() {
+    const modal = document.getElementById("staffModal");
+    if (modal) modal.classList.remove("show");
+    editingStaffId = null;
+}
+
+function addStaff() {
+    openModal();
+}
+
+function editStaff(id) {
+    if (!requireManagementAccess()) return;
+    const staff = staffList.find(item => String(item.id) === String(id));
+    if (!staff) {
+        alert("Staff record could not be found.");
+        return;
+    }
+    openModal(staff);
+}
+
+async function saveStaff() {
+    if (!requireManagementAccess()) return;
+
+    const name = document.getElementById("staffName")?.value.trim() || "";
+    const email = document.getElementById("staffEmail")?.value.trim().toLowerCase() || "";
+    const role = normaliseRole(document.getElementById("staffRole")?.value || "");
+    const assignedClass = document.getElementById("staffClass")?.value || "";
+    const assignedSection = document.getElementById("staffSection")?.value || "";
+    const status = normaliseRole(document.getElementById("staffStatus")?.value || "pending");
+
+    if (!name) return alert("Please enter the staff member's name.");
+    if (!email) return alert("Please enter the educational email.");
+    if (!role) return alert("Please select a staff role.");
+
+    const existing = editingStaffId
+        ? staffList.find(item => String(item.id) === String(editingStaffId))
+        : null;
+
+    if (!existing) {
+        const duplicate = staffList.some(item => String(item.email || "").trim().toLowerCase() === email);
+        if (duplicate) return alert("A SAMS account already exists for this email address.");
+    }
+
+    if (role === "administrator" && staffList.some(item => String(item.id) !== String(editingStaffId || "") && isAdministrator(item.role))) {
+        return alert("SAMS allows only one Administrator.");
+    }
+
+    const assessor = existing?.assessor === true && isAssessorEligible({ ...(existing || {}), role });
+    const record = {
+        ...(existing || {}),
+        id: existing?.id || "staff-" + Date.now(),
+        name,
+        email,
+        role,
+        assignedClass: assignedClass || "",
+        assignedSection: assignedSection || "",
+        classSection: [assignedClass, assignedSection].filter(Boolean).join(" ") || "—",
+        assessor,
+        status,
+        active: status === "active",
+        raw: existing?.raw || {}
+    };
+
+    if (editingStaffId) {
+        const index = staffList.findIndex(item => String(item.id) === String(editingStaffId));
+        if (index !== -1) staffList[index] = record;
+    } else {
+        staffList.push(record);
+    }
+
+    saveStaffData();
+
+    try {
+        const cloudSaved = await syncStaffProfileToSupabase(record);
+        if (!cloudSaved) {
+            alert("The record could not be saved to the central SAMS database. Check the Supabase staff permissions.");
+            await loadStaff();
+            return;
+        }
+    } catch (error) {
+        console.error("SAMS profile update error:", error);
+        alert("The record could not be saved to the central SAMS database.");
+        await loadStaff();
+        return;
+    }
+
+    closeModal();
+    await loadStaff();
+    alert("Staff record saved successfully.");
+}
+
+function approveStaff(id) {
+    if (!requireManagementAccess()) return;
+    const staff = staffList.find(item => String(item.id) === String(id));
+    if (!staff) return;
+    staff.status = "active";
+    staff.raw = { ...(staff.raw || {}), status: "Active", active: true };
+    saveStaffData();
+    syncStaffProfileToSupabase(staff).then(async ok => {
+        if (!ok) alert("Approval could not be saved to the central database.");
+        await loadStaff();
+    });
+}
+
+function rejectStaff(id) {
+    if (!requireManagementAccess()) return;
+    const staff = staffList.find(item => String(item.id) === String(id));
+    if (!staff) return;
+    if (!confirm(`Reject the registration for ${staff.name}?`)) return;
+    staff.status = "rejected";
+    staff.raw = { ...(staff.raw || {}), status: "Rejected", active: false };
+    saveStaffData();
+    syncStaffProfileToSupabase(staff).then(async ok => {
+        if (!ok) alert("Rejection could not be saved to the central database.");
+        await loadStaff();
+    });
+}
+
+async function deleteStaff(id) {
+    if (!requireManagementAccess()) return;
+
+    const staff = staffList.find(item => String(item.id) === String(id));
+    if (!staff) return;
+    if (!confirm(`Delete staff user "${staff.name}"?`)) return;
+
+    if (window.samsSupabase && staff.id) {
+        const { error } = await window.samsSupabase.from("profiles").delete().eq("id", staff.id);
+        if (error) {
+            console.error("SAMS profile deletion failed:", error);
+            alert("The staff record could not be deleted from the central database.");
+            return;
+        }
+    }
+
+    staffList = staffList.filter(item => String(item.id) !== String(id));
+    saveStaffData();
+    await loadStaff();
+}
+
+async function toggleAssessor(id) {
+    if (!requireManagementAccess()) return;
+
+    const staff = staffList.find(item => String(item.id) === String(id));
+    if (!staff) return;
+
+    if (!isAssessorEligible(staff)) {
+        alert("Only Vice Principals and Non-Class Teachers can be appointed as assessors. Class Teachers, Administrators and Principals cannot be assessors.");
+        return;
+    }
+
+    staff.assessor = !staff.assessor;
+    saveStaffData();
+
+    const ok = await syncStaffProfileToSupabase(staff);
+    if (!ok) {
+        staff.assessor = !staff.assessor;
+        saveStaffData();
+        alert("The assessor appointment could not be saved to the central database.");
+        return;
+    }
+
+    await loadStaff();
+}
+
+/* =========================================================
+   LOGOUT / INITIALISE
+   ========================================================= */
+
+function logout() {
+    if (!confirm("Are you sure you want to logout?")) return;
+
+    try {
+        if (window.SAMS_AUTH && typeof window.SAMS_AUTH.logout === "function") {
+            window.SAMS_AUTH.logout();
+            return;
+        }
+        if (window.SAMSAuth && typeof window.SAMSAuth.logout === "function") {
+            window.SAMSAuth.logout();
+            return;
+        }
+    } catch (error) {
+        console.warn("Auth logout failed:", error);
+    }
+
+    ["samsCurrentUser", "currentUser", "samsUser", "user", "loggedInUser", "authUser"].forEach(key => localStorage.removeItem(key));
+    sessionStorage.removeItem("sams_current_user");
+    sessionStorage.removeItem("sams_email");
+    window.location.href = "login.html";
+}
+
+async function initialise() {
+    showDate();
+    const year = document.getElementById("footerYear");
+    if (year) year.textContent = new Date().getFullYear();
+
+    currentUser = getStoredUser();
+    currentRole = getUserRole(currentUser);
+
+    updateUserDisplay();
+    applyPermissions();
+    setupRoleOptions();
+    await loadStaff();
+}
+
+function attachEventListeners() {
+    document.getElementById("addStaffButton")?.addEventListener("click", addStaff);
+    document.getElementById("closeModalButton")?.addEventListener("click", closeModal);
+    document.getElementById("cancelModalButton")?.addEventListener("click", closeModal);
+    document.getElementById("saveStaffButton")?.addEventListener("click", saveStaff);
+    document.getElementById("logoutButton")?.addEventListener("click", logout);
+
+    document.getElementById("menuButton")?.addEventListener("click", () => {
+        const sidebar = document.getElementById("sidebar");
+        if (sidebar && window.innerWidth <= 850) {
+            sidebar.style.display = sidebar.style.display === "none" ? "block" : "none";
+        }
+    });
+
+    const modal = document.getElementById("staffModal");
+    if (modal) {
+        modal.addEventListener("click", event => {
+            if (event.target === modal) closeModal();
+        });
+    }
+
+    const assessmentNav = document.getElementById("assessmentNav");
+    if (assessmentNav) {
+        assessmentNav.addEventListener("click", event => {
+            const allowed = isPrincipal(currentRole) || (isVicePrincipal(currentRole) && currentUserIsAssessor());
+            if (!allowed) {
+                event.preventDefault();
+                alert("Assessment is not available for your role.");
+            }
+        });
+    }
+}
+
+let samsStaffManagementBooted = false;
+
+async function bootStaffManagement() {
+    if (samsStaffManagementBooted) return;
+    samsStaffManagementBooted = true;
+
+    // Expose the functions before initialisation so the Add Staff button
+    // can always call them.
+    window.addStaff = addStaff;
+    window.editStaff = editStaff;
+    window.saveStaff = saveStaff;
+    window.deleteStaff = deleteStaff;
+    window.toggleAssessor = toggleAssessor;
+    window.closeModal = closeModal;
+    window.logout = logout;
+
+    attachEventListeners();
+    await initialise();
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootStaffManagement, { once: true });
+} else {
+    bootStaffManagement();
+}
+
+window.addStaff = addStaff;
+window.editStaff = editStaff;
+window.saveStaff = saveStaff;
+window.deleteStaff = deleteStaff;
+window.toggleAssessor = toggleAssessor;
+window.closeModal = closeModal;
+window.logout = logout;
+</script>
+
+</body>
+</html>
+
+
+<style>
+/* FINAL DESKTOP FIT — keep Staff Management entirely visible without horizontal shifting */
+.staff-table-wrap{overflow-x:hidden!important;width:100%;}
+.staff-table{width:100%!important;min-width:0!important;table-layout:fixed!important;}
+.staff-table th,.staff-table td{box-sizing:border-box;}
+.staff-table th{padding:12px 10px!important;font-size:12px!important;}
+.staff-table td{padding:12px 10px!important;font-size:12px!important;}
+.staff-table th:nth-child(1),.staff-table td:nth-child(1){width:5%!important;text-align:center;}
+/* Bring ROLE closer to STAFF by reducing the STAFF column width. */
+.staff-table th:nth-child(2),.staff-table td:nth-child(2){width:21%!important;}
+.staff-table th:nth-child(3),.staff-table td:nth-child(3){width:17%!important;}
+.staff-table th:nth-child(4),.staff-table td:nth-child(4){width:20%!important;}
+.staff-table th:nth-child(5),.staff-table td:nth-child(5){width:10%!important;text-align:center;}
+.staff-table th:nth-child(6),.staff-table td:nth-child(6){width:10%!important;text-align:center;}
+.staff-table th:nth-child(7),.staff-table td:nth-child(7){width:17%!important;}
+.staff-person{gap:7px!important;}
+.staff-avatar{width:34px!important;height:34px!important;flex-basis:34px!important;font-size:12px!important;}
+.staff-name{font-size:14px!important;}
+.staff-email,.employee-id{font-size:11px!important;}
+.action-buttons,.action-group{gap:5px!important;}
+.action-button,.action-btn{padding:6px 8px!important;font-size:11px!important;}
+.role-select{max-width:140px!important;font-size:11px!important;padding:6px 7px!important;}
+.assignment-inline{gap:4px!important;}
+.assignment-select{font-size:11px!important;padding:6px!important;max-width:72px;}
+@media(max-width:900px){
+  .staff-table-wrap{overflow-x:auto!important;}
+  .staff-table{min-width:760px!important;}
+}
+@media(max-width:600px){
+  .staff-table{min-width:700px!important;}
+}
+
+/* Final action-column cleanup */
+.staff-table td:last-child{vertical-align:middle;}
+.staff-table td:last-child .action-buttons,.staff-table td:last-child .action-group{
+    display:flex!important;align-items:center!important;gap:4px!important;flex-wrap:wrap!important;
+}
+.staff-table td:last-child .action-btn,.staff-table td:last-child .action-button{
+    margin:0!important;
+}
+@media(max-width:900px){
+  .staff-table-wrap{overflow-x:auto!important;}
+}
+</style>

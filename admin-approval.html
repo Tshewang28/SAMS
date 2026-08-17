@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Staff Management - SAMS
+    </title>
+
+
+    <!-- Login/common CSS -->
+    <link
+        rel="stylesheet"
+        href="css/login.css"
+    >
+
+
+    <!-- Administrator Approval CSS -->
+    <link
+        rel="stylesheet"
+        href="css/admin-approval.css"
+    >
+
+</head>
+
+
+<body>
+
+    <div class="admin-page">
+
+        <div class="admin-container">
+
+
+            <!-- =========================================
+                 BACK TO DASHBOARD
+            ========================================== -->
+
+            <button
+                type="button"
+                class="back-dashboard"
+                id="backDashboardBtn"
+            >
+                ← Back to Dashboard
+            </button>
+
+
+
+            <!-- =========================================
+                 HEADER
+            ========================================== -->
+
+            <div class="admin-header">
+
+                <div>
+
+                    <h1>
+                        Staff Management
+                    </h1>
+
+                    <p>
+                        Review staff registrations,
+                        approve accounts and assign roles.
+                    </p>
+
+                </div>
+
+
+                <div class="admin-user">
+
+                    <div
+                        class="admin-user-name"
+                        id="adminUserName"
+                    >
+                        Administrator
+                    </div>
+
+                    <div
+                        class="admin-user-role"
+                    >
+                        Administrator
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =========================================
+                 MESSAGE
+            ========================================== -->
+
+            <div
+                id="approvalMessage"
+                class="approval-message"
+            ></div>
+
+
+
+            <!-- =========================================
+                 SUMMARY
+            ========================================== -->
+
+            <div class="approval-summary">
+
+
+                <!-- PENDING -->
+
+                <div class="summary-card pending">
+
+                    <div class="summary-card-label">
+                        Pending Staff
+                    </div>
+
+                    <div
+                        class="summary-card-number"
+                        id="pendingCount"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+
+
+                <!-- APPROVED -->
+
+                <div class="summary-card approved">
+
+                    <div class="summary-card-label">
+                        Active Staff
+                    </div>
+
+                    <div
+                        class="summary-card-number"
+                        id="approvedCount"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+
+
+                <!-- REJECTED -->
+
+                <div class="summary-card rejected">
+
+                    <div class="summary-card-label">
+                        Rejected Staff
+                    </div>
+
+                    <div
+                        class="summary-card-number"
+                        id="rejectedCount"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =========================================
+                 STAFF CARD
+            ========================================== -->
+
+            <div class="approval-card">
+
+
+                <!-- CARD HEADER -->
+
+                <div class="approval-card-header">
+
+                    <div>
+
+                        <h2>
+                            Staff Accounts
+                        </h2>
+
+                        <p>
+                            Manage staff registration,
+                            approval and roles.
+                        </p>
+
+                    </div>
+
+
+                    <!-- FILTER -->
+
+                    <div class="approval-filter">
+
+                        <label
+                            for="filterStatus"
+                        >
+                            Status
+                        </label>
+
+
+                        <select
+                            id="filterStatus"
+                        >
+
+                            <option value="all">
+                                All
+                            </option>
+
+                            <option value="pending">
+                                Pending
+                            </option>
+
+                            <option value="active">
+                                Active
+                            </option>
+
+                            <option value="rejected">
+                                Rejected
+                            </option>
+
+                            <option value="inactive">
+                                Inactive
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- =====================================
+                     TABLE
+                ====================================== -->
+
+                <div class="approval-table-wrapper">
+
+                    <table
+                        class="approval-table"
+                    >
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Employee ID
+                                </th>
+
+                                <th>
+                                    Staff Name
+                                </th>
+
+                                <th>
+                                    Educational Email
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                                <th>
+                                    Role
+                                </th>
+
+                                <th>
+                                    Action
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody
+                            id="staffTableBody"
+                        >
+
+                        </tbody>
+
+                    </table>
+
+
+                    <!-- EMPTY STATE -->
+
+                    <div
+                        id="emptyState"
+                        class="empty-state"
+                        style="display: none;"
+                    >
+
+                        <div class="empty-state-icon">
+                            —
+                        </div>
+
+                        <h3>
+                            No staff accounts found
+                        </h3>
+
+                        <p>
+                            There are currently no
+                            staff accounts matching
+                            the selected status.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =============================================
+         ADMINISTRATOR APPROVAL JAVASCRIPT
+    ============================================== -->
+
+    <script
+        src="js/admin-approval.js"
+    ></script>
+
+
+    <!-- =============================================
+         BACK TO DASHBOARD
+    ============================================== -->
+
+    <script>
+
+        const backDashboardBtn =
+            document.getElementById(
+                'backDashboardBtn'
+            );
+
+
+        if (backDashboardBtn) {
+
+            backDashboardBtn.addEventListener(
+                'click',
+                function () {
+
+                    window.location.href =
+                        'dashboard.html';
+
+                }
+            );
+
+        }
+
+    </script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/sams-cloud.js"></script>
+</body>
+
+</html>

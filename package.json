@@ -1,0 +1,9 @@
+{
+  "name": "sams-student-assessment-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SAMS static web application",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

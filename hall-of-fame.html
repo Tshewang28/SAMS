@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hall of Fame | SAMS</title>
+<link rel="stylesheet" href="css/hall-of-fame.css">
+</head>
+<body>
+<div class="hof-page">
+  <header class="hof-header">
+    <div>
+      <div class="brand">SAMS</div>
+      <h1>Hall of Fame</h1>
+      <p>Celebrating outstanding class performance from assessment results</p>
+    </div>
+    <a href="dashboard.html" class="back-btn">← Back to Dashboard</a>
+  </header>
+
+  <main class="hof-main">
+    <section class="celebration-hero">
+      <div class="spark spark-1">✦</div>
+      <div class="spark spark-2">✧</div>
+      <div class="spark spark-3">✦</div>
+      <div class="hero-crown">♛</div>
+      <div class="hero-copy">
+        <span class="hero-kicker">SAMS • CELEBRATING EXCELLENCE</span><span class="public-visibility">VISIBLE TO ALL USERS</span>
+        <h2>Where Champions Shine</h2>
+        <p>Honouring the classes that lead, inspire and make every achievement count.</p>
+      </div>
+      <div class="hero-badge">🏆<span>EXCELLENCE<br>MATTERS</span></div>
+    </section>
+
+    <section class="grand-card">
+      <div class="trophy">🏆</div>
+      <div>
+        <span class="eyebrow">OVERALL TOP CLASS</span>
+        <h2>Grand Champion Class</h2>
+        <div id="grandChampion" class="champion-name">Calculating…</div>
+        <div id="grandScore" class="score">0 points</div>
+        <div id="grandPeriod" class="muted">The class that stands above the rest — every division, every achievement.</div>
+        <div class="celebrate-line">✨ <strong>Rise. Excel. Inspire.</strong> ✨</div>
+      </div>
+    </section>
+
+    <section class="period-card">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">WEEKLY RECOGNITION</span>
+          <h2>Champion of the Week</h2>
+          <p class="section-tagline">A week of effort. A moment of glory. A champion emerges.</p>
+        </div>
+        <button class="refresh-btn" id="refreshBtn">↻ Refresh</button>
+      </div>
+      <div class="division-grid" id="weekGrid"></div>
+    </section>
+
+    <section class="period-card">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">MONTHLY RECOGNITION</span>
+          <h2>Champion of the Month</h2>
+          <p class="section-tagline">Consistency creates champions. Celebrate the class that led the month.</p>
+        </div>
+      </div>
+      <div class="division-grid" id="monthGrid"></div>
+    
+</section>
+
+    <button type="button" class="your-ranking-card" id="yourClassRankingCard" aria-expanded="false">
+      <div class="ranking-icon">📊</div>
+      <div class="ranking-content">
+        <span class="eyebrow">KNOW WHERE YOU STAND</span>
+        <h2>Your Class Ranking</h2>
+        <p>Click to see every class ranked from highest to lowest. No single class is shown until you open the ranking.</p>
+        <div id="yourClassRanking" class="ranking-result">View complete class ranking →</div>
+      </div>
+    </button>
+
+    <div id="classRankingPanel" class="class-ranking-panel" hidden>
+      <div class="ranking-panel-head">
+        <div>
+          <span class="eyebrow">OVERALL CLASS STANDINGS</span>
+          <h2>🏆 Class Ranking</h2>
+          <p>All classes ranked by total points from Assessment Results.</p>
+        </div>
+        <button type="button" id="closeClassRanking" class="close-ranking">Close ×</button>
+      </div>
+      <div id="classRankingList" class="class-ranking-list"></div>
+    </div>
+
+    <section class="info-card">
+      <strong>Automatic scoring</strong>
+      <span>All points come directly from Assessment Results. Discipline deductions are included once in the class total, including previously recorded deductions, while remaining attached only to the selected student in individual reports. Games &amp; Sports points are included.</span>
+    </section>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/sams-cloud.js"></script>
+<script src="js/auth-sync.js"></script>
+<script src="js/assessment-report-utils.js"></script>
+<script src="js/hall-of-fame.js"></script>
+</body>
+</html>

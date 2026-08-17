@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings | SAMS</title>
+<link rel="stylesheet" href="css/settings.css">
+</head>
+<body>
+<div class="settings-page">
+<header class="settings-header">
+  <div>
+    <span class="kicker">SAMS • ADMINISTRATION</span>
+    <h1>Settings</h1>
+    <p>Manage school information and system preferences.</p>
+  </div>
+  <a href="dashboard.html" class="back-btn">← Back to Dashboard</a>
+</header>
+
+<main class="settings-main">
+  <div id="accessNotice" class="access-notice hidden"></div>
+
+  <section class="settings-card">
+    <div class="card-heading">
+      <div><span class="eyebrow">SCHOOL PROFILE</span><h2>School Information</h2><p>Information displayed by the SAMS system.</p></div>
+    </div>
+    <form id="schoolForm">
+      <div class="form-grid">
+        <label>School Name<input id="schoolName" maxlength="150" placeholder="Enter school name"></label>
+        <label>Academic Year<input id="academicYear" maxlength="30" placeholder="e.g. 2026"></label>
+        <label>Contact Email<input id="schoolEmail" type="email" maxlength="150" placeholder="school@example.com"></label>
+        <label>Phone Number<input id="schoolPhone" maxlength="40" placeholder="School contact number"></label>
+        <label class="wide">Address<textarea id="schoolAddress" rows="3" maxlength="300" placeholder="School address"></textarea></label>
+      </div>
+      <div class="form-actions"><button class="save-btn" type="submit">Save School Information</button></div>
+    </form>
+  </section>
+
+  <section class="settings-card">
+    <div class="card-heading">
+      <div><span class="eyebrow">SYSTEM PREFERENCES</span><h2>System Settings</h2><p>Basic preferences used across SAMS.</p></div>
+    </div>
+    <form id="systemForm">
+      <div class="form-grid">
+        <label>System Name<input id="systemName" maxlength="100"></label>
+        <label>Default Academic Year<input id="defaultYear" maxlength="30"></label>
+        <label class="toggle-row"><span><strong>Show Hall of Fame</strong><small>Allow users to access the Hall of Fame.</small></span><input id="showHallOfFame" type="checkbox"></label>
+        <label class="toggle-row"><span><strong>Show Reports</strong><small>Allow users to access Reports.</small></span><input id="showReports" type="checkbox"></label>
+      </div>
+      <div class="form-actions"><button class="save-btn" type="submit">Save System Settings</button></div>
+    </form>
+  </section>
+
+  <section class="settings-card">
+    <div class="card-heading">
+      <div><span class="eyebrow">ACCESS CONTROL</span><h2>Administration Controls</h2><p>Role changes and system configuration remain under Administration.</p></div>
+    </div>
+    <div class="permission-list">
+      <div><span>Change staff roles</span><strong>Administration only</strong></div>
+      <div><span>Approve or reject staff accounts</span><strong>Administration only</strong></div>
+      <div><span>Assessment Criteria configuration</span><strong>Administration only</strong></div>
+      <div><span>View Reports</span><strong>All users</strong></div>
+      <div><span>View Hall of Fame</span><strong>All users</strong></div>
+    </div>
+  </section>
+
+  <section class="settings-card system-management-card">
+    <div class="card-heading">
+      <div>
+        <span class="eyebrow">SYSTEM MANAGEMENT</span>
+        <h2>Backup, Restore & Reset</h2>
+        <p>Protect your SAMS data or return the system to a previous state.</p>
+      </div>
+    </div>
+
+    <div class="management-grid">
+      <article class="management-item">
+        <div class="management-icon backup">💾</div>
+        <div>
+          <h3>Backup</h3>
+          <p>Download a complete backup of SAMS data.</p>
+          <button id="backupBtn" class="management-btn" type="button">Download Backup</button>
+        </div>
+      </article>
+
+      <article class="management-item">
+        <div class="management-icon restore">♻️</div>
+        <div>
+          <h3>Restore</h3>
+          <p>Restore SAMS data from a previous backup.</p>
+          <input id="restoreFile" type="file" accept=".json,application/json" hidden>
+          <button id="restoreBtn" class="management-btn" type="button">Choose Backup</button>
+        </div>
+      </article>
+
+      <article class="management-item warning-item">
+        <div class="management-icon reset">🔄</div>
+        <div>
+          <h3>Reset</h3>
+          <p>Clear selected operational data while keeping the SAMS application.</p>
+          <button id="resetBtn" class="management-btn warning" type="button">Reset Data</button>
+        </div>
+      </article>
+
+      <article class="management-item danger-item">
+        <div class="management-icon factory">🏭</div>
+        <div>
+          <h3>Factory Reset</h3>
+          <p>Return SAMS data to a fresh initial state. This cannot be undone without a backup.</p>
+          <button id="factoryResetBtn" class="management-btn danger" type="button">Factory Reset</button>
+        </div>
+      </article>
+    </div>
+
+    <div class="management-note">
+      <strong>Administration only:</strong> Backup, Restore, Reset and Factory Reset are restricted to Administration.
+      Create a backup before using Reset or Factory Reset.
+    </div>
+  </section>
+
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/sams-cloud.js"></script>
+<script src="js/auth-sync.js"></script>
+<script src="js/settings.js"></script>
+</body>
+</html>

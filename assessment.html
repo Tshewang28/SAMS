@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>SAMS - Assessment Criteria</title><link rel="stylesheet" href="css/assessment.css"></head>
+<body>
+<script>
+(function(){
+  try {
+    const current = JSON.parse(sessionStorage.getItem("sams_current_user") || "null");
+    const role = String(current?.role || current?.staffRole || current?.userRole || current?.accountType || current?.type || "")
+      .trim().toLowerCase().replace(/[-_]+/g," ").replace(/\s+/g," ");
+    const isAdmin = ["administrator","admin","administration"].includes(role);
+    if (!isAdmin) {
+      window.location.replace("dashboard.html");
+    }
+  } catch(e) {
+    window.location.replace("dashboard.html");
+  }
+})();
+</script>
+<main class="container">
+<header class="page-header"><div><div class="eyebrow" id="pageRoleLabel">ASSESSMENT</div><h1>Assessment Criteria</h1><p>Create criteria for Classroom, Assembly, SUPW and Discipline. Games & Sports uses its own category, sport and position assessment workflow.</p></div><div class="header-actions"><a href="dashboard.html" class="secondary back-dashboard">← Back to Dashboard</a><button id="addCriteriaBtn" class="primary">+ Add Criteria</button></div></header>
+<section class="panel"><div class="panel-head"><div><h2>Criteria by Assessment Area</h2><p>Each criterion is permanently associated with its selected area.</p></div><select id="filterArea"><option value="Games &amp; Sports">Games &amp; Sports</option><option value="all">All Areas</option><option>Classroom</option><option>Assembly</option><option>SUPW</option><option>Games &amp; Sports</option><option>Discipline</option></select></div><div class="table-wrap"><table><thead><tr><th>Area</th><th>Criteria</th><th>Description</th><th>Point Range</th><th id="actionHeader">Action</th></tr></thead><tbody id="criteriaTable"></tbody></table></div></section><div class="special-note"><strong>Games &amp; Sports:</strong> This is not configured as a normal criterion. Assessors select Primary, Junior or Senior, enter the game/sport, select 1st/2nd/3rd, and the system generates 5/4/3 points automatically.</div>
+</main>
+<div id="criteriaModal" class="modal hidden"><div class="modal-box"><div class="modal-head"><div><h2 id="modalTitle">Add Criteria</h2><p>Administrator-only configuration.</p></div><button id="closeModal" class="close">×</button></div>
+<form id="criteriaForm"><input type="hidden" id="criteriaId"><div class="form-grid"><div><label>Assessment Area *</label><select id="assessmentArea" required><option value="">Select area</option><option>Classroom</option><option>Assembly</option><option>SUPW</option><option>Games &amp; Sports</option><option>Discipline</option></select></div><div id="pointGroup"><label>Point *</label><select id="point" required disabled><option>Select area first</option></select></div></div><div id="gamesSportsNote" class="special-note hidden"><strong>Games &amp; Sports:</strong> Points are not manually configured here. The assessor uses Primary, Junior or Senior, then awards 1st = 5, 2nd = 4, or 3rd = 3 automatically.</div><div><label>Criteria *</label><input id="criteriaName" required maxlength="150"></div><div><label>Description</label><textarea id="description" rows="6" maxlength="600" placeholder="Write the description for this criterion."></textarea></div><div class="actions"><button type="button" id="cancelBtn" class="secondary">Cancel</button><button type="submit" class="primary">Save Criteria</button></div></form></div></div><script src="js/auth-sync.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/sams-cloud.js"></script>
+<script src="js/assessment.js"></script></body></html>

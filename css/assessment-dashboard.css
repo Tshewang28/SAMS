@@ -1,0 +1,250 @@
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:#f4f7fb;color:#17324d}
+button,select,input,textarea{font-family:inherit}
+button{cursor:pointer}
+
+.assessment-page{min-height:100vh;display:flex;flex-direction:column}
+
+.assessment-header{height:92px;background:#fff;border-bottom:1px solid #dfe6ef;display:flex;align-items:center;justify-content:space-between;padding:0 34px;box-shadow:0 1px 4px rgba(0,0,0,.03)}
+.header-left{display:flex;align-items:center;gap:18px}
+.sams-logo{width:58px;height:58px;border-radius:50%;background:#123f70;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;letter-spacing:.5px}
+.header-divider{width:1px;height:48px;background:#dfe6ef}
+.header-title h1{margin:0;font-size:22px;font-weight:700;color:#17324d}
+.header-title p{margin:5px 0 0;color:#71839a;font-size:13px}
+
+.header-right{display:flex;align-items:center;gap:22px}
+.notification{position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center}
+.notification-icon{font-size:22px;color:#17324d}
+.notification-count{position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:#e33d49;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.current-user{display:flex;align-items:center;gap:12px}
+.current-user-text{display:flex;flex-direction:column;text-align:right}
+.current-user-text strong{font-size:14px;color:#17324d}
+.current-user-text span{margin-top:3px;font-size:12px;color:#71839a}
+.user-avatar{width:42px;height:42px;border-radius:50%;background:#123f70;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}
+
+.main-content{width:100%;max-width:1500px;margin:0 auto;padding:34px 34px 28px;flex:1}
+.page-title-row{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:26px}
+.page-title-row h2{margin:0;font-size:30px;font-weight:700;color:#17324d}
+.page-title-row p{margin:7px 0 0;font-size:14px;color:#71839a}
+
+.selection-card,.assessment-card,.empty-card,.admin-tools{background:#fff;border:1px solid #dfe6ef;border-radius:11px;overflow:hidden;box-shadow:0 3px 14px rgba(24,55,90,.045);margin-bottom:24px}
+.card-header{min-height:92px;padding:22px 26px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e3e8ef}
+.card-header h3{margin:0;font-size:21px;color:#17324d}
+.card-header p{margin:5px 0 0;font-size:13px;color:#71839a}
+.selection-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding:24px 26px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:12px;font-weight:700;color:#17324d}
+.field select{height:40px;border:1px solid #cbd8e6;border-radius:6px;background:#fff;color:#17324d;padding:0 10px;font-size:12px;outline:none}
+.field select:focus{border-color:#287bd2;box-shadow:0 0 0 2px rgba(40,123,210,.1)}
+
+.assessment-card.hidden{display:none}
+.assessment-card-header{min-height:92px}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.7px;color:#1266b1;margin-bottom:5px}
+.count-badge{padding:10px 16px;border-radius:8px;background:#f2f7fd;color:#155f9d;font-size:12px;font-weight:700}
+.criteria-list{padding:22px 26px}
+.criteria-card,.sports-entry{border:1px solid #dfe6ef;border-radius:9px;background:#fff;margin-bottom:14px;padding:18px;box-shadow:0 2px 7px rgba(24,55,90,.025)}
+.criteria-main{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
+.criteria-number{font-size:10px;font-weight:800;color:#1266b1;letter-spacing:.7px;margin-bottom:5px}
+.criteria-name{font-size:16px;font-weight:700;color:#17324d;margin-bottom:6px}
+.criteria-description{font-size:12px;color:#71839a;line-height:1.5}
+.point-select{min-width:125px;display:flex;flex-direction:column;gap:6px}
+.point-select label{font-size:11px;font-weight:700;color:#17324d}
+.point-select select{height:38px;border:1px solid #cbd8e6;border-radius:6px;padding:0 9px;background:#fff;color:#17324d}
+.comment-box{margin-top:15px;display:flex;flex-direction:column;gap:6px}
+.comment-box label{font-size:11px;font-weight:700}
+.comment-box textarea,.sports-fields textarea{border:1px solid #cbd8e6;border-radius:6px;padding:10px;resize:vertical;font-size:12px;color:#17324d;outline:none}
+.comment-box textarea:focus,.sports-fields textarea:focus{border-color:#287bd2;box-shadow:0 0 0 2px rgba(40,123,210,.1)}
+
+.save-bar{border-top:1px solid #e4e9ef;background:#f8fafc;padding:16px 26px;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.save-bar div{display:flex;flex-direction:column;gap:4px}
+.save-bar strong{font-size:12px;color:#17324d}
+.save-bar span{font-size:11px;color:#71839a}
+.primary-button,.secondary-button{border-radius:7px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer}
+.primary-button{border:1px solid #123f70;background:#123f70;color:#fff}
+.primary-button:hover{background:#0c3158}
+.secondary-button{border:1px solid #d5e0eb;background:#fff;color:#15558f}
+.secondary-button:hover{background:#f1f7fd;border-color:#b9cee2}
+
+.empty-card{padding:55px 20px;text-align:center}
+.empty-card.hidden{display:none}
+.empty-icon{font-size:32px;color:#a6b5c5}
+.empty-card h3{margin:10px 0 5px;font-size:17px;color:#17324d}
+.empty-card p{margin:0;font-size:12px;color:#71839a}
+.no-criteria{padding:45px 20px;text-align:center;color:#71839a;font-size:13px;border:1px dashed #dfe6ef;border-radius:8px}
+
+.admin-tools{padding:22px 26px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.admin-tools h3{margin:0 0 5px;font-size:18px;color:#17324d}
+.admin-tools p{margin:0;color:#71839a;font-size:12px}
+
+.sports-header{display:flex;justify-content:space-between;gap:20px}
+.sports-fields{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:18px}
+.sports-fields>div{display:flex;flex-direction:column;gap:6px}
+.sports-fields label{font-size:11px;font-weight:700}
+.sports-fields select,.sports-fields input{height:40px;border:1px solid #cbd8e6;border-radius:6px;padding:0 10px;background:#fff;color:#17324d}
+.sports-fields small{font-size:10px;color:#71839a}
+.point-auto{min-width:110px;text-align:center;background:#f2f7fd;border-radius:8px;padding:9px;color:#155f9d;font-size:10px;font-weight:700}
+.point-auto strong{font-size:18px}
+
+.page-footer{text-align:center;padding:20px 30px;border-top:1px solid #dfe6ef;color:#71839a;font-size:11px;background:#fff}
+
+@media(max-width:900px){
+  .selection-grid{grid-template-columns:1fr}
+  .assessment-header{padding:0 20px}
+  .main-content{padding:28px 20px}
+}
+@media(max-width:700px){
+  .assessment-header{height:auto;min-height:82px;padding:15px 17px}
+  .header-divider{display:none}
+  .header-left{gap:12px}
+  .header-title h1{font-size:18px}
+  .header-title p{font-size:11px}
+  .current-user-text{display:none}
+  .main-content{padding:24px 15px}
+  .page-title-row h2{font-size:26px}
+  .criteria-main,.save-bar,.admin-tools,.sports-header{flex-direction:column;align-items:stretch}
+  .point-select{min-width:0}
+  .save-bar button,.admin-tools button{width:100%}
+  .sports-fields{grid-template-columns:1fr}
+}
+
+.discipline-student-box{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 360px;
+  gap:22px;
+  align-items:end;
+  padding:18px;
+  margin-bottom:16px;
+  border:1px solid #dfe6ef;
+  border-radius:9px;
+  background:#f8fafc;
+}
+.discipline-student-field{display:flex;flex-direction:column;gap:7px}
+.discipline-student-field label{font-size:11px;font-weight:700;color:#17324d}
+.discipline-student-field select{
+  height:40px;
+  width:100%;
+  border:1px solid #cbd8e6;
+  border-radius:6px;
+  background:#fff;
+  color:#17324d;
+  padding:0 10px;
+  font-size:12px;
+  outline:none;
+}
+.discipline-student-field select:focus{
+  border-color:#287bd2;
+  box-shadow:0 0 0 2px rgba(40,123,210,.10);
+}
+@media(max-width:900px){
+  .discipline-student-box{grid-template-columns:1fr}
+}
+
+.discipline-student-box{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(420px,1fr);
+  gap:24px;
+  align-items:end;
+  padding:22px;
+  margin-bottom:18px;
+  border:1px solid #d7e1ec;
+  border-radius:10px;
+  background:#f8fafc;
+}
+.discipline-student-info{min-width:0}
+.discipline-student-count{
+  margin-top:10px;
+  font-size:12px;
+  font-weight:600;
+  color:#2871b8;
+}
+.discipline-controls{
+  display:grid;
+  grid-template-columns:1fr 160px;
+  gap:14px;
+}
+.discipline-student-field{display:flex;flex-direction:column;gap:7px}
+.discipline-student-field label{font-size:12px;font-weight:700;color:#17324d}
+.discipline-student-field select{
+  height:44px;
+  width:100%;
+  border:1px solid #cbd8e6;
+  border-radius:7px;
+  background:#fff;
+  color:#17324d;
+  padding:0 12px;
+  font-size:13px;
+}
+.discipline-point-display{
+  display:inline-flex;
+  min-width:90px;
+  min-height:40px;
+  align-items:center;
+  justify-content:center;
+  padding:0 12px;
+  border:1px solid #cbd8e6;
+  border-radius:7px;
+  background:#f8fafc;
+  color:#17324d;
+  font-weight:800;
+  font-size:15px;
+}
+@media(max-width:900px){
+  .discipline-student-box{grid-template-columns:1fr}
+  .discipline-controls{grid-template-columns:1fr}
+}
+
+
+/* Discipline student + deduction controls */
+.discipline-controls{
+  display:grid;
+  grid-template-columns:minmax(240px,1fr) minmax(160px,220px);
+  gap:14px;
+  align-items:end;
+  min-width:420px;
+}
+.discipline-student-field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.discipline-student-field label{
+  font-weight:600;
+}
+.discipline-student-field select{
+  width:100%;
+  min-height:44px;
+}
+@media (max-width:800px){
+  .discipline-controls{
+    grid-template-columns:1fr;
+    min-width:0;
+    width:100%;
+  }
+}
+
+.back-dashboard{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+  white-space:nowrap;
+}
+@media (max-width:700px){
+  .page-title-row{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+
+
+.frequency-note{
+  margin:0 20px 20px;
+  padding:12px 14px;
+  border:1px solid #bfdbfe;
+  border-radius:10px;
+  background:#eff6ff;
+  color:#1e40af;
+  font-size:13px;
+  line-height:1.5;
+}

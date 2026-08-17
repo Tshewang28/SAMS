@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Classes & Students | SAMS</title>
+<link rel="stylesheet" href="css/classes.css">
+</head>
+<body>
+
+<div class="classes-page">
+
+  <header class="classes-header">
+    <div class="header-left">
+      <div class="sams-logo">SAMS</div>
+      <div class="header-divider"></div>
+      <div class="header-title">
+        <h1>Classes & Students</h1>
+        <p>Manage class students and record volunteer participation</p>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="notification">
+        <span class="notification-icon">♧</span>
+        <span id="notificationCount" class="notification-count">0</span>
+      </div>
+      <div class="current-user">
+        <div class="current-user-text">
+          <strong id="userName">Administrator</strong>
+          <span id="userRole">Administrator</span>
+        </div>
+        <div id="userAvatar" class="user-avatar">A</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+
+    <div class="page-title-row">
+      <div>
+        <h2>Classes & Students</h2>
+        <p>View students by class and section and record volunteer participation.</p>
+      </div>
+      <button id="backDashboard" class="back-dashboard">← Back to Dashboard</button>
+    </div>
+
+    <section class="class-card">
+
+      <div class="class-card-header">
+        <div>
+          <h3>Class Students</h3>
+          <p id="teacherWorkspaceNote">Select a class and section to display the students.</p>
+        </div>
+        <div class="class-card-actions">
+          <button class="secondary-button" id="downloadTemplateBtn">⇩ Excel Template</button>
+          <button class="secondary-button" id="importStudentsBtn">⇧ Import Students</button>
+          <button class="primary-button admin-only" id="addClassBtn">＋ Create Class</button>
+          <input type="file" id="importStudentsFile" accept=".xlsx,.xls,.csv" hidden>
+          <input type="file" id="xlsxWholeFile" accept=".xlsx,.xls,.csv" hidden>
+        </div>
+      </div>
+
+      <div class="class-selector-row">
+        <label>
+          <span>Class</span>
+          <select id="workspaceClass">
+            <option value="">Select Class</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Section</span>
+          <select id="workspaceSection" disabled>
+            <option value="">Select Section</option>
+          </select>
+        </label>
+
+        <div class="workspace-role-badge" id="workspaceRoleBadge">View</div>
+      </div>
+
+      <div class="class-info-strip">
+        <div>
+          <span>SELECTED CLASS</span>
+          <strong id="workspaceClassTitle">—</strong>
+        </div>
+        <div>
+          <span>CLASS TEACHER</span>
+          <strong id="workspaceTeacher">—</strong>
+        </div>
+        <div>
+          <span>STUDENTS</span>
+          <strong id="workspaceStudentCount">0</strong>
+        </div>
+      </div>
+
+      <div class="volunteer-program-panel">
+        <div class="volunteer-program-header">
+          <div>
+            <h3>Volunteer Programme Description</h3>
+            <p>Describe the volunteer programme or activity organised for this class.</p>
+          </div>
+          <button type="button" class="primary-button" id="saveVolunteerProgramBtn">Save Description</button>
+        </div>
+        <textarea id="volunteerProgramDescription" rows="4" placeholder="Enter the programme description, purpose, activity details, student responsibilities, date or other relevant information."></textarea>
+        <div class="volunteer-program-meta" id="volunteerProgramMeta">No programme description has been added yet.</div>
+      </div>
+
+      <div class="volunteer-record-panel" id="volunteerRecordPanel">
+        <div class="volunteer-record-toggle">
+          <label class="volunteer-checkbox">
+            <input type="checkbox" id="enableVolunteerRecord">
+            <span>Keep Volunteer Record</span>
+          </label>
+          <span class="volunteer-record-note">Tick to load the students in the selected class and record their volunteer activities.</span>
+        </div>
+      </div>
+
+      <div class="sports-record-panel" id="sportsRecordPanel">
+        <div class="sports-record-toggle">
+          <label class="sports-checkbox"><input type="checkbox" id="enableSportsRecord"><span>Keep Games and Sports/Other Programmes/Other Programmes</span></label>
+          <span class="sports-record-note">Participation is +2 and does not affect the class mark. Positions are awarded automatically.</span>
+        </div>
+
+        <div class="sports-record-form" id="sportsRecordForm" hidden>
+          <div class="sports-record-header">
+            <div>
+              <h3>Games &amp; Sports Record</h3>
+              <p>Select the sport and result, then tick the students who participated or achieved the position.</p>
+            </div>
+            <div class="sports-point-preview" id="sportsPointPreview">Select a result</div>
+          </div>
+
+          <div class="sports-entry-grid">
+            <label>
+              <span>Games and Sport/Other Programmes</span>
+              <input id="sportsRecordSport" type="text" maxlength="100" placeholder="e.g. Football">
+            </label>
+            <label>
+              <span>Result</span>
+              <select id="sportsRecordResult">
+                <option value="">Select result</option>
+                <option value="Participation">Participation (+2)</option>
+                <option value="1st">1st (+5)</option>
+                <option value="2nd">2nd (+4)</option>
+                <option value="3rd">3rd (+3)</option>
+              </select>
+            </label>
+            <label>
+              <span>Date</span>
+              <input id="sportsRecordDate" type="date">
+            </label>
+          </div>
+
+          <div class="sports-student-toolbar">
+            <strong>Select Students</strong>
+            <button type="button" class="secondary-button" id="selectAllSportsStudents">Select All</button>
+          </div>
+          <div class="sports-student-list" id="sportsStudentList"></div>
+
+          <div class="sports-record-actions">
+            <span id="sportsSelectedCount">0 students selected</span>
+            <button type="button" class="primary-button" id="saveSportsRecordBtn">Save Games &amp; Sports Record</button>
+          </div>
+        </div>
+
+        
+      </div>
+
+      <div class="table-wrapper" id="volunteerRecordStudentsPanel" hidden>
+        <table class="class-student-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>STUDENT CODE</th>
+              <th>STUDENT NAME</th>
+              <th>GENDER</th>
+              <th>VOLUNTEER</th>
+              <th>ACTION</th>
+            </tr>
+          </thead>
+          <tbody id="workspaceStudentBody"></tbody>
+        </table>
+
+        <div class="workspace-empty" id="workspaceEmpty">
+          <div class="empty-icon">◎</div>
+          <h3>Select a class and section</h3>
+          <p>The students will appear automatically.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Hidden legacy management area retained so existing class-management
+         functions continue to work without changing the data model. -->
+    <div id="legacyClassManagement" hidden>
+      <section class="division-grid">
+        <button class="division-card active" data-division="4-6"><span>Division I</span><strong>Classes 4–6</strong><small id="count46">0 classes</small></button>
+        <button class="division-card" data-division="7-9"><span>Division II</span><strong>Classes 7–9</strong><small id="count79">0 classes</small></button>
+        <button class="division-card" data-division="10-12"><span>Division III</span><strong>Classes 10–12</strong><small id="count1012">0 classes</small></button>
+      </section>
+      <section class="summary-grid">
+        <div class="summary-card"><div class="summary-icon blue">▦</div><div><span>Classes in Division</span><strong id="totalClasses">0</strong></div></div>
+        <div class="summary-card"><div class="summary-icon green">✓</div><div><span>Assigned Teachers</span><strong id="assignedTeachers">0</strong></div></div>
+        <div class="summary-card"><div class="summary-icon orange">●</div><div><span>Total Students</span><strong id="totalStudents">0</strong></div></div>
+        <div class="summary-card"><div class="summary-icon purple">◆</div><div><span>Selected Division</span><strong id="divisionLabel">4–6</strong></div></div>
+      </section>
+      <section class="class-panel">
+        <div class="panel-header"><div><h2 id="divisionTitle">Classes 4–6</h2><p>Open a class to manage its students.</p></div><div class="filters"><label class="search-box">⌕<input id="searchInput" type="search" placeholder="Search class or teacher..."></label><select id="streamFilter"><option value="all">All streams</option></select></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Class</th><th>Section</th><th>Stream</th><th>Class Teacher</th><th>Students</th><th>Academic Year</th><th>Actions</th></tr></thead><tbody id="classTableBody"></tbody></table><div class="empty-state" id="emptyState" hidden></div></div>
+      </section>
+    </div>
+
+  </main>
+
+<div class="modal" id="classModal" aria-hidden="true"><div class="modal-card"><div class="modal-header"><div><h2 id="modalTitle">Create Class</h2><p>Set the division, class teacher and academic year.</p></div><button class="close-button" data-close="classModal">×</button></div><form id="classForm"><input type="hidden" id="classId"><div class="form-grid"><label>Division<select id="division" required><option value="4-6">Classes 4–6</option><option value="7-9">Classes 7–9</option><option value="10-12">Classes 10–12</option></select></label><label>Grade<select id="grade" required></select></label><label>Section<input id="section" maxlength="10" placeholder="A" required></label><label>Stream<select id="stream"><option>General</option><option>Science</option><option>Arts</option><option>Commerce</option><option>DTI</option></select></label><label>Class Teacher<select id="classTeacher"><option value="">Not assigned</option></select></label><label>Academic Year<input id="academicYear" maxlength="20" value="2026" required></label></div><div class="form-actions"><button type="button" class="secondary-button" data-close="classModal">Cancel</button><button type="submit" class="primary-button">Save Class</button></div></form></div></div>
+
+<!-- Student manager -->
+<div class="modal" id="studentModal" aria-hidden="true"><div class="modal-card student-card"><div class="modal-header"><div><h2 id="studentModalTitle">Students</h2><p id="studentModalSub">Manage students in this class.</p></div><button class="close-button" data-close="studentModal">×</button></div><div class="student-toolbar"><div class="student-actions"><button class="primary-button" id="addStudentBtn">＋ Add Student</button><button class="secondary-button" id="importWorkbookClassBtn">⇧ Import Excel Class</button><input type="file" id="xlsxClassFile" accept=".xlsx,.xls,.csv" hidden><input type="file" id="xlsxWholeFile" accept=".xlsx,.xls,.csv" hidden></div><label class="search-box"><span>⌕</span><input id="studentSearch" type="search" placeholder="Search student..."></label></div><div class="student-meta"><span id="studentCountLabel">0 students</span><div class="student-danger-actions"><button class="danger-button admin-only" id="deleteAllStudentsBtn">Delete All Students</button><button class="danger-button" id="deleteWholeClassBtn">Delete Whole Class</button></div></div><div class="student-table-wrap"><table><thead><tr><th>#</th><th>Student Code</th><th>Student Name</th><th>Gender</th><th>Volunteer / Role</th><th>Actions</th></tr></thead><tbody id="studentTableBody"></tbody></table><div class="empty-state" id="studentEmpty" hidden><div class="empty-icon">●</div><h3>No students found</h3><p>Add a student or import the official Excel format.</p></div></div></div></div>
+
+<!-- Student form -->
+<div class="modal" id="studentFormModal" aria-hidden="true"><div class="modal-card small-card"><div class="modal-header"><div><h2 id="studentFormTitle">Add Student</h2><p>Enter the student's basic information.</p></div><button class="close-button" data-close="studentFormModal">×</button></div><form id="studentForm"><input type="hidden" id="studentId"><div class="form-grid"><label>Student Code<input id="studentCode" required placeholder="e.g. 206.00043.21.0004"></label><label>Student Name<input id="studentName" required placeholder="Full name"></label><label>Gender<select id="studentGender"><option>Male</option><option>Female</option><option>Other</option></select></label></div><div class="form-actions"><button type="button" class="secondary-button" data-close="studentFormModal">Cancel</button><button type="submit" class="primary-button">Save Student</button></div></form></div>
+
+  
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/sams-cloud.js"></script>
+<script src="js/auth-sync.js"></script>
+<script src="js/classes.js"></script>
+</body>
+</html>

@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Create Account - SAMS</title>
+
+    <link
+        rel="stylesheet"
+        href="css/register.css"
+    >
+
+</head>
+
+
+<body>
+
+<div class="register-page">
+
+    <div class="register-card">
+
+        <!-- =========================================
+             HEADER
+        ========================================== -->
+
+        <div class="register-header">
+
+            <div class="register-logo">
+                SAMS
+            </div>
+
+            <h1>
+                Create Account
+            </h1>
+
+            <p>
+                Student Assessment Management System
+            </p>
+
+        </div>
+
+
+        <!-- =========================================
+             ACCOUNT TYPE
+        ========================================== -->
+
+        <div class="form-group">
+
+            <label>
+                Account Type
+            </label>
+
+            <div class="account-types">
+
+                <!-- STAFF -->
+
+                <div class="account-type">
+
+                    <input
+                        type="radio"
+                        id="typeStaff"
+                        name="accountType"
+                        value="Staff"
+                    >
+
+                    <label for="typeStaff">
+                        Staff
+                    </label>
+
+                </div>
+
+
+                <!-- STUDENT -->
+
+                <div class="account-type">
+
+                    <input
+                        type="radio"
+                        id="typeStudent"
+                        name="accountType"
+                        value="Student"
+                    >
+
+                    <label for="typeStudent">
+                        Student
+                    </label>
+
+                </div>
+
+
+                <!-- ADMINISTRATOR -->
+
+                <div class="account-type">
+
+                    <input
+                        type="radio"
+                        id="typeAdministrator"
+                        name="accountType"
+                        value="Administrator"
+                    >
+
+                    <label for="typeAdministrator">
+                        Administrator
+                    </label>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================================
+             STAFF SECTION
+        ========================================== -->
+
+        <div
+            id="staffSection"
+            class="account-section"
+        >
+
+            <div class="approval-notice">
+
+                Staff accounts require
+                <strong>
+                    Administrator approval
+                </strong>
+                before they can be used.
+
+                The Administrator will assign
+                your role after reviewing your
+                account.
+
+            </div>
+
+
+            <!-- EMPLOYEE ID -->
+
+            <div class="register-form-group">
+
+                <label for="staffEmployeeId">
+
+                    Employee ID
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <input
+                    type="text"
+                    id="staffEmployeeId"
+                    placeholder="Enter your Employee ID"
+                    inputmode="numeric"
+                >
+
+                <div class="field-note">
+                    Enter your official Employee ID.
+                </div>
+
+            </div>
+
+
+            <!-- STAFF NAME -->
+
+            <div class="register-form-group">
+
+                <label for="staffName">
+
+                    Full Name
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <input
+                    type="text"
+                    id="staffName"
+                    placeholder="Enter your full name"
+                >
+
+            </div>
+
+
+            <!-- STAFF EMAIL -->
+
+            <div class="register-form-group">
+
+                <label for="staffEmail">
+
+                    Educational Email
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <input
+                    type="email"
+                    id="staffEmail"
+                    placeholder="name@education.gov.bt"
+                >
+
+                <div class="field-note">
+                    Use your official educational email.
+                </div>
+
+            </div>
+
+
+            <!-- STAFF PASSWORD -->
+
+            <div class="register-form-group">
+
+                <label for="staffPassword">
+
+                    Password
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <div class="password-field">
+
+                    <input
+                        type="password"
+                        id="staffPassword"
+                        placeholder="Create a password"
+                    >
+
+                    <button
+                        type="button"
+                        class="register-password-toggle"
+                        data-target="staffPassword"
+                    >
+                        Show
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- STAFF CONFIRM PASSWORD -->
+
+            <div class="register-form-group">
+
+                <label for="staffConfirmPassword">
+
+                    Confirm Password
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <div class="password-field">
+
+                    <input
+                        type="password"
+                        id="staffConfirmPassword"
+                        placeholder="Confirm your password"
+                    >
+
+                    <button
+                        type="button"
+                        class="register-password-toggle"
+                        data-target="staffConfirmPassword"
+                    >
+                        Show
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================================
+             STUDENT SECTION
+        ========================================== -->
+
+        <div
+            id="studentSection"
+            class="account-section"
+        >
+
+            <div class="active-notice">
+
+                Student accounts become
+                <strong>
+                    active immediately
+                </strong>
+                after successful registration.
+
+                Administrator approval is not required.
+
+            </div>
+
+
+            <!-- STUDENT CODE -->
+
+            <div class="register-form-group">
+
+                <label for="studentCode">
+
+                    Student Code
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <input
+                    type="text"
+                    id="studentCode"
+                    placeholder="Enter your Student Code"
+                >
+
+            </div>
+
+
+            <!-- STUDENT NAME -->
+
+            <div class="register-form-group">
+
+                <label for="studentName">
+
+                    Student Name
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <input
+                    type="text"
+                    id="studentName"
+                    placeholder="Enter your full name"
+                >
+
+            </div>
+
+
+            <!-- STUDENT EMAIL -->
+
+            <div class="register-form-group">
+
+                <label for="studentEmail">
+
+                    Educational Email
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <input
+                    type="email"
+                    id="studentEmail"
+                    placeholder="name@education.gov.bt"
+                >
+
+                <div class="field-note">
+                    Use your official educational email.
+                </div>
+
+            </div>
+
+
+            <!-- STUDENT PASSWORD -->
+
+            <div class="register-form-group">
+
+                <label for="studentPassword">
+
+                    Password
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <div class="password-field">
+
+                    <input
+                        type="password"
+                        id="studentPassword"
+                        placeholder="Create a password"
+                    >
+
+                    <button
+                        type="button"
+                        class="register-password-toggle"
+                        data-target="studentPassword"
+                    >
+                        Show
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- STUDENT CONFIRM PASSWORD -->
+
+            <div class="register-form-group">
+
+                <label for="studentConfirmPassword">
+
+                    Confirm Password
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <div class="password-field">
+
+                    <input
+                        type="password"
+                        id="studentConfirmPassword"
+                        placeholder="Confirm your password"
+                    >
+
+                    <button
+                        type="button"
+                        class="register-password-toggle"
+                        data-target="studentConfirmPassword"
+                    >
+                        Show
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================================
+             ADMINISTRATOR SECTION
+        ========================================== -->
+
+        <div
+            id="administratorSection"
+            class="account-section"
+        >
+
+            <div class="admin-notice">
+
+                Administrator accounts are limited
+                to <strong>one account only</strong>.
+
+                If an Administrator account already
+                exists, another Administrator cannot
+                be registered.
+
+            </div>
+
+
+            <!-- ADMIN NAME -->
+
+            <div class="register-form-group">
+
+                <label for="administratorName">
+
+                    Full Name
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <input
+                    type="text"
+                    id="administratorName"
+                    placeholder="Enter your full name"
+                >
+
+            </div>
+
+
+            <!-- ADMIN EMAIL -->
+
+            <div class="register-form-group">
+
+                <label for="administratorEmail">
+
+                    Educational Email
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <input
+                    type="email"
+                    id="administratorEmail"
+                    placeholder="name@education.gov.bt"
+                >
+
+                <div class="field-note">
+                    Use your official educational email.
+                </div>
+
+            </div>
+
+
+            <!-- ADMIN PASSWORD -->
+
+            <div class="register-form-group">
+
+                <label for="administratorPassword">
+
+                    Password
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <div class="password-field">
+
+                    <input
+                        type="password"
+                        id="administratorPassword"
+                        placeholder="Create a password"
+                    >
+
+                    <button
+                        type="button"
+                        class="register-password-toggle"
+                        data-target="administratorPassword"
+                    >
+                        Show
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- ADMIN CONFIRM PASSWORD -->
+
+            <div class="register-form-group">
+
+                <label for="administratorConfirmPassword">
+
+                    Confirm Password
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+                <div class="password-field">
+
+                    <input
+                        type="password"
+                        id="administratorConfirmPassword"
+                        placeholder="Confirm your password"
+                    >
+
+                    <button
+                        type="button"
+                        class="register-password-toggle"
+                        data-target="administratorConfirmPassword"
+                    >
+                        Show
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================================
+             CREATE ACCOUNT BUTTON
+        ========================================== -->
+
+        <button
+            id="registerButton"
+            type="button"
+            class="register-button"
+        >
+            Create Account
+        </button>
+
+
+        <!-- =========================================
+             MESSAGE
+        ========================================== -->
+
+        <div
+            id="registerMessage"
+            class="register-message"
+        ></div>
+
+
+        <!-- =========================================
+             BACK TO LOGIN
+        ========================================== -->
+
+        <div class="back-login">
+
+            Already have an account?
+
+            <button
+                type="button"
+                id="backToLoginBtn"
+            >
+                Sign In
+            </button>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     SUPABASE
+========================================================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="js/supabase-config.js"></script>
+
+<script src="js/sams-cloud.js"></script>
+
+
+<!-- =========================================================
+     REGISTRATION JAVASCRIPT
+========================================================= -->
+
+<script src="js/register.js?v=4"></script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Dashboard | SAMS
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="css/dashboard.css"
+    >
+
+</head>
+
+
+<body>
+
+<div class="sams-app">
+
+
+    <!-- =========================================
+         SIDEBAR
+         ========================================= -->
+
+    <aside
+        class="sidebar"
+        id="sidebar"
+    >
+
+        <div class="brand">
+
+            <div class="brand-mark">
+                SAMS
+            </div>
+
+            <div class="brand-title">
+                Student Assessment<br>
+                Management System
+            </div>
+
+        </div>
+
+
+        <nav
+            class="main-nav"
+            aria-label="Main navigation"
+        >
+
+            <a
+                class="nav-item active"
+                href="dashboard.html"
+            >
+                <span class="nav-icon">
+                    ⌂
+                </span>
+
+                <span>
+                    Dashboard
+                </span>
+            </a>
+
+
+            <a
+                class="nav-item"
+                href="classes.html"
+            >
+                <span class="nav-icon">
+                    ▣
+                </span>
+
+                <span>
+                    Classes
+                </span>
+            </a>
+
+
+            <a
+                class="nav-item"
+                id="assessmentNav"
+                href="assessment-dashboard.html"
+            >
+                <span class="nav-icon">
+                    ✓
+                </span>
+
+                <span id="assessmentNavLabel">
+                    Assessment
+                </span>
+            </a>
+
+
+            <a
+                class="nav-item"
+                id="staffManagementNav"
+                href="staff-management.html"
+            >
+                <span class="nav-icon">
+                    ♟
+                </span>
+
+                <span>
+                    Staff Management
+                </span>
+            </a>
+
+
+            <a
+                class="nav-item"
+                id="criteriaNav"
+                href="assessment.html"
+                style="display:none"
+            >
+                <span class="nav-icon">
+                    ⚙
+                </span>
+
+                <span>
+                    Assessment Criteria
+                </span>
+            </a>
+
+
+            <a
+                class="nav-item"
+                href="hall-of-fame.html"
+            >
+                <span class="nav-icon">
+                    ★
+                </span>
+
+                <span>
+                    Hall of Fame
+                </span>
+            </a>
+
+
+            <a
+                class="nav-item"
+                href="reports.html"
+            >
+                <span class="nav-icon">
+                    ▤
+                </span>
+
+                <span>
+                    Reports
+                </span>
+            </a>
+
+
+            <a
+                class="nav-item"
+                href="settings.html"
+            >
+                <span class="nav-icon">
+                    ⚙
+                </span>
+
+                <span>
+                    Settings
+                </span>
+            </a>
+
+
+            <button
+                class="nav-item logout-item"
+                id="logoutButton"
+                type="button"
+            >
+
+                <span class="nav-icon">
+                    ⇥
+                </span>
+
+                <span>
+                    Logout
+                </span>
+
+            </button>
+
+        </nav>
+
+    </aside>
+
+
+
+    <!-- =========================================
+         MAIN AREA
+         ========================================= -->
+
+    <div class="main-area">
+
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <button
+                type="button"
+                class="menu-button"
+                id="menuButton"
+                aria-label="Toggle menu"
+            >
+                ☰
+            </button>
+
+
+            <div class="topbar-spacer"></div>
+
+
+            <div class="user-area">
+
+
+                <div class="notification" id="notificationBell" role="button" tabindex="0"
+                     aria-label="Notifications" aria-expanded="false">
+
+                    <span class="notification-icon">🔔</span>
+
+                    <span
+                        class="notification-count"
+                        id="notificationCount"
+                    >
+                        0
+                    </span>
+
+                    <div class="notification-panel hidden" id="notificationPanel">
+                        <div class="notification-panel-header">
+                            <strong>Notifications</strong>
+                            <button type="button" id="closeNotifications" aria-label="Close notifications">×</button>
+                        </div>
+                        <div id="notificationList" class="notification-list">
+                            <div class="notification-empty">No new notifications.</div>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="user-details">
+
+                    <div
+                        class="user-name"
+                        id="userName"
+                    >
+                        User
+                    </div>
+
+                    <div
+                        class="user-role"
+                        id="userRole"
+                    >
+                        Administrator
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="user-avatar"
+                    id="userAvatar"
+                >
+                    U
+                </div>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- =========================================
+             CONTENT
+             ========================================= -->
+
+        <main class="content">
+
+
+            <section id="dashboardContent">
+
+
+                <!-- PAGE HEADING -->
+
+                <div class="page-heading">
+
+                    <div>
+
+                        <h1>
+                            Dashboard
+                        </h1>
+
+                        <p>
+                            Overview of Student Assessment
+                            Management System
+                        </p>
+
+                    </div>
+
+
+                    <div
+                        class="date-card"
+                        id="currentDate"
+                    ></div>
+
+                </div>
+
+
+
+                <!-- =====================================
+                     SUMMARY
+                     ===================================== -->
+
+                <div class="summary-grid">
+
+
+                    <div class="summary-card blue">
+
+                        <div class="card-label">
+                            Total Students
+                        </div>
+
+                        <div
+                            class="card-number"
+                            id="studentCount"
+                        >
+                            0
+                        </div>
+
+                        <div class="card-link">
+                            <a href="classes.html">View students →</a>
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="summary-card green">
+
+                        <div class="card-label">
+                            Total Staff
+                        </div>
+
+                        <div
+                            class="card-number"
+                            id="staffCount"
+                        >
+                            0
+                        </div>
+
+                        <div class="card-link">
+
+                            <a href="staff-management.html">
+                                View staff →
+                            </a>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="summary-card orange">
+
+                        <div class="card-label">
+                            Total Classes
+                        </div>
+
+                        <div
+                            class="card-number"
+                            id="classCount"
+                        >
+                            0
+                        </div>
+
+                        <div class="card-link">
+                            <a href="classes.html">View classes →</a>
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="summary-card purple" id="assessmentSummaryCard">
+
+                        <div class="card-label" id="assessmentCardLabel">
+                            Assessment Records
+                        </div>
+
+                        <div
+                            class="card-number"
+                            id="assessmentCount"
+                        >
+                            0
+                        </div>
+
+                        <div class="card-link">
+                            <a id="assessmentCardLink" href="assessment-dashboard.html">View assessments →</a>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- =====================================
+                     LOWER PANELS
+                     ===================================== -->
+
+                <div class="dashboard-grid">
+
+
+                    <section class="panel">
+
+                        <div class="panel-header">
+
+                            <h2>
+                                Students Overview
+                            </h2>
+
+                        </div>
+
+
+                        <div class="overview-content" id="studentsOverview">
+                            <div class="chart-message">Loading student statistics…</div>
+                        </div>
+
+                    </section>
+
+
+
+                    <section class="panel">
+
+                        <div class="panel-header">
+
+                            <h2>
+                                Recent Activities
+                            </h2>
+
+                        </div>
+
+
+                        <div class="activity-list" id="recentActivities">
+                            <div class="activity-empty">Loading recent activities…</div>
+                        </div>
+
+                    </section>
+
+                </div>
+
+
+
+                <!-- =====================================
+                     QUICK ACTIONS
+                     ===================================== -->
+
+                <section class="panel quick-panel">
+
+                    <div class="panel-header">
+
+                        <h2>
+                            Quick Actions
+                        </h2>
+
+                    </div>
+
+
+                    <div class="quick-actions">
+
+                        <a href="classes.html">
+                            Classes
+                        </a>
+
+                        <a href="staff-management.html">
+                            Staff Management
+                        </a>
+
+                        <a id="criteriaQuickAction" href="assessment.html" style="display:none">
+                            Assessment Criteria
+                        </a>
+
+                        <a id="assessmentQuickAction" href="assessment-dashboard.html">
+                            Assessment
+                        </a>
+
+                        <a href="reports.html">
+                            Reports
+                        </a>
+
+                    </div>
+
+                </section>
+
+
+            </section>
+
+        </main>
+
+
+
+        <!-- FOOTER -->
+
+        <footer class="footer">
+
+            ©
+            <span id="footerYear"></span>
+            Student Assessment Management System.
+            All rights reserved.
+
+        </footer>
+
+
+    </div>
+
+</div>
+
+
+
+<script src="js/auth-sync.js"></script>
+<script src="js/dashboard.js"></script>
+
+
+<style>
+    /* SAMS dashboard role visibility */
+    #assessmentNav,
+    #assessmentQuickAction,
+    #assessmentSummaryCard {
+        /* visibility is decided by the role controller below */
+    }
+</style>
+
+
+
+</body>
+
+</html>
