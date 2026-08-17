@@ -1,7 +1,6 @@
 // ============================================================
 // SAMS REGISTER.JS
 // Supabase-first registration
-// Profile creation is handled by Supabase database trigger
 // ============================================================
 
 (function () {
@@ -91,6 +90,7 @@
                 type === "Staff"
                     ? "block"
                     : "none";
+
         }
 
 
@@ -100,6 +100,7 @@
                 type === "Student"
                     ? "block"
                     : "none";
+
         }
 
 
@@ -109,10 +110,12 @@
                 type === "Administrator"
                     ? "block"
                     : "none";
+
         }
 
 
         showMessage("");
+
     }
 
 
@@ -122,6 +125,7 @@
             "change",
             updateAccountSections
         );
+
     }
 
 
@@ -131,6 +135,7 @@
             "change",
             updateAccountSections
         );
+
     }
 
 
@@ -140,6 +145,7 @@
             "change",
             updateAccountSections
         );
+
     }
 
 
@@ -194,6 +200,7 @@
 
                         button.textContent =
                             "Show";
+
                     }
 
                 }
@@ -255,6 +262,7 @@
             );
 
             return false;
+
         }
 
 
@@ -266,6 +274,7 @@
             );
 
             return false;
+
         }
 
 
@@ -280,6 +289,7 @@
             );
 
             return false;
+
         }
 
 
@@ -450,6 +460,7 @@
             );
 
             return false;
+
         }
 
 
@@ -461,6 +472,7 @@
             );
 
             return false;
+
         }
 
 
@@ -472,6 +484,7 @@
             );
 
             return false;
+
         }
 
 
@@ -487,6 +500,7 @@
             );
 
             return false;
+
         }
 
 
@@ -512,6 +526,7 @@
             );
 
             return false;
+
         }
 
 
@@ -523,6 +538,7 @@
             );
 
             return false;
+
         }
 
 
@@ -534,6 +550,7 @@
             );
 
             return false;
+
         }
 
 
@@ -549,6 +566,7 @@
             );
 
             return false;
+
         }
 
 
@@ -574,6 +592,7 @@
             );
 
             return false;
+
         }
 
 
@@ -585,6 +604,7 @@
             );
 
             return false;
+
         }
 
 
@@ -600,6 +620,7 @@
             );
 
             return false;
+
         }
 
 
@@ -627,78 +648,10 @@
             );
 
             return false;
+
         }
 
         return true;
-    }
-
-
-    // =========================================================
-    // CHECK PROFILE BY EMAIL
-    // =========================================================
-
-    async function profileExistsByEmail(email) {
-
-        const result =
-            await window.samsSupabase
-                .from("profiles")
-                .select(
-                    "id, email, role"
-                )
-                .ilike(
-                    "email",
-                    email
-                )
-                .limit(1);
-
-
-        if (result.error) {
-
-            throw result.error;
-        }
-
-
-        return (
-            result.data &&
-            result.data.length > 0
-        );
-
-    }
-
-
-    // =========================================================
-    // CHECK EXISTING ADMINISTRATOR
-    // =========================================================
-
-    async function administratorExists() {
-
-        const result =
-            await window.samsSupabase
-                .from("profiles")
-                .select(
-                    "id",
-                    {
-                        count: "exact",
-                        head: true
-                    }
-                )
-                .eq(
-                    "role",
-                    "admin"
-                );
-
-
-        if (result.error) {
-
-            throw result.error;
-        }
-
-
-        return (
-            Number(
-                result.count || 0
-            ) > 0
-        );
 
     }
 
@@ -737,6 +690,7 @@
         if (result.error) {
 
             throw result.error;
+
         }
 
 
@@ -745,106 +699,71 @@
             throw new Error(
                 "Supabase did not return a user account."
             );
+
         }
 
+        /*
+         * Supabase can return a user with no identities when an
+         * email is already registered. Treat that as a duplicate.
+         */
+        if (
+            Array.isArray(result.data.user.identities) &&
+            result.data.user.identities.length === 0
+        ) {
+            throw new Error(
+                "This email address is already registered in Supabase."
+            );
+        }
 
         return result.data;
 
     }
-
-
     // =========================================================
     // REGISTER ADMINISTRATOR
     // =========================================================
 
     async function registerAdministrator() {
 
-        const data =
-            getAdministratorData();
+        const data = getAdministratorData();
 
-
-        if (
-            !validateAdministrator(data)
-        ) {
-
+        if (!validateAdministrator(data)) {
             return;
         }
-
-
-        showMessage(
-            "Checking Administrator availability...",
-            ""
-        );
-
-
-        const adminExists =
-            await administratorExists();
-
-
-        if (adminExists) {
-
-            showMessage(
-
-                "An Administrator account already exists. Only one Administrator account is permitted.",
-
-                "error"
-            );
-
-            return;
-        }
-
-
-        const existingProfile =
-            await profileExistsByEmail(
-                data.email
-            );
-
-
-        if (existingProfile) {
-
-            showMessage(
-
-                "A SAMS profile already exists for this email address.",
-
-                "error"
-            );
-
-            return;
-        }
-
 
         showMessage(
             "Creating Administrator account...",
             ""
         );
 
+        /*
+         * IMPORTANT:
+         * The Supabase database trigger creates the profiles row.
+         * The browser must NOT insert a second profiles row.
+         *
+         * account_type = Administrator
+         * -> role   = admin
+         * -> active = true
+         */
 
-        await createAuthUser(
-
+        const authData = await createAuthUser(
             data.email,
-
             data.password,
-
             {
-
-                account_type:
-                    "Administrator",
-
-                full_name:
-                    data.fullName
-
+                account_type: "Administrator",
+                full_name: data.fullName
             }
-
         );
 
+        if (!authData?.user) {
+            throw new Error(
+                "Supabase did not return the Administrator account."
+            );
+        }
 
         showMessage(
-
             "Administrator account created successfully. You can now sign in.",
-
             "success"
         );
-
     }
 
 
@@ -854,78 +773,49 @@
 
     async function registerStaff() {
 
-        const data =
-            getStaffData();
+        const data = getStaffData();
 
-
-        if (
-            !validateStaff(data)
-        ) {
-
+        if (!validateStaff(data)) {
             return;
         }
-
-
-        showMessage(
-            "Checking staff account...",
-            ""
-        );
-
-
-        const existingProfile =
-            await profileExistsByEmail(
-                data.email
-            );
-
-
-        if (existingProfile) {
-
-            showMessage(
-
-                "A SAMS profile already exists for this email address.",
-
-                "error"
-            );
-
-            return;
-        }
-
 
         showMessage(
             "Creating staff account...",
             ""
         );
 
+        /*
+         * The database trigger creates the profile.
+         *
+         * Staff registration starts as:
+         *   role   = non_class_teacher
+         *   active = false
+         *   is_assessor = false
+         *
+         * The Administrator later approves the account and
+         * assigns the permanent staff role.
+         */
 
-        await createAuthUser(
-
+        const authData = await createAuthUser(
             data.email,
-
             data.password,
-
             {
-
-                account_type:
-                    "Staff",
-
-                full_name:
-                    data.fullName,
-
-                employee_code:
-                    data.employeeCode
-
+                account_type: "Staff",
+                full_name: data.fullName,
+                employee_code: data.employeeCode
             }
-
         );
 
+        if (!authData?.user) {
+            throw new Error(
+                "Supabase did not return the Staff account."
+            );
+        }
 
         showMessage(
-
-            "Staff account created successfully. Your account is now waiting for Administrator approval.",
-
+            "Registration successful. Your account is waiting for Administrator approval.",
             "success"
         );
-
     }
 
 
@@ -935,83 +825,51 @@
 
     async function registerStudent() {
 
-        const data =
-            getStudentData();
+        const data = getStudentData();
 
-
-        if (
-            !validateStudent(data)
-        ) {
-
+        if (!validateStudent(data)) {
             return;
         }
-
-
-        showMessage(
-            "Checking student account...",
-            ""
-        );
-
-
-        const existingProfile =
-            await profileExistsByEmail(
-                data.email
-            );
-
-
-        if (existingProfile) {
-
-            showMessage(
-
-                "A SAMS profile already exists for this email address.",
-
-                "error"
-            );
-
-            return;
-        }
-
 
         showMessage(
             "Creating student account...",
             ""
         );
 
+        /*
+         * The database trigger creates the profile.
+         *
+         * account_type = Student
+         * -> role   = student
+         * -> active = true
+         */
 
-        await createAuthUser(
-
+        const authData = await createAuthUser(
             data.email,
-
             data.password,
-
             {
-
-                account_type:
-                    "Student",
-
-                full_name:
-                    data.fullName,
-
-                student_code:
-                    data.studentCode
-
+                account_type: "Student",
+                full_name: data.fullName,
+                student_code: data.studentCode
             }
-
         );
 
+        if (!authData?.user) {
+            throw new Error(
+                "Supabase did not return the Student account."
+            );
+        }
 
         showMessage(
-
-            "Student account created successfully. You can now sign in.",
-
+            "Registration successful. Your student account is ready. You can now sign in.",
             "success"
         );
-
     }
 
 
     // =========================================================
     // CREATE ACCOUNT BUTTON
+
     // =========================================================
 
     if (registerButton) {
@@ -1033,9 +891,11 @@
                         "Please select an Account Type.",
 
                         "error"
+
                     );
 
                     return;
+
                 }
 
 
@@ -1044,6 +904,7 @@
                 ) {
 
                     return;
+
                 }
 
 
@@ -1095,6 +956,7 @@
                             "Invalid account type.",
 
                             "error"
+
                         );
 
                     }
@@ -1120,6 +982,7 @@
 
                         message =
                             error.message;
+
                     }
 
 
@@ -1159,18 +1022,35 @@
                     ) {
 
                         message =
-                            "Supabase security policy prevented this operation.";
+                            "Supabase security policy prevented the SAMS profile from being created.";
 
                     }
 
                     else if (
-                        lower.includes(
-                            "violates"
-                        )
+                        lower.includes("user_role") ||
+                        lower.includes("invalid input value for enum") ||
+                        lower.includes("pending")
                     ) {
 
                         message =
-                            "The SAMS database rejected the registration information.";
+                            "SAMS registration could not be completed because the database role configuration is incorrect. Please run the SAMS registration fix SQL in Supabase.";
+
+                    }
+                    else if (
+                        lower.includes("email rate limit") ||
+                        lower.includes("rate limit exceeded")
+                    ) {
+
+                        message =
+                            "Supabase has temporarily limited registration emails. Please wait before trying another registration.";
+
+                    }
+                    else if (
+                        lower.includes("violates")
+                    ) {
+
+                        message =
+                            "The SAMS database rejected the account information. Please check the Supabase registration trigger and profiles table.";
 
                     }
 
@@ -1189,6 +1069,7 @@
 
                     registerButton.textContent =
                         originalText;
+
                 }
 
             }
