@@ -259,9 +259,12 @@
         );
         const principal = currentRole === "principal";
         const vicePrincipal = ["vice principal", "viceprincipal", "vp"].includes(currentRole);
-        const appointedAssessor = vicePrincipal && current?.isAssessor === true;
+        const nonClassTeacher = ["non-class teacher", "non class teacher"].includes(currentRole);
+        const appointedAssessor =
+            (vicePrincipal || nonClassTeacher) &&
+            current?.isAssessor === true;
         const disciplineOnly = principal || (vicePrincipal && !appointedAssessor);
-        const assessmentVisible = principal || vicePrincipal;
+        const assessmentVisible = principal || vicePrincipal || appointedAssessor;
 
         if (assessmentCount) {
             if (!assessmentVisible) {
@@ -414,7 +417,10 @@
             criteriaQuickAction.style.display = administrator ? "" : "none";
         }
         const vicePrincipal = ["vice principal", "viceprincipal", "vp"].includes(role);
-        const appointedAssessor = vicePrincipal && current?.isAssessor === true;
+        const nonClassTeacher = ["non-class teacher", "non class teacher"].includes(role);
+        const appointedAssessor =
+            (vicePrincipal || nonClassTeacher) &&
+            current?.isAssessor === true;
 
         /*
          * Assessment access rules:
@@ -613,8 +619,11 @@
         );
         const principal = currentRole === "principal";
         const vicePrincipal = ["vice principal", "viceprincipal", "vp"].includes(currentRole);
-        const appointedAssessor = vicePrincipal && current?.isAssessor === true;
-        const assessmentVisible = principal || vicePrincipal;
+        const nonClassTeacher = ["non-class teacher", "non class teacher"].includes(currentRole);
+        const appointedAssessor =
+            (vicePrincipal || nonClassTeacher) &&
+            current?.isAssessor === true;
+        const assessmentVisible = principal || vicePrincipal || appointedAssessor;
         const disciplineOnly = principal || (vicePrincipal && !appointedAssessor);
 
         getAssessmentRecords().forEach(record => {
