@@ -285,10 +285,6 @@
                         Class Teacher
                     </option>
 
-                    <option value="assessor">
-                        Assessor
-                    </option>
-
                     <option value="principal">
                         Principal
                     </option>
@@ -436,10 +432,6 @@ function isClassTeacher(role) {
     return r === "class teacher" || r === "classteacher";
 }
 
-function isTeacher(role) {
-    return normaliseRole(role) === "teacher";
-}
-
 function isNonClassTeacher(role) {
     const r = normaliseRole(role);
     return r === "non class teacher" || r === "non-class teacher";
@@ -451,7 +443,7 @@ function hasFullStaffManagementAccess(role) {
 }
 
 function isStaffViewOnly(role) {
-    return isClassTeacher(role) || isTeacher(role) || isNonClassTeacher(role);
+    return isClassTeacher(role) || isNonClassTeacher(role);
 }
 
 /*
@@ -705,26 +697,13 @@ async function loadStaff() {
         let data = null;
         let error = null;
 
-        const fullQuery = await window.samsSupabase
+        const coreQuery = await window.samsSupabase
             .from("profiles")
-            .select("id, full_name, email, employee_code, role, active, status, is_assessor, assigned_class, assigned_section, created_at")
+            .select("id, full_name, email, employee_code, role, active, is_assessor, created_at")
             .order("created_at", { ascending: true });
 
-        data = fullQuery.data;
-        error = fullQuery.error;
-
-        // Some older SAMS databases may not yet have optional staff fields.
-        // Fall back to the original core profile columns so the staff list
-        // still loads instead of becoming blank.
-        if (error) {
-            console.warn("Optional staff profile columns unavailable; loading core profile fields.", error);
-            const coreQuery = await window.samsSupabase
-                .from("profiles")
-                .select("id, full_name, email, employee_code, role, active, is_assessor, created_at")
-                .order("created_at", { ascending: true });
-            data = coreQuery.data;
-            error = coreQuery.error;
-        }
+        data = coreQuery.data;
+        error = coreQuery.error;
 
         if (error) throw error;
 
@@ -767,7 +746,6 @@ async function syncStaffProfileToSupabase(item) {
         "vp": "vice_principal",
         "class teacher": "class_teacher",
         "classteacher": "class_teacher",
-        "teacher": "class_teacher",
         "non class teacher": "non_class_teacher",
         "non-class teacher": "non_class_teacher",
         "non_class_teacher": "non_class_teacher",
@@ -802,34 +780,15 @@ async function syncStaffProfileToSupabase(item) {
         full_name: item.name,
         role: dbRole,
         active: isActive,
-        status: isActive ? "Active" : normaliseRole(item.status) === "rejected" ? "Rejected" : "Pending",
-        is_assessor: item.assessor === true,
-        assigned_class: item.assignedClass || "",
-        assigned_section: item.assignedSection || ""
+        is_assessor: item.assessor === true
     };
 
     console.log("SAMS profile update", { profileId, email, payload });
 
-    // First try the complete staff profile update.
-    let result = await window.samsSupabase
+    const result = await window.samsSupabase
         .from("profiles")
         .update(payload)
         .eq("id", profileId);
-
-    // Some older SAMS databases may not contain optional columns.
-    // Retry with the essential columns if that is the only problem.
-    if (result.error) {
-        console.warn("Full profile update failed; retrying core columns.", result.error);
-        result = await window.samsSupabase
-            .from("profiles")
-            .update({
-                full_name: item.name,
-                role: dbRole,
-                active: isActive,
-                is_assessor: item.assessor === true
-            })
-            .eq("id", profileId);
-    }
 
     if (result.error) {
         console.error("SAMS profile update failed:", result.error);
