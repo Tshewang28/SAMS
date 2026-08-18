@@ -121,23 +121,7 @@ const criteriaCount=document.getElementById("criteriaCount");
 const title=document.getElementById("assessmentTitle");
 const subtitle=document.getElementById("assessmentSubtitle");
 
-// Games & Sports is NOT an assessor assessment area.
-// It must be entered only from Classes & Students by the Class Teacher
-// assigned to the selected class/section. Therefore it is deliberately
-// removed from the Assessment dashboard for assessors, Principals and
-// Vice Principals.
-const positiveAreas=["Classroom","Assembly","SUPW"];
-
-function removeGamesSportsFromAssessmentSelector(){
-  if(!areaSelect) return;
-  [...areaSelect.options].forEach(option=>{
-    if(String(option.value||"").trim()==="Games & Sports") option.remove();
-  });
-}
-
-// Never expose Games & Sports on this assessment dashboard.
-// Class Teachers record Games & Sports from classes.html instead.
-removeGamesSportsFromAssessmentSelector();
+const positiveAreas=["Classroom","Assembly","SUPW","Games & Sports"];
 
 // Administration enters this page only to manage assessment criteria.
 // Do not expose assessment recording controls to Administration.
@@ -743,10 +727,30 @@ function saveAssessment(){
   let records=[];
 
   if(a==="Games & Sports"){
-    return alert("Games & Sports records can be entered only by the Class Teacher of the selected class from Classes & Students.");
-  }
+    const category=document.getElementById("sportsCategory")?.value;
+    const position=document.getElementById("sportsPosition")?.value;
+    const sport=normalizeSportName(document.getElementById("sportsType")?.value||"");
+    const comment=document.getElementById("sportsComment")?.value.trim()||"";
+    const points={1:5,2:4,3:3};
 
-  if(a==="Discipline"){
+    if(!category)return alert("Please select Primary, Junior or Senior sports category.");
+    if(!sport)return alert("Please enter the type of game or sport.");
+    if(!position)return alert("No position is available for this sport in the selected category.");
+
+    const positionLabel=`${position}${position==="1"?"st":position==="2"?"nd":"rd"}`;
+    if(getPositionAvailability(category,sport).has(positionLabel)){
+      return alert(`${positionLabel} has already been awarded for ${sport} in the ${category} category.`);
+    }
+
+    records=[{
+      criterionId:"GAMES-SPORTS-POSITION",
+      sportsCategory:category,
+      position:positionLabel,
+      gameSport:sport,
+      point:points[position],
+      comment
+    }];
+  }else if(a==="Discipline"){
     const students=getStudentsForSelection(c,s);
     const cards=[...document.querySelectorAll(".discipline-card")];
 
