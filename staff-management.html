@@ -1247,6 +1247,9 @@ async function initialise() {
 }
 
 function attachEventListeners() {
+    document.getElementById("backDashboard")?.addEventListener("click", () => {
+        window.location.href = "dashboard.html";
+    });
     document.getElementById("addStaffButton")?.addEventListener("click", addStaff);
     document.getElementById("closeModalButton")?.addEventListener("click", closeModal);
     document.getElementById("cancelModalButton")?.addEventListener("click", closeModal);
