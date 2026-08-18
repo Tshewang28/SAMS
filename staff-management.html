@@ -157,7 +157,7 @@
         <h2>Staff Management</h2>
         <p>View registered staff, approve accounts, assign roles and manage assessor appointments.</p>
       </div>
-      <a id="backDashboard" class="back-dashboard" href="dashboard.html" role="button">← Back to Dashboard</a>
+      <button id="backDashboard" class="back-dashboard" type="button">← Back to Dashboard</button>
     </div>
 
     <section class="class-card staff-management-card">
@@ -298,15 +298,15 @@
                 <label for="staffClass">Class</label>
                 <select id="staffClass">
                     <option value="">Select Class</option>
-                    <option value="IV">IV</option>
-                    <option value="V">V</option>
-                    <option value="VI">VI</option>
-                    <option value="VII">VII</option>
-                    <option value="VIII">VIII</option>
-                    <option value="IX">IX</option>
-                    <option value="X">X</option>
-                    <option value="XI">XI</option>
-                    <option value="XII">XII</option>
+                    <option value="Grade IV">Grade IV</option>
+                    <option value="Grade V">Grade V</option>
+                    <option value="Grade VI">Grade VI</option>
+                    <option value="Grade VII">Grade VII</option>
+                    <option value="Grade VIII">Grade VIII</option>
+                    <option value="Grade IX">Grade IX</option>
+                    <option value="Grade X">Grade X</option>
+                    <option value="Grade XI">Grade XI</option>
+                    <option value="Grade XII">Grade XII</option>
                 </select>
             </div>
 
@@ -699,7 +699,7 @@ async function loadStaff() {
 
         const coreQuery = await window.samsSupabase
             .from("profiles")
-            .select("id, full_name, email, employee_code, role, active, is_assessor, created_at")
+            .select("id, full_name, email, employee_code, role, active, is_assessor, assigned_class, assigned_section, created_at")
             .order("created_at", { ascending: true });
 
         data = coreQuery.data;
@@ -776,11 +776,14 @@ async function syncStaffProfileToSupabase(item) {
     }
 
     const isActive = normaliseRole(item.status) === "active";
+    const classTeacher = normaliseRole(item.role) === "class teacher";
     const payload = {
         full_name: item.name,
         role: dbRole,
         active: isActive,
-        is_assessor: item.assessor === true
+        is_assessor: item.assessor === true,
+        assigned_class: classTeacher ? (item.assignedClass || "") : "",
+        assigned_section: classTeacher ? (item.assignedSection || "") : ""
     };
 
     console.log("SAMS profile update", { profileId, email, payload });
@@ -908,9 +911,9 @@ function createStaffRow(staff, index) {
             <button class="action-btn delete" type="button" onclick="deleteStaff('${escapeAttribute(staff.id)}')">Delete</button>
         </div>` : "";
 
-    const assignment = staff.classSection && staff.classSection !== "—"
-        ? escapeHtml(staff.classSection)
-        : "—";
+    const assignment = (staff.assignedClass && staff.assignedSection)
+        ? escapeHtml(`${staff.assignedClass} • ${staff.assignedSection}`)
+        : (staff.classSection && staff.classSection !== "—" ? escapeHtml(staff.classSection) : "—");
 
     return `<tr>
         <td>${index + 1}</td>
@@ -1069,6 +1072,10 @@ async function saveStaff() {
     if (!email) return alert("Please enter the educational email.");
     if (!role) return alert("Please select a staff role.");
 
+    if (isClassTeacher(role) && (!assignedClass || !assignedSection)) {
+        return alert("Please select both Class and Section for a Class Teacher.");
+    }
+
     const existing = editingStaffId
         ? staffList.find(item => String(item.id) === String(editingStaffId))
         : null;
@@ -1091,7 +1098,7 @@ async function saveStaff() {
         role,
         assignedClass: assignedClass || "",
         assignedSection: assignedSection || "",
-        classSection: [assignedClass, assignedSection].filter(Boolean).join(" ") || "—",
+        classSection: [assignedClass, assignedSection].filter(Boolean).join(" • ") || "—",
         assessor,
         status,
         active: status === "active",
