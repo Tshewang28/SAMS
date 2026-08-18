@@ -1165,20 +1165,77 @@ async function deleteStaff(id) {
 
     const staff = staffList.find(item => String(item.id) === String(id));
     if (!staff) return;
-    if (!confirm(`Delete staff user "${staff.name}"?`)) return;
 
-    if (window.samsSupabase && staff.id) {
-        const { error } = await window.samsSupabase.from("profiles").delete().eq("id", staff.id);
-        if (error) {
-            console.error("SAMS profile deletion failed:", error);
-            alert("The staff record could not be deleted from the central database.");
-            return;
-        }
+    const email = String(staff.email || staff.educationalEmail || staff.raw?.email || "").trim();
+    const name = staff.name || email || "this staff member";
+
+    if (!staff.id) {
+        alert("This staff account does not have a valid Supabase user ID, so it cannot be safely deleted.");
+        return;
     }
 
-    staffList = staffList.filter(item => String(item.id) !== String(id));
-    saveStaffData();
-    await loadStaff();
+    if (!confirm(
+        `Delete staff user "${name}"?\n\n` +
+        `This will permanently remove the SAMS login account and profile.\n` +
+        `The email address${email ? ` (${email})` : ""} can then be used again to create a new account.\n\n` +
+        `Continue?`
+    )) return;
+
+    const buttons = document.querySelectorAll(
+        `[onclick*="deleteStaff('${id}')"], [onclick*="deleteStaff(\"${id}\")"]`
+    );
+    buttons.forEach(button => {
+        button.disabled = true;
+    });
+
+    try {
+        if (!window.samsSupabase) {
+            throw new Error("SAMS Supabase connection is not available.");
+        }
+
+        const { data, error } = await window.samsSupabase.functions.invoke(
+            "delete-sams-user",
+            {
+                body: {
+                    userId: staff.id
+                }
+            }
+        );
+
+        if (error) {
+            console.error("SAMS Auth user deletion failed:", error);
+            throw new Error(error.message || "The account could not be deleted from Supabase.");
+        }
+
+        if (!data?.success) {
+            throw new Error(data?.message || "The account could not be deleted.");
+        }
+
+        // Only remove the local staff entry after the cloud deletion succeeds.
+        staffList = staffList.filter(item => String(item.id) !== String(id));
+        saveStaffData();
+
+        await loadStaff();
+
+        alert(
+            `User deleted successfully.\n\n` +
+            `${email || name} can now use Create Account to register again.`
+        );
+
+    } catch (error) {
+
+        console.error("SAMS staff deletion failed:", error);
+
+        alert(
+            `The user was NOT deleted.\n\n` +
+            `${error?.message || "Please try again."}`
+        );
+
+    } finally {
+        buttons.forEach(button => {
+            button.disabled = false;
+        });
+    }
 }
 
 async function toggleAssessor(id) {
