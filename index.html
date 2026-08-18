@@ -10,10 +10,6 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="theme-color" content="#123F6D">
-    
     <title>
         SAMS - Student Assessment Management System
     </title>
@@ -22,6 +18,14 @@
         rel="stylesheet"
         href="css/login.css"
     >
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#123f6d">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SAMS">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
 </head>
 
@@ -233,20 +237,21 @@
 
     <script src="js/login.js?v=3"></script>
 
-<script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-        navigator.serviceWorker.register('./service-worker.js')
-            .then(function (registration) {
-                console.log('SAMS service worker registered:', registration.scope);
-            })
-            .catch(function (error) {
-                console.error('SAMS service worker registration failed:', error);
+
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
+                    await registration.update();
+                    console.log("SAMS PWA service worker ready", registration.scope);
+                } catch (error) {
+                    console.error("SAMS PWA service worker registration failed", error);
+                }
             });
-    });
-}
-</script>
-    
+        }
+    </script>
+
 </body>
 
 </html>
