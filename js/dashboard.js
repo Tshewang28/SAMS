@@ -1,3 +1,28 @@
+
+/* SAMS FINAL DASHBOARD ASSESSMENT POLICY
+   Principal + Vice Principal: Assessment -> Discipline only.
+   Other staff: Assessment only when appointed assessor.
+   Volunteer/Games permissions are handled separately on Classes.
+*/
+function samsAssessmentAccessPolicy(user) {
+    const role = samsNormaliseRole(
+        user?.role || user?.staffRole || user?.userRole || user?.user_role || user?.position || ""
+    );
+    const principal = role === "principal";
+    const vicePrincipal = role === "vice principal" || role === "viceprincipal" || role === "vp";
+    const assessor = user?.isAssessor === true ||
+        user?.is_assessor === true ||
+        String(user?.isAssessor ?? user?.is_assessor ?? "").trim().toLowerCase() === "true";
+
+    if (principal || vicePrincipal) {
+        return { allowed: true, areas: ["discipline"] };
+    }
+    if (assessor) {
+        return { allowed: true, areas: ["assigned"] };
+    }
+    return { allowed: false, areas: [] };
+}
+
 /* =========================================================
    SAMS - DASHBOARD.JS
    Dashboard data, notifications, statistics and activities.
