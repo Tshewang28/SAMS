@@ -231,15 +231,24 @@
     init();
   }
 
-  // Re-read the staff account whenever a page becomes active again.
-  window.addEventListener("pageshow",function(){
-    updateHeader();
-    bindLogout();
-    applyStudentReadOnly();
-  });
-  window.addEventListener("focus",function(){
-    updateHeader();
-    bindLogout();
-    applyStudentReadOnly();
+  // Re-sync the canonical account whenever a page/tab becomes active again.
+  // This is important after a long period in the background: the browser can
+  // restore a stale page from its back/forward cache while the local session
+  // still needs to be canonicalised before navigation continues.
+  function resumeSAMS(){
+    try{
+      sync();
+      updateHeader();
+      bindLogout();
+      applyStudentReadOnly();
+    }catch(error){
+      console.warn("SAMS resume sync failed:",error);
+    }
+  }
+
+  window.addEventListener("pageshow",resumeSAMS);
+  window.addEventListener("focus",resumeSAMS);
+  document.addEventListener("visibilitychange",function(){
+    if(!document.hidden) resumeSAMS();
   });
 })();
