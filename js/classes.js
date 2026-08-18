@@ -155,7 +155,10 @@ async function hydrateClassTeacherAssignmentsFromCloud(){
       console.warn('SAMS class-teacher assignment hydration failed:',error);
       return;
     }
-    cloudTeacherAssignments=Array.isArray(data)?data.filter(profileRoleIsClassTeacher):[];
+    cloudTeacherAssignments=Array.isArray(data)?data.filter(p=>{
+       const r=String(p?.role||p?.staffRole||p?.userRole||p?.accountType||'').trim().toLowerCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ');
+       return r==='class teacher' || r==='classteacher';
+     }):[];
     // Keep the browser cache aligned with the authoritative profile data for
     // the current device, but never use it as the source of truth.
     const list=accounts();
@@ -218,7 +221,8 @@ function teacherName(t){return String(t?.name||t?.fullName||t?.staffName||[t?.fi
 function loggedInTeacherName(){return teacherName(currentUser())}
 function same(a,b){return String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase()}
 function romanGradeNumber(v){
-  const s=String(v||'').trim().toUpperCase();
+  let s=String(v||'').trim().toUpperCase();
+  s=s.replace(/^GRADE\s*/,'').replace(/^CLASS\s*/,'').trim();
   const m={IV:'4',V:'5',VI:'6',VII:'7',VIII:'8',IX:'9',X:'10',XI:'11',XII:'12'};
   return m[s]||s;
 }
