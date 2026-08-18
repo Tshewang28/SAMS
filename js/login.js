@@ -359,14 +359,11 @@
                     .toLowerCase()
                     === "assessor",
 
-            // Keep Class Teacher assignment in the login session so the
-            // same permissions are available on every phone/computer.
             assignedClass:
                 profile.assigned_class || "",
+
             assignedSection:
                 profile.assigned_section || "",
-            assignedStream:
-                profile.assigned_stream || "",
 
             status:
                 profile.active === true
@@ -452,16 +449,7 @@
                             currentUser.status,
 
                         isAssessor:
-                            currentUser.isAssessor,
-
-                        assignedClass:
-                            currentUser.assignedClass,
-
-                        assignedSection:
-                            currentUser.assignedSection,
-
-                        assignedStream:
-                            currentUser.assignedStream
+                            currentUser.isAssessor
 
                     }
                 ])
@@ -810,8 +798,7 @@
                                 active,
                                 is_assessor,
                                 assigned_class,
-                                assigned_section,
-                                assigned_stream
+                                assigned_section
                                 `
                             )
                             .eq(
