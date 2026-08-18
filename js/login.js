@@ -354,13 +354,16 @@
                 role,
 
             isAssessor:
-                profile.is_assessor,
-            assignedClass: profile.assigned_class || "",
-            assignedSection: profile.assigned_section || "",                                assigned_class,
-                                assigned_section === true ||
+                profile.is_assessor === true ||
                 String(profile.role)
                     .toLowerCase()
                     === "assessor",
+
+            assignedClass:
+                profile.assigned_class || "",
+
+            assignedSection:
+                profile.assigned_section || "",
 
             status:
                 profile.active === true
@@ -446,7 +449,13 @@
                             currentUser.status,
 
                         isAssessor:
-                            currentUser.isAssessor
+                            currentUser.isAssessor,
+
+                        assignedClass:
+                            currentUser.assignedClass,
+
+                        assignedSection:
+                            currentUser.assignedSection
 
                     }
                 ])
@@ -793,7 +802,9 @@
                                 employee_code,
                                 role,
                                 active,
-                                is_assessor
+                                is_assessor,
+                                assigned_class,
+                                assigned_section
                                 `
                             )
                             .eq(
