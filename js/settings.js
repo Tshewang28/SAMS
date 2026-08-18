@@ -144,53 +144,61 @@ async function resetData(){
   if(!systemAdminOnly())return;
 
   const confirmed=confirm(
-    "RESET ASSESSMENT DATA\n\nThis will permanently clear ALL recorded assessment results, including Classroom, Assembly, SUPW, Discipline, and Games & Sports assessment records. It will also clear assessment-related dashboard activity history.\n\nStaff accounts, students, classes, assessment criteria, school settings and system settings will remain.\n\nAre you sure?"
+    "RESET ASSESSMENT DATA\n\nThis will permanently clear ALL recorded assessment results, including Classroom, Assembly, SUPW, Discipline, Games & Sports and Volunteer assessment records. It will also clear assessment-related reports, Hall of Fame, Class Ranking and recent assessment activity.\n\nStaff accounts, students, classes, assessment criteria, school settings and system settings will remain.\n\nAre you sure?"
   );
   if(!confirmed)return;
 
   const second=confirm(
-    "FINAL CONFIRMATION\n\nClear all assessment results and Games & Sports assessment records?\n\nThis cannot be undone unless you first made a backup."
+    "FINAL CONFIRMATION\n\nDelete all assessment records from SAMS cloud storage and this device?\n\nThis cannot be undone unless you first made a backup."
   );
   if(!second)return;
 
-  // Assessment data is stored in separate keys. Clearing only
-  // sams_assessment_records leaves Games & Sports data behind, which means
-  // Reports and other assessment-derived views can still show old results.
-  const ASSESSMENT_RESET_KEYS = [
-    // Core assessment records
+  const CORE_CLOUD_KEYS = [
     "sams_assessment_records",
     "sams_games_sports_records",
-    "sams_discipline_records",
     "sams_volunteer_records",
-
-    // Assessment-derived / cached records. These are included defensively
-    // so Reset remains complete even if a future build stores derived data.
-    "sams_reports",
-    "sams_hall_of_fame_records",
-    "sams_class_ranking",
     "sams_recent_activities"
   ];
 
-  ASSESSMENT_RESET_KEYS.forEach(key=>localStorage.removeItem(key));
+  const LOCAL_DERIVED_KEYS = [
+    ...CORE_CLOUD_KEYS,
+    "sams_discipline_records",
+    "sams_reports",
+    "sams_hall_of_fame_records",
+    "sams_class_ranking",
+    "sams_hall_of_fame",
+    "sams_ranking",
+    "sams_assessment_cache"
+  ];
 
-  // Remove the same records from the central sams_store. The cloud bridge
-  // uses a real DELETE for removeItem()/deleteKey(), so the old assessment
-  // records cannot return after refresh, login or opening SAMS on another
-  // device.
-  if(window.samsCloud) {
-    try {
-      if(typeof window.samsCloud.deleteKey === "function") {
-        await Promise.all(ASSESSMENT_RESET_KEYS.map(key=>window.samsCloud.deleteKey(key)));
-      } else if(typeof window.samsCloud.syncKey === "function") {
-        await Promise.all(ASSESSMENT_RESET_KEYS.map(key=>window.samsCloud.syncKey(key)));
-      }
-    } catch(error) {
-      console.warn("SAMS assessment reset cloud sync warning:", error);
+  try {
+    if(window.samsCloud && typeof window.samsCloud.resetAssessmentData === "function") {
+      // This performs a real DELETE in Supabase, verifies each row is gone,
+      // then clears the corresponding local cloud keys.
+      await window.samsCloud.resetAssessmentData(CORE_CLOUD_KEYS);
+    } else {
+      throw new Error("SAMS cloud reset function is unavailable.");
     }
-  }
 
-  alert("All assessment-connected data has been reset successfully. Assessment records, Games & Sports, Discipline, Volunteer records, Reports, Hall of Fame, Class Ranking and recent assessment activity were cleared. Staff, students, classes, criteria and settings were kept.");
-  location.reload();
+    // Clear all assessment-derived/local-only caches.
+    LOCAL_DERIVED_KEYS.forEach(key=>localStorage.removeItem(key));
+
+    alert(
+      "Assessment reset completed successfully.\n\n" +
+      "All assessment records, Games & Sports, Volunteer records, Discipline data, Reports, Hall of Fame, Class Ranking and recent assessment activity were cleared.\n\n" +
+      "Staff, students, classes, criteria and settings were kept."
+    );
+
+    location.reload();
+  } catch(error) {
+    console.error("SAMS assessment reset failed:", error);
+    alert(
+      "RESET FAILED.\n\n" +
+      "SAMS could not confirm deletion of the assessment data from Supabase.\n\n" +
+      "No success message was issued and your assessment data was not falsely reported as cleared.\n\n" +
+      "Technical detail: " + (error?.message || error)
+    );
+  }
 }
 
 function factoryReset(){
