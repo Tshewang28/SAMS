@@ -87,13 +87,43 @@ function assessmentBasePoints(c,s){
 function baseClassPoints(c,s){
   return assessmentBasePoints(c,s)+sportsPositionPointsForClass(c,s);
 }
+/*
+ * Discipline calculation rules:
+ * - Individual report: include ONLY records belonging to that student's studentId.
+ * - Class total: include each discipline deduction ONCE when it is not explicitly
+ *   marked affectsClassTotal=false.
+ * - A student's deduction is never copied to another student's report.
+ */
 function disciplineForStudent(c,s,sid){
-  return recordRowsForClass(c,s).filter(r=>r.area==="Discipline").reduce((sum,r)=>
-    sum+(Array.isArray(r.records)?r.records:[]).filter(x=>String(x.studentId||"")===String(sid)).reduce((a,x)=>a+(Number.isFinite(Number(x.point))?Number(x.point):0),0),0);
+  const wantedId=String(sid??"").trim();
+  if(!wantedId) return 0;
+
+  return recordRowsForClass(c,s)
+    .filter(r=>r.area==="Discipline")
+    .reduce((sum,r)=>{
+      const rows=Array.isArray(r.records)?r.records:[];
+      return sum + rows.reduce((a,x)=>{
+        const recordStudentId=String(x?.studentId??"").trim();
+        if(!recordStudentId || recordStudentId!==wantedId) return a;
+        const point=Number(x?.point);
+        return a + (Number.isFinite(point)?point:0);
+      },0);
+    },0);
 }
+
 function allDisciplinePoints(c,s){
-  return recordRowsForClass(c,s).filter(r=>r.area==="Discipline").reduce((sum,r)=>
-    sum+(Array.isArray(r.records)?r.records:[]).reduce((a,x)=>a+(Number.isFinite(Number(x.point))?Number(x.point):0),0),0);
+  return recordRowsForClass(c,s)
+    .filter(r=>r.area==="Discipline")
+    .reduce((sum,r)=>{
+      const rows=Array.isArray(r.records)?r.records:[];
+      return sum + rows.reduce((a,x)=>{
+        // Current records explicitly set true. Legacy records without the
+        // flag are included so previously saved deductions are not lost.
+        if(x?.affectsClassTotal===false) return a;
+        const point=Number(x?.point);
+        return a + (Number.isFinite(point)?point:0);
+      },0);
+    },0);
 }
 function areaPoints(c,s,area){
   return recordRowsForClass(c,s).filter(r=>r.area===area).reduce((sum,r)=>
