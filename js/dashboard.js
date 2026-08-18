@@ -382,15 +382,276 @@ function samsAssessmentAccessPolicy(user) {
         });
     }
 
+    function startOfWeek(date) {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        const day = d.getDay();
+        const diff = day === 0 ? -6 : 1 - day; // Monday as first day
+        d.setDate(d.getDate() + diff);
+        return d;
+    }
+
+    function endOfWeek(date) {
+        const d = startOfWeek(date);
+        d.setDate(d.getDate() + 6);
+        d.setHours(23, 59, 59, 999);
+        return d;
+    }
+
+    function weekLabel(date = new Date()) {
+        const start = startOfWeek(date);
+        const end = endOfWeek(date);
+        const sameYear = start.getFullYear() === end.getFullYear();
+
+        const startText = start.toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: sameYear ? undefined : "numeric"
+        });
+        const endText = end.toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        });
+
+        return `${startText} – ${endText}`;
+    }
+
     function updateDate() {
         const dateElement = $("currentDate");
         if (!dateElement) return;
 
-        dateElement.textContent = new Date().toLocaleDateString("en-GB", {
+        dateElement.textContent = weekLabel();
+    }
+
+    function normalizeClassKey(value) {
+        return normalize(value)
+            .toUpperCase()
+            .replace(/^GRADE\s*/, "")
+            .replace(/^CLASS\s*/, "")
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    function normalizeSectionKey(value) {
+        return normalize(value)
+            .toUpperCase()
+            .replace(/SECTION\s*\/\s*STREAM/i, "")
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    function recordBelongsToClass(record, classRow) {
+        const recordGrade = normalizeClassKey(record?.class || record?.grade);
+        const recordSection = normalizeSectionKey(record?.section || record?.stream);
+
+        const rowGrade = normalizeClassKey(classGrade(classRow));
+        const rowSection = normalizeSectionKey(classSection(classRow));
+
+        if (recordGrade !== rowGrade || recordSection !== rowSection) return false;
+
+        // Keep the match strict for the same grade/section, while allowing
+        // older records that did not store the stream explicitly.
+        const rowStream = normalizeSectionKey(classRow?.stream);
+        const recordStream = normalizeSectionKey(record?.stream);
+        if (rowStream && rowStream !== "GENERAL" && recordStream &&
+            recordStream !== "GENERAL" && rowStream !== recordStream) {
+            return false;
+        }
+
+        return true;
+    }
+
+    function assessmentDate(record) {
+        const raw = record?.savedAt || record?.createdAt || record?.timestamp || record?.date;
+        if (!raw) return null;
+        const d = new Date(raw);
+        return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function weeklyAssessmentStatus(classRow, area, now = new Date()) {
+        const start = startOfWeek(now);
+        const end = endOfWeek(now);
+
+        const matches = getAssessmentRecords()
+            .filter(record =>
+                normalizeLower(record?.area) === normalizeLower(area) &&
+                recordBelongsToClass(record, classRow)
+            )
+            .map(record => ({ record, date: assessmentDate(record) }))
+            .filter(item => item.date && item.date >= start && item.date <= end)
+            .sort((a, b) => b.date.getTime() - a.date.getTime());
+
+        return {
+            done: matches.length > 0,
+            date: matches.length ? matches[0].date : null
+        };
+    }
+
+    function formatAssessmentDate(date) {
+        if (!date) return "";
+        return date.toLocaleDateString("en-GB", {
             day: "2-digit",
-            month: "long",
-            year: "numeric"
+            month: "short"
         });
+    }
+
+    function renderWeeklyAssessmentProgress() {
+        const container = $("weeklyAssessmentProgress");
+        if (!container) return;
+
+        const classes = getClasses().slice().sort((a, b) => {
+            const gradeCompare = classGrade(a).localeCompare(
+                classGrade(b), undefined, { numeric: true }
+            );
+            return gradeCompare ||
+                classSection(a).localeCompare(classSection(b), undefined, { numeric: true });
+        });
+
+        const areas = ["SUPW", "Classroom", "Assembly"];
+        const totals = { SUPW: 0, Classroom: 0, Assembly: 0 };
+
+        const rows = classes.map(classRow => {
+            const status = {};
+            areas.forEach(area => {
+                status[area] = weeklyAssessmentStatus(classRow, area);
+                if (status[area].done) totals[area] += 1;
+            });
+
+            const completed = areas.filter(area => status[area].done).length;
+            return {
+                classRow,
+                status,
+                completed,
+                progress: Math.round((completed / areas.length) * 100)
+            };
+        });
+
+        const totalClasses = rows.length;
+        const cardData = [
+            {
+                key: "Classes",
+                value: totalClasses,
+                label: "Total Classes",
+                percent: 100,
+                color: "blue",
+                icon: "🏫"
+            },
+            {
+                key: "SUPW",
+                value: totals.SUPW,
+                label: "Assessments Done",
+                percent: totalClasses ? Math.round((totals.SUPW / totalClasses) * 100) : 0,
+                color: "green",
+                icon: "🌱"
+            },
+            {
+                key: "Classroom",
+                value: totals.Classroom,
+                label: "Assessments Done",
+                percent: totalClasses ? Math.round((totals.Classroom / totalClasses) * 100) : 0,
+                color: "orange",
+                icon: "🧑‍🏫"
+            },
+            {
+                key: "Assembly",
+                value: totals.Assembly,
+                label: "Assessments Done",
+                percent: totalClasses ? Math.round((totals.Assembly / totalClasses) * 100) : 0,
+                color: "purple",
+                icon: "📣"
+            }
+        ];
+
+        const cards = $("weeklySummaryCards");
+        if (cards) {
+            cards.innerHTML = cardData.map(card => `
+                <article class="weekly-summary-card ${card.color}">
+                    <div class="weekly-card-top">
+                        <span class="weekly-card-icon" aria-hidden="true">${card.icon}</span>
+                        <div>
+                            <div class="weekly-card-title">${escapeHTML(card.key)}</div>
+                            <div class="weekly-card-number">${card.value}</div>
+                            <div class="weekly-card-label">${escapeHTML(card.label)}</div>
+                        </div>
+                    </div>
+                    <div class="weekly-card-progress">
+                        <strong>${card.value}/${totalClasses}</strong>
+                        <span class="weekly-progress-track">
+                            <span style="width:${card.percent}%"></span>
+                        </span>
+                        <strong>${card.percent}%</strong>
+                    </div>
+                </article>
+            `).join("");
+        }
+
+        const table = $("weeklyAssessmentTable");
+        if (!table) return;
+
+        if (!rows.length) {
+            table.innerHTML = `
+                <div class="weekly-empty">
+                    <strong>No classes are registered yet.</strong>
+                    <span>Add classes from the Classes page and weekly assessment progress will appear here.</span>
+                </div>`;
+            return;
+        }
+
+        table.innerHTML = `
+            <div class="weekly-table-wrap">
+                <table class="weekly-table">
+                    <thead>
+                        <tr>
+                            <th>Class / Section</th>
+                            <th>SUPW</th>
+                            <th>Classroom</th>
+                            <th>Assembly</th>
+                            <th>Overall Progress</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(row => {
+                            const c = row.classRow;
+                            const label = `Grade ${classGrade(c)} • ${classSection(c)}`;
+                            return `
+                                <tr>
+                                    <td class="weekly-class-name">
+                                        <strong>${escapeHTML(label)}</strong>
+                                    </td>
+                                    ${areas.map(area => {
+                                        const item = row.status[area];
+                                        return `
+                                            <td>
+                                                <span class="weekly-status ${item.done ? "done" : "pending"}">
+                                                    <span class="weekly-status-icon">${item.done ? "✓" : "×"}</span>
+                                                    <span>
+                                                        <strong>${item.done ? "Done" : "Pending"}</strong>
+                                                        ${item.done ? `<small>${formatAssessmentDate(item.date)}</small>` : ""}
+                                                    </span>
+                                                </span>
+                                            </td>`;
+                                    }).join("")}
+                                    <td>
+                                        <div class="weekly-overall">
+                                            <span class="weekly-ring" style="--progress:${row.progress * 3.6}deg; --ring-color:${row.progress === 100 ? "#12a85b" : row.progress >= 67 ? "#f7941d" : "#e33d49"}">
+                                                <span>${row.progress}%</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>`;
+                        }).join("")}
+                    </tbody>
+                </table>
+            </div>
+            <div class="weekly-table-footer">
+                <div class="weekly-legend">
+                    <span><i class="legend-dot done"></i> Done</span>
+                    <span><i class="legend-dot pending"></i> Pending</span>
+                    <span><i class="legend-dot na"></i> Not Applicable</span>
+                </div>
+                <span class="weekly-updated">Week: ${escapeHTML(weekLabel())}</span>
+            </div>`;
     }
 
     function updateFooterYear() {
@@ -716,17 +977,33 @@ function samsAssessmentAccessPolicy(user) {
         `).join("");
     }
 
+    let cloudLoaded = false;
+
+    async function loadSharedDashboardData() {
+        if (cloudLoaded) return;
+        try {
+            if (window.samsCloud && typeof window.samsCloud.pullAll === "function") {
+                await window.samsCloud.pullAll();
+            }
+        } catch (error) {
+            console.warn("SAMS weekly assessment data could not be refreshed from cloud; using local data.", error);
+        } finally {
+            cloudLoaded = true;
+        }
+    }
+
     function refreshDashboard() {
         updateUserDisplay();
         updateCounts();
         updateDate();
         updateFooterYear();
-        renderStudentsOverview();
+        renderWeeklyAssessmentProgress();
         renderRecentActivities();
         setupNavigation();
     }
 
-    function initialize() {
+    async function initialize() {
+        await loadSharedDashboardData();
         refreshDashboard();
         setupMenu();
         setupNotifications();
@@ -735,7 +1012,16 @@ function samsAssessmentAccessPolicy(user) {
         // Some SAMS pages modify localStorage in the same browser tab.
         // The storage event does not fire in that same tab, so a light refresh
         // interval keeps the dashboard synchronized without requiring a reload.
-        window.setInterval(refreshDashboard, 1500);
+        window.setInterval(refreshDashboard, 5000);
+
+        // Refresh the shared weekly status from Supabase periodically so that
+        // the dashboard stays useful on different phones/computers and for
+        // users who are viewing while an assessor records an assessment.
+        window.setInterval(async () => {
+            cloudLoaded = false;
+            await loadSharedDashboardData();
+            refreshDashboard();
+        }, 30000);
     }
 
     if (document.readyState === "loading") {
