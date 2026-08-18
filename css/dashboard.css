@@ -1381,3 +1381,457 @@ a.overall-card,
         padding: 12px 10px;
     }
 }
+
+/* =========================================================
+   WEEKLY ASSESSMENT PROGRESS - FINAL COMPACT BOARD
+   Matches the approved dashboard design:
+   compact class table with its own scroll + weekly line chart.
+========================================================= */
+.weekly-progress-section {
+    margin-top: 0;
+}
+
+.page-heading {
+    margin-bottom: 18px;
+}
+
+.page-heading h1 {
+    font-size: 27px;
+    font-weight: 600;
+    color: #153e63;
+}
+
+.page-heading p {
+    font-size: 13px;
+    font-weight: 400;
+}
+
+#weeklyRangeTop {
+    min-width: 215px;
+    padding: 12px 18px;
+    background: #fff;
+    color: #173f62;
+    border: 1px solid #dbe6f0;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(20, 60, 95, .04);
+}
+
+.weekly-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.weekly-summary-card {
+    min-height: 112px;
+    padding: 15px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 12px;
+    border: 1px solid #e1e9f1;
+    box-shadow: 0 3px 12px rgba(20, 60, 95, .045);
+}
+
+.weekly-summary-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 11px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.weekly-summary-content {
+    min-width: 0;
+    flex: 1;
+}
+
+.weekly-summary-label {
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.weekly-summary-value {
+    font-size: 23px;
+    font-weight: 600;
+    line-height: 1.05;
+}
+
+.weekly-summary-note {
+    margin-top: 5px;
+    font-size: 10.5px;
+    font-weight: 400;
+    color: #6d8195;
+    white-space: nowrap;
+}
+
+.weekly-summary-meter {
+    width: 100%;
+    height: 5px;
+    margin-top: 7px;
+    overflow: hidden;
+    background: #e5ebf1;
+    border-radius: 999px;
+}
+
+.weekly-summary-meter span {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    transition: width .25s ease;
+}
+
+.supw-card .weekly-summary-meter span { background: #1976d2; }
+.classroom-card .weekly-summary-meter span { background: #12a85b; }
+.assembly-card .weekly-summary-meter span { background: #7052c7; }
+.overall-card .weekly-summary-meter span { background: #f7941d; }
+
+.weekly-board-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: stretch;
+}
+
+.weekly-table-wrap,
+.weekly-chart-wrap {
+    min-width: 0;
+    background: #fff;
+    border: 1px solid #dce7f1;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(20, 60, 95, .045);
+    overflow: hidden;
+}
+
+.weekly-table-header,
+.weekly-chart-header {
+    min-height: 54px;
+    padding: 13px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid #e7edf3;
+}
+
+.weekly-table-header h3,
+.weekly-chart-header h3 {
+    margin: 0;
+    color: #173f62;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.class-count-badge,
+.chart-range-badge {
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: #f2f6fa;
+    color: #5d748a;
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.weekly-table-scroll {
+    height: 365px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #aebdca #f4f7fa;
+}
+
+.weekly-table-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.weekly-table-scroll::-webkit-scrollbar-track {
+    background: #f4f7fa;
+}
+
+.weekly-table-scroll::-webkit-scrollbar-thumb {
+    background: #aebdca;
+    border-radius: 999px;
+}
+
+.weekly-progress-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.weekly-progress-table th,
+.weekly-progress-table td {
+    padding: 8px 9px;
+    border-bottom: 1px solid #edf1f5;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.weekly-progress-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f7f9fb;
+    color: #60788e;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    white-space: nowrap;
+}
+
+.weekly-progress-table thead th:first-child {
+    width: 34%;
+}
+
+.weekly-progress-table tbody th {
+    color: #244c6d;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.weekly-progress-table tbody td {
+    font-size: 10px;
+}
+
+.weekly-progress-table tbody tr:hover {
+    background: #fbfdff;
+}
+
+.weekly-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 4px 7px;
+    border-radius: 999px;
+    font-size: 9.5px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.weekly-status .status-check {
+    width: 13px;
+    height: 13px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.weekly-status.done {
+    background: #eaf8ef;
+    color: #167846;
+}
+
+.weekly-status.done .status-check {
+    background: #22a05a;
+    color: #fff;
+}
+
+.weekly-status.pending {
+    background: #fff4df;
+    color: #ad6b08;
+}
+
+.weekly-status.pending .status-check {
+    background: #f1a21b;
+    color: #fff;
+}
+
+.weekly-table-footer {
+    min-height: 38px;
+    padding: 7px 12px;
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #e7edf3;
+}
+
+.weekly-legend {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    color: #61788d;
+    font-size: 10px;
+    font-weight: 400;
+}
+
+.weekly-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-dot.done { background: #22a05a; }
+.status-dot.pending { background: #f1a21b; }
+
+.weekly-chart-wrap {
+    position: relative;
+}
+
+.chart-legend {
+    min-height: 34px;
+    padding: 7px 15px 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    color: #5c7489;
+    font-size: 10px;
+    font-weight: 400;
+}
+
+.chart-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.chart-line-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+.chart-line-dot.supw { background: #1976d2; }
+.chart-line-dot.classroom { background: #12a85b; }
+.chart-line-dot.assembly { background: #7052c7; }
+.chart-line-dot.overall { background: #f7941d; }
+
+.weekly-chart {
+    width: 100%;
+    height: 320px;
+    padding: 0 8px 8px;
+}
+
+.weekly-line-chart {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.chart-grid-line {
+    stroke: #e7edf3;
+    stroke-width: 1;
+}
+
+.chart-axis-line {
+    stroke: #cdd9e4;
+    stroke-width: 1;
+}
+
+.chart-axis-label {
+    fill: #6b8093;
+    font-size: 10px;
+    font-weight: 400;
+}
+
+.chart-week-label {
+    fill: #244c6d;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.chart-date-label {
+    fill: #8092a3;
+    font-size: 9px;
+    font-weight: 400;
+}
+
+.chart-series {
+    vector-effect: non-scaling-stroke;
+}
+
+.chart-point {
+    vector-effect: non-scaling-stroke;
+}
+
+.chart-loading,
+.weekly-empty-cell,
+.weekly-loading {
+    min-height: 200px;
+    display: grid;
+    place-items: center;
+    color: #71869a;
+    font-size: 12px;
+}
+
+/* Hide the legacy activity/quick-action blocks if a cached page still contains them. */
+.recent-panel,
+.quick-panel {
+    display: none !important;
+}
+
+@media (max-width: 1100px) {
+    .weekly-board-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .weekly-chart-wrap {
+        min-height: 390px;
+    }
+}
+
+@media (max-width: 760px) {
+    .weekly-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .weekly-table-scroll {
+        height: 330px;
+    }
+
+    .weekly-chart {
+        height: 290px;
+    }
+
+    .weekly-table-header,
+    .weekly-chart-header {
+        padding: 11px 12px;
+    }
+}
+
+@media (max-width: 520px) {
+    .weekly-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .weekly-summary-card {
+        min-height: 98px;
+    }
+
+    .page-heading h1 {
+        font-size: 23px;
+    }
+
+    #weeklyRangeTop {
+        width: 100%;
+        min-width: 0;
+        text-align: center;
+    }
+
+    .weekly-chart {
+        height: 270px;
+    }
+
+    .chart-legend {
+        justify-content: flex-start;
+        padding-left: 12px;
+    }
+}
