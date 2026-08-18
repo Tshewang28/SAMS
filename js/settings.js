@@ -71,6 +71,13 @@ const SAMS_DATA_KEYS = [
   "sams_classes",
   "sams_assessment_criteria",
   "sams_assessment_records",
+  "sams_games_sports_records",
+  "sams_discipline_records",
+  "sams_volunteer_records",
+  "sams_reports",
+  "sams_hall_of_fame_records",
+  "sams_class_ranking",
+  "sams_recent_activities",
   "sams_school_settings",
   "sams_system_settings",
   "sams_current_user",
@@ -133,16 +140,52 @@ function restoreBackup(file){
   reader.readAsText(file);
 }
 
-function resetData(){
+async function resetData(){
   if(!systemAdminOnly())return;
+
   const confirmed=confirm(
-    "RESET SAMS DATA\n\nThis will clear assessment results and assessment-related operational data. Staff accounts, classes and school settings will remain.\n\nAre you sure?"
+    "RESET ASSESSMENT DATA\n\nThis will permanently clear ALL recorded assessment results, including Classroom, Assembly, SUPW, Discipline, and Games & Sports assessment records. It will also clear assessment-related dashboard activity history.\n\nStaff accounts, students, classes, assessment criteria, school settings and system settings will remain.\n\nAre you sure?"
   );
   if(!confirmed)return;
-  const second=confirm("Please confirm again: reset assessment results and operational assessment data?");
+
+  const second=confirm(
+    "FINAL CONFIRMATION\n\nClear all assessment results and Games & Sports assessment records?\n\nThis cannot be undone unless you first made a backup."
+  );
   if(!second)return;
-  ["sams_assessment_records"].forEach(key=>localStorage.removeItem(key));
-  alert("Assessment results have been reset.");
+
+  // Assessment data is stored in separate keys. Clearing only
+  // sams_assessment_records leaves Games & Sports data behind, which means
+  // Reports and other assessment-derived views can still show old results.
+  const ASSESSMENT_RESET_KEYS = [
+    // Core assessment records
+    "sams_assessment_records",
+    "sams_games_sports_records",
+    "sams_discipline_records",
+    "sams_volunteer_records",
+
+    // Assessment-derived / cached records. These are included defensively
+    // so Reset remains complete even if a future build stores derived data.
+    "sams_reports",
+    "sams_hall_of_fame_records",
+    "sams_class_ranking",
+    "sams_recent_activities"
+  ];
+
+  ASSESSMENT_RESET_KEYS.forEach(key=>localStorage.removeItem(key));
+
+  // sams-cloud.js watches localStorage.removeItem() and synchronizes the
+  // deletion to the shared Supabase sams_store. Explicitly wait for each
+  // sync as well, so a page reload cannot immediately pull the old records
+  // back from the cloud.
+  if(window.samsCloud && typeof window.samsCloud.syncKey === "function") {
+    try {
+      await Promise.all(ASSESSMENT_RESET_KEYS.map(key=>window.samsCloud.syncKey(key)));
+    } catch(error) {
+      console.warn("SAMS assessment reset cloud sync warning:", error);
+    }
+  }
+
+  alert("All assessment-connected data has been reset successfully. Assessment records, Games & Sports, Discipline, Volunteer records, Reports, Hall of Fame, Class Ranking and recent assessment activity were cleared. Staff, students, classes, criteria and settings were kept.");
   location.reload();
 }
 
