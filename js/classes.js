@@ -873,16 +873,17 @@ function initWorkspace(){
   const volunteerToggle=$('enableVolunteerRecord');
   if(volunteerToggle){
     volunteerToggle.addEventListener('change',()=>{
-      if(volunteerToggle.checked) setRecordMode('volunteer');
-      else setRecordMode('none');
+      // The record-mode controller is the single source of truth.
+      // Selecting Volunteer immediately turns Sports off and hides its form.
+      setRecordMode(volunteerToggle.checked ? 'volunteer' : 'none');
     });
   }
 
   const sportsToggle=$('enableSportsRecord');
   if(sportsToggle){
     sportsToggle.addEventListener('change',()=>{
-      if(sportsToggle.checked) setRecordMode('sports');
-      else setRecordMode('none');
+      // Selecting Sports immediately turns Volunteer off and hides its table.
+      setRecordMode(sportsToggle.checked ? 'sports' : 'none');
     });
   }
 
@@ -1067,16 +1068,17 @@ function setRecordMode(mode){
   const volunteer=$('enableVolunteerRecord');
   const sports=$('enableSportsRecord');
   const volunteerPanel=$('volunteerRecordStudentsPanel');
-  const sportsPanel=$('sportsRecordForm');
+  const sportsForm=$('sportsRecordForm');
   const c=classes().find(x=>x.id===workspaceClassId);
 
-  // Volunteer records are available to every authenticated staff member.
-  // Games & Sports remains restricted to the Class Teacher.
+  // The two record modes are mutually exclusive. The checkbox rows remain
+  // visible so the user can switch modes, while the active mode's details
+  // are the only details displayed.
   if(!c){
     if(volunteer) volunteer.checked=false;
     if(sports) sports.checked=false;
     if(volunteerPanel) volunteerPanel.hidden=true;
-    if(sportsPanel) sportsPanel.hidden=true;
+    if(sportsForm) sportsForm.hidden=true;
     return;
   }
 
@@ -1084,59 +1086,73 @@ function setRecordMode(mode){
     if(volunteer) volunteer.checked=true;
     if(sports) sports.checked=false;
     if(volunteerPanel) volunteerPanel.hidden=false;
-    if(sportsPanel) sportsPanel.hidden=true;
+    if(sportsForm) sportsForm.hidden=true;
     renderWorkspace();
-  }else if(mode==='sports'){
+    return;
+  }
+
+  if(mode==='sports'){
     if(!canManageGamesSports(c)){
       if(sports) sports.checked=false;
-      if(sportsPanel) sportsPanel.hidden=true;
+      if(volunteer) volunteer.checked=false;
+      if(volunteerPanel) volunteerPanel.hidden=true;
+      if(sportsForm) sportsForm.hidden=true;
       return;
     }
     if(sports) sports.checked=true;
     if(volunteer) volunteer.checked=false;
     if(volunteerPanel) volunteerPanel.hidden=true;
-    if(sportsPanel) sportsPanel.hidden=false;
+    if(sportsForm) sportsForm.hidden=false;
     renderSportsStudents();
     renderSportsHistory();
-  }else{
-    if(volunteer) volunteer.checked=false;
-    if(sports) sports.checked=false;
-    if(volunteerPanel) volunteerPanel.hidden=true;
-    if(sportsPanel) sportsPanel.hidden=true;
+    updateSportsPointPreview();
+    return;
   }
+
+  if(volunteer) volunteer.checked=false;
+  if(sports) sports.checked=false;
+  if(volunteerPanel) volunteerPanel.hidden=true;
+  if(sportsForm) sportsForm.hidden=true;
 }
 
 function syncRecordMode(){
   const volunteer=$('enableVolunteerRecord');
   const sports=$('enableSportsRecord');
   const volunteerPanel=$('volunteerRecordStudentsPanel');
-  const sportsPanel=$('sportsRecordForm');
+  const sportsForm=$('sportsRecordForm');
   const c=classes().find(x=>x.id===workspaceClassId);
 
-  // Volunteer records: all authenticated staff.
-  // Games & Sports: Class Teacher only.
   if(!c){
     if(volunteer) volunteer.checked=false;
     if(sports) sports.checked=false;
     if(volunteerPanel) volunteerPanel.hidden=true;
-    if(sportsPanel) sportsPanel.hidden=true;
+    if(sportsForm) sportsForm.hidden=true;
     return;
   }
 
-  // If Sports is checked by a non-Class Teacher, immediately turn it off.
+  // Games & Sports is only available to the Class Teacher of this class.
   if(sports?.checked && !canManageGamesSports(c)){
     sports.checked=false;
   }
 
-  // Keep only one record mode visible at a time.
-  const v=!!volunteer?.checked;
-  const s=!!sports?.checked;
-  if(v && s){
+  // If both somehow become checked (for example after browser restore),
+  // keep Volunteer as the active mode only when it was already selected.
+  if(volunteer?.checked){
     if(sports) sports.checked=false;
+    if(volunteerPanel) volunteerPanel.hidden=false;
+    if(sportsForm) sportsForm.hidden=true;
+    return;
   }
 
-  if(volunteerPanel) volunteerPanel.hidden=!(volunteer?.checked);
-  if(sportsPanel) sportsPanel.hidden=!!(sports?.checked) && canManageGamesSports(c);
+  if(sports?.checked && canManageGamesSports(c)){
+    if(volunteer) volunteer.checked=false;
+    if(volunteerPanel) volunteerPanel.hidden=true;
+    if(sportsForm) sportsForm.hidden=false;
+    return;
+  }
+
+  if(volunteerPanel) volunteerPanel.hidden=true;
+  if(sportsForm) sportsForm.hidden=true;
 }
 
 // ---------- Games & Sports class-teacher record ----------
@@ -1355,26 +1371,9 @@ function initSportsRecord(){
   if($('sportsRecordDate'))$('sportsRecordDate').value=today;
 
   toggle.addEventListener('change',()=>{
-    if(toggle.checked){
-      const c=classes().find(x=>x.id===workspaceClassId);
-      if(!c){
-        toggle.checked=false;
-        alert('Select a class and section first.');
-        return;
-      }
-      if(!canManageGamesSports(c)){
-        toggle.checked=false;
-        form.hidden=true;
-        alert('Games & Sports records are available only to the Class Teacher of the selected class.');
-        return;
-      }
-      form.hidden=false;
-      renderSportsStudents();
-      renderSportsHistory();
-      updateSportsPointPreview();
-    }else{
-      form.hidden=true;
-    }
+    // Do not manage the form directly here. setRecordMode() controls both
+    // record modes so they can never remain visible at the same time.
+    setRecordMode(toggle.checked ? 'sports' : 'none');
   });
 
   $('sportsRecordResult')?.addEventListener('change',updateSportsPointPreview);
