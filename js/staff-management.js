@@ -2266,41 +2266,35 @@
             .trim()
             .toLowerCase();
 
-        syncProfileToCloud(account, {
-            role: account.role,
-            active:
-                roleStatus === "active",
-            status:
-                roleStatus === "active"
-                    ? "Active"
-                    : "Pending",
-            is_assessor:
-                account.isAssessor === true
-        });
-
-
         /*
-         * If staff is no longer a Class Teacher,
-         * remove class assignment.
+         * Role and class assignment must be written to Supabase together.
+         * Staff Management is the single source of truth for Class Teacher
+         * assignments used by Classes & Students.
          */
+        const cloudRoleChanges = {
+            role: account.role,
+            active: roleStatus === "active",
+            status: roleStatus === "active" ? "Active" : "Pending",
+            is_assessor: account.isAssessor === true
+        };
 
-        if (
-            newRole !==
-            "Class Teacher"
-        ) {
-
-            delete account.assignedClass;
-
-            delete account.assignedStream;
-
-            delete account.assignedSection;
-
+        if (newRole === "Class Teacher") {
+            cloudRoleChanges.assigned_class = account.assignedClass || "";
+            cloudRoleChanges.assigned_section = account.assignedSection || "";
+            cloudRoleChanges.assigned_stream = account.assignedStream || "";
+        } else {
+            /* Leaving Class Teacher must also clear the central assignment. */
+            account.assignedClass = "";
+            account.assignedSection = "";
+            account.assignedStream = "";
+            cloudRoleChanges.assigned_class = "";
+            cloudRoleChanges.assigned_section = "";
+            cloudRoleChanges.assigned_stream = "";
         }
 
+        saveAccounts(accounts);
 
-        saveAccounts(
-            accounts
-        );
+        syncProfileToCloud(account, cloudRoleChanges);
 
 
         /*
