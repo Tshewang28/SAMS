@@ -584,9 +584,8 @@ function renderAssessment(){
     return;
   }
 
-  // Discipline is an individual-student deduction.
-  // Student and deduction are selected directly for each discipline criterion.
-  // Discipline NEVER contributes to the class total.
+  // Discipline is a student-specific deduction that also contributes once to the class total.
+  // Each criterion is assigned to the selected student only; it is never copied to other students.
   if(a==="Discipline"){
     const students=getStudentsForSelection(c,s);
 
@@ -788,6 +787,8 @@ function saveAssessment(){
         studentId:selectedStudent.id||selectedStudent.studentCode||selectedStudent.name,
         studentName:selectedStudent.name||selectedStudent.studentName||selectedStudent["Student Name"]||"",
         studentCode:selectedStudent.studentCode||selectedStudent.code||"",
+        // This deduction belongs only to this student, while the same
+        // deduction is counted once in the selected class total.
         individualOnly:true,
         affectsClassTotal:true
       });
