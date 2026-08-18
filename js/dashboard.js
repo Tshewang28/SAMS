@@ -550,6 +550,12 @@ function samsAssessmentAccessPolicy(user) {
        ========================================================= */
 
     const WEEKLY_AREAS = ["SUPW", "Classroom", "Assembly"];
+    const WEEKLY_SERIES = [
+        { key: "SUPW", label: "SUPW", color: "#1976d2", className: "supw" },
+        { key: "Classroom", label: "Classroom", color: "#12a85b", className: "classroom" },
+        { key: "Assembly", label: "Assembly", color: "#7052c7", className: "assembly" },
+        { key: "Overall", label: "Overall", color: "#f7941d", className: "overall" }
+    ];
 
     function assessmentWeekStart(dateValue = new Date()) {
         const date = new Date(dateValue);
@@ -586,10 +592,7 @@ function samsAssessmentAccessPolicy(user) {
         return Number.isNaN(date.getTime()) ? null : date;
     }
 
-    function isThisWeek(record) {
-        const date = assessmentRecordDate(record);
-        const start = assessmentWeekStart();
-        const end = assessmentWeekEnd();
+    function isDateInRange(date, start, end) {
         return !!date && !!start && !!end && date >= start && date <= end;
     }
 
@@ -605,9 +608,9 @@ function samsAssessmentAccessPolicy(user) {
                normalizeLower(recordSection) === normalizeLower(classSection(classRow));
     }
 
-    function weeklyAreaDone(classRow, area, records) {
+    function weeklyAreaDone(classRow, area, records, start, end) {
         return records.some(record =>
-            isThisWeek(record) &&
+            isDateInRange(assessmentRecordDate(record), start, end) &&
             normalizeLower(record?.area) === normalizeLower(area) &&
             sameClassSection(record, classRow)
         );
@@ -635,6 +638,92 @@ function samsAssessmentAccessPolicy(user) {
             : `<span class="weekly-status pending"><span class="status-check">–</span> Pending</span>`;
     }
 
+    function getThreeAssessmentWeeks() {
+        const currentStart = assessmentWeekStart();
+        if (!currentStart) return [];
+        return [2, 1, 0].map((weeksAgo, index) => {
+            const start = new Date(currentStart);
+            start.setDate(start.getDate() - (weeksAgo * 7));
+            const end = new Date(start);
+            end.setDate(end.getDate() + 6);
+            end.setHours(23, 59, 59, 999);
+            return {
+                number: index + 1,
+                start,
+                end,
+                label: `Week ${index + 1}`,
+                rangeLabel: `${start.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} – ${end.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}`
+            };
+        });
+    }
+
+    function calculateWeeklyPercentages(classes, records, week) {
+        const values = {};
+        WEEKLY_AREAS.forEach(area => {
+            const completed = classes.filter(classRow =>
+                weeklyAreaDone(classRow, area, records, week.start, week.end)
+            ).length;
+            values[area] = classes.length ? Math.round((completed / classes.length) * 100) : 0;
+        });
+        values.Overall = Math.round(
+            (values.SUPW + values.Classroom + values.Assembly) / WEEKLY_AREAS.length
+        );
+        return values;
+    }
+
+    function renderWeeklyProgressChart(classes, records) {
+        const container = $("weeklyProgressChart");
+        if (!container) return;
+
+        const weeks = getThreeAssessmentWeeks();
+        if (!weeks.length || !classes.length) {
+            container.innerHTML = `<div class="chart-loading">No class data available for the weekly chart.</div>`;
+            return;
+        }
+
+        const points = weeks.map(week => calculateWeeklyPercentages(classes, records, week));
+        const width = 700;
+        const height = 330;
+        const left = 58;
+        const right = 18;
+        const top = 24;
+        const bottom = 58;
+        const plotWidth = width - left - right;
+        const plotHeight = height - top - bottom;
+        const xPositions = weeks.map((_, i) => left + (plotWidth * i / Math.max(1, weeks.length - 1)));
+        const y = value => top + ((100 - value) / 100) * plotHeight;
+
+        const grid = [0, 20, 40, 60, 80, 100].map(value => `
+            <line x1="${left}" y1="${y(value)}" x2="${width - right}" y2="${y(value)}" class="chart-grid-line" />
+            <text x="${left - 10}" y="${y(value) + 4}" class="chart-axis-label" text-anchor="end">${value}%</text>
+        `).join("");
+
+        const xLabels = weeks.map((week, i) => `
+            <text x="${xPositions[i]}" y="${height - 30}" class="chart-week-label" text-anchor="middle">${week.label}</text>
+            <text x="${xPositions[i]}" y="${height - 13}" class="chart-date-label" text-anchor="middle">${escapeHTML(week.rangeLabel)}</text>
+        `).join("");
+
+        const seriesSvg = WEEKLY_SERIES.map(series => {
+            const polyline = points.map((point, i) => `${xPositions[i]},${y(point[series.key])}`).join(" ");
+            const circles = points.map((point, i) => `
+                <circle cx="${xPositions[i]}" cy="${y(point[series.key])}" r="4.5" fill="${series.color}" class="chart-point">
+                    <title>${series.label}, ${weeks[i].label}: ${point[series.key]}%</title>
+                </circle>
+            `).join("");
+            return `<polyline points="${polyline}" fill="none" stroke="${series.color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="chart-series ${series.className}" />${circles}`;
+        }).join("");
+
+        container.innerHTML = `
+            <svg class="weekly-line-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Whole class weekly assessment completion line chart">
+                <g>${grid}</g>
+                <line x1="${left}" y1="${top}" x2="${left}" y2="${height - bottom}" class="chart-axis-line" />
+                <line x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}" class="chart-axis-line" />
+                <g>${seriesSvg}</g>
+                <g>${xLabels}</g>
+            </svg>
+        `;
+    }
+
     function renderWeeklyProgress() {
         const body = $("weeklyProgressBody");
         if (!body) return;
@@ -643,71 +732,65 @@ function samsAssessmentAccessPolicy(user) {
         const records = getAssessmentRecords();
         const range = $("weeklyRangeTop");
         if (range) range.textContent = formatWeekRange();
+        if ($("weeklyClassCount")) $("weeklyClassCount").textContent = `${classes.length} Classes`;
 
         if (!classes.length) {
             body.innerHTML = `
                 <tr>
-                    <td colspan="5" class="weekly-empty-cell">
-                        No classes are registered yet.
-                    </td>
+                    <td colspan="4" class="weekly-empty-cell">No classes are registered yet.</td>
                 </tr>`;
             ["supwSummary", "classroomSummary", "assemblySummary", "overallSummary"].forEach(id => {
                 if ($(id)) $(id).textContent = "0%";
             });
+            renderWeeklyProgressChart([], records);
             return;
         }
 
+        const currentStart = assessmentWeekStart();
+        const currentEnd = assessmentWeekEnd();
         const completed = { SUPW: 0, Classroom: 0, Assembly: 0 };
-        let totalCompleted = 0;
-        const totalTargets = classes.length * WEEKLY_AREAS.length;
 
         const rows = classes.map(classRow => {
             const status = {};
             WEEKLY_AREAS.forEach(area => {
-                status[area] = weeklyAreaDone(classRow, area, records);
-                if (status[area]) {
-                    completed[area] += 1;
-                    totalCompleted += 1;
-                }
+                status[area] = weeklyAreaDone(classRow, area, records, currentStart, currentEnd);
+                if (status[area]) completed[area] += 1;
             });
-
-            const progress = Math.round(
-                (WEEKLY_AREAS.filter(area => status[area]).length / WEEKLY_AREAS.length) * 100
-            );
-
-            return { classRow, status, progress };
+            return { classRow, status };
         });
 
         body.innerHTML = rows.map(row => `
             <tr>
-                <th scope="row">
-                    <span class="class-label">${escapeHTML(classDisplayLabel(row.classRow))}</span>
-                </th>
+                <th scope="row"><span class="class-label">${escapeHTML(classDisplayLabel(row.classRow))}</span></th>
                 <td>${weeklyStatusCell(row.status.SUPW)}</td>
                 <td>${weeklyStatusCell(row.status.Classroom)}</td>
                 <td>${weeklyStatusCell(row.status.Assembly)}</td>
-                <td>
-                    <div class="progress-cell">
-                        <div class="progress-track" aria-hidden="true">
-                            <span style="width:${row.progress}%"></span>
-                        </div>
-                        <strong>${row.progress}%</strong>
-                    </div>
-                </td>
             </tr>
         `).join("");
 
-        function summaryText(done) {
-            return `${done} / ${classes.length}`;
-        }
+        const percentages = {};
+        WEEKLY_AREAS.forEach(area => {
+            percentages[area] = Math.round((completed[area] / classes.length) * 100);
+        });
+        percentages.Overall = Math.round(
+            (percentages.SUPW + percentages.Classroom + percentages.Assembly) / WEEKLY_AREAS.length
+        );
 
-        if ($("supwSummary")) $("supwSummary").textContent = summaryText(completed.SUPW);
-        if ($("classroomSummary")) $("classroomSummary").textContent = summaryText(completed.Classroom);
-        if ($("assemblySummary")) $("assemblySummary").textContent = summaryText(completed.Assembly);
-        if ($("overallSummary")) {
-            const overall = totalTargets ? Math.round((totalCompleted / totalTargets) * 100) : 0;
-            $("overallSummary").textContent = `${overall}%`;
-        }
+        const summaryMap = [
+            ["SUPW", "supwSummary", "supwPercent", "supwMeter"],
+            ["Classroom", "classroomSummary", "classroomPercent", "classroomMeter"],
+            ["Assembly", "assemblySummary", "assemblyPercent", "assemblyMeter"],
+            ["Overall", "overallSummary", "overallPercent", "overallMeter"]
+        ];
+
+        summaryMap.forEach(([key, valueId, percentId, meterId]) => {
+            const count = key === "Overall" ? percentages[key] : completed[key];
+            if ($(valueId)) $(valueId).textContent = key === "Overall" ? `${percentages[key]}%` : `${count} / ${classes.length}`;
+            if ($(percentId)) $(percentId).textContent = `${percentages[key]}% ${key === "Overall" ? "overall completion" : "classes completed"}`;
+            if ($(meterId)) $(meterId).style.width = `${percentages[key]}%`;
+        });
+
+        renderWeeklyProgressChart(classes, records);
     }
 
     function renderStudentsOverview() {
@@ -891,7 +974,6 @@ function samsAssessmentAccessPolicy(user) {
         updateDate();
         updateFooterYear();
         renderWeeklyProgress();
-        renderRecentActivities();
         setupNavigation();
     }
 
