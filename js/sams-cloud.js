@@ -69,70 +69,12 @@
             pulling = true;
 
             (result.data || []).forEach(function (row) {
-                if (!KEYS.includes(row.key)) return;
-
-                // Keep the authenticated device's account in the shared
-                // account list. Older cloud snapshots may not contain it.
-                if (row.key === "sams_accounts") {
-                    let cloudAccounts = Array.isArray(row.value) ? row.value : [];
-                    let localAccounts = [];
-                    try {
-                        const raw = localStorage.getItem("sams_accounts");
-                        const parsed = raw ? JSON.parse(raw) : [];
-                        localAccounts = Array.isArray(parsed) ? parsed : [];
-                    } catch (e) {}
-
-                    const merged = [...cloudAccounts];
-                    localAccounts.forEach(function (localAccount) {
-                        const email = String(
-                            localAccount?.email ||
-                            localAccount?.educationalEmail ||
-                            localAccount?.educational_email ||
-                            ""
-                        ).trim().toLowerCase();
-                        const id = String(localAccount?.id || "").trim();
-                        const exists = merged.some(function (account) {
-                            const accountEmail = String(
-                                account?.email ||
-                                account?.educationalEmail ||
-                                account?.educational_email ||
-                                ""
-                            ).trim().toLowerCase();
-                            return (id && String(account?.id || "").trim() === id) ||
-                                   (email && accountEmail === email);
-                        });
-                        if (!exists) merged.push(localAccount);
-                    });
-
-                    localStorage.setItem(row.key, JSON.stringify(merged));
-                    return;
+                if (KEYS.includes(row.key)) {
+                    localStorage.setItem(
+                        row.key,
+                        JSON.stringify(row.value)
+                    );
                 }
-
-                // Do not allow an empty cloud snapshot to erase valid local data.
-// This is especially important for classes and students while the
-// Supabase database is being populated.
-if (
-    (row.key === "sams_classes" || row.key === "sams_students") &&
-    Array.isArray(row.value) &&
-    row.value.length === 0
-) {
-    const localRaw = localStorage.getItem(row.key);
-
-    if (localRaw) {
-        try {
-            const localValue = JSON.parse(localRaw);
-
-            if (Array.isArray(localValue) && localValue.length > 0) {
-                return;
-            }
-        } catch (e) {}
-    }
-}
-
-localStorage.setItem(
-    row.key,
-    JSON.stringify(row.value)
-);
             });
 
             pulling = false;
