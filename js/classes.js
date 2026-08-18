@@ -1,56 +1,4 @@
-
-/* SAMS FINAL FEATURE PERMISSIONS
-   Volunteer Programme: every authenticated staff user.
-   Games & Sports: Class Teachers only, and never assessor-only access.
-*/
-function samsNormaliseRole(role) {
-    return String(role || "").trim().toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ");
-}
-
-function samsIsAuthenticatedStaff(user) {
-    if (!user || typeof user !== "object") return false;
-    const role = samsNormaliseRole(
-        user.role || user.staffRole || user.userRole || user.user_role || user.position || ""
-    );
-    return role !== "student" && !!(
-        user.email || user.educationalEmail || user.educational_email ||
-        user.id || user.user_id
-    );
-}
-
-function samsIsClassTeacher(user) {
-    if (!user || samsIsAssessor(user)) return false;
-    const role = samsNormaliseRole(
-        user?.role || user?.staffRole || user?.userRole || user?.user_role || user?.position || ""
-    );
-    if (role === "class teacher") return true;
-
-    // Fallback for older accounts/session records where the role label is
-    // missing but a class + section assignment identifies the Class Teacher.
-    const assignedClass = String(
-        user?.assignedClass || user?.assigned_class || user?.classAssignment || ""
-    ).trim();
-    const assignedSection = String(
-        user?.assignedSection || user?.assigned_section || user?.section || ""
-    ).trim();
-    return !!(assignedClass && assignedSection);
-}
-
-function samsIsAssessor(user) {
-    return user?.isAssessor === true ||
-           user?.is_assessor === true ||
-           String(user?.isAssessor ?? user?.is_assessor ?? "").trim().toLowerCase() === "true";
-}
-
-function samsCanVolunteer(user) {
-    return samsIsAuthenticatedStaff(user);
-}
-
-function samsCanGamesAndSports(user) {
-    // Games & Sports is Class Teacher only. An assessor must not see it.
-    return samsIsClassTeacher(user) && !samsIsAssessor(user);
-}
-
+/* SAMS Games & Sports permission fix v2: resolve the authenticated session profile before cached accounts. */
 function classSection(c){return String(c?.section||c?.stream||'');}
 function classGrade(c){return String(c?.grade||c?.className||c?.class||'');}
 function studentName(s){return String(s?.name||s?.studentName||s?.fullName||'Unnamed Student');}
@@ -131,20 +79,36 @@ function students(){return read(STUDENTS_KEY,[])}
 function saveStudents(x){localStorage.setItem(STUDENTS_KEY,JSON.stringify(x))}
 function accounts(){return read(ACCOUNTS_KEY,[])}
 function currentUser(){
-  // Resolve the logged-in account from the active session only.
+  // IMPORTANT: use the authenticated session profile first.
+  // The browser's sams_accounts cache can be older than the Supabase profile
+  // and may not contain assignedClass/assignedSection. That caused a valid
+  // Class Teacher to be rejected for Games & Sports on some devices.
+  try{
+    const raw=sessionStorage.getItem('sams_current_user');
+    if(raw){
+      const sessionUser=JSON.parse(raw);
+      if(sessionUser&&typeof sessionUser==='object'){
+        const canonical={...sessionUser};
+        canonical.role=String(canonical.role||canonical.staffRole||canonical.accountType||'').trim();
+        sessionStorage.setItem('sams_current_user',JSON.stringify(canonical));
+        sessionStorage.setItem('sams_user_role',canonical.role||'');
+        sessionStorage.setItem('sams_user_name',canonical.name||canonical.fullName||canonical.staffName||'');
+        return canonical;
+      }
+    }
+  }catch(e){}
+
+  // Fallback only for older sessions that do not have sams_current_user.
   const sessionEmail=String(sessionStorage.getItem('sams_email')||'').trim().toLowerCase();
   const sessionName=String(sessionStorage.getItem('sams_user_name')||'').trim().toLowerCase();
-
   const list=accounts();
   let a=null;
-
   if(sessionEmail){
     a=list.find(x=>String(x.email||x.educationalEmail||x.educational_email||'').trim().toLowerCase()===sessionEmail)||null;
   }
   if(!a && sessionName){
     a=list.find(x=>String(x.name||x.fullName||x.staffName||'').trim().toLowerCase()===sessionName)||null;
   }
-
   if(a){
     const canonical={...a,role:String(a.role||a.staffRole||a.accountType||'').trim()};
     sessionStorage.setItem('sams_current_user',JSON.stringify(canonical));
@@ -152,17 +116,12 @@ function currentUser(){
     sessionStorage.setItem('sams_user_name',canonical.name||canonical.fullName||canonical.staffName||'');
     return canonical;
   }
-
-  try{
-    const x=sessionStorage.getItem('sams_current_user');
-    if(x){
-      const u=JSON.parse(x);
-      if(u&&typeof u==='object') return u;
-    }
-  }catch(e){}
   return null;
 }
-function userRole(){return String(currentUser()?.role||currentUser()?.accountType||'').trim().toLowerCase()}
+function normaliseSamsRole(value){
+  return String(value||'').trim().toLowerCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function userRole(){return normaliseSamsRole(currentUser()?.role||currentUser()?.staffRole||currentUser()?.accountType||'')}
 function isAdmin(){return userRole().includes('admin')}
 function teacherName(t){return String(t?.name||t?.fullName||t?.staffName||[t?.firstName,t?.lastName].filter(Boolean).join(' ')||t?.email||'').trim()}
 function loggedInTeacherName(){return teacherName(currentUser())}
@@ -174,9 +133,9 @@ function romanGradeNumber(v){
 }
 function assignedClassMatches(c,u){
   if(!c||!u)return false;
-  const ac=String(u.assignedClass||u.classAssignment||'').trim();
-  const as=String(u.assignedSection||u.section||'').trim();
-  const ast=String(u.assignedStream||u.stream||'').trim();
+  const ac=String(u.assignedClass||u.assigned_class||u.classAssignment||u.class_assignment||'').trim();
+  const as=String(u.assignedSection||u.assigned_section||u.section||'').trim();
+  const ast=String(u.assignedStream||u.assigned_stream||u.stream||'').trim();
   if(!ac)return false;
   if(String(romanGradeNumber(c.grade))!==String(romanGradeNumber(ac)))return false;
   if(as && !same(as,c.section))return false;
@@ -195,16 +154,16 @@ function teacherCanManage(c){
 // Principal, Vice Principal, Administrator, Non-Class Teacher and other staff
 // are never permitted, even if they have administrator/assignment access.
 function isClassTeacherRole(){
-  const role=userRole().replace(/[_-]+/g,' ').replace(/\\s+/g,' ').trim();
-  return role==='class teacher';
+  return userRole()==='class teacher';
 }
 function canManageGamesSports(c){
-  const u=currentUser();
-  return samsCanGamesAndSports(u) && !!c && teacherCanManage(c) && !isAdmin();
+  return isClassTeacherRole() && !!c && teacherCanManage(c) && !isAdmin();
 }
 function canManageVolunteerRecord(c){
-  // Volunteer records are available to every authenticated staff user.
-  return samsCanVolunteer(currentUser()) && !!c;
+  // Volunteer RECORD entry is Class Teacher-only.
+  // The separate Volunteer Programme Description remains available to
+  // authenticated staff who organise a programme, as required previously.
+  return isClassTeacherRole() && !!c && teacherCanManage(c) && !isAdmin();
 }
 function volunteerRecordEnabledKey(classId){
   return `sams_volunteer_record_enabled_${classId}`;
@@ -625,7 +584,7 @@ function renderWorkspace(){
 function saveWorkspaceVolunteer(studentId,value){
   const c=classes().find(x=>x.id===workspaceClassId);
   if(!canManageVolunteerRecord(c)){
-    alert('Volunteer records can be entered by any authenticated staff user.');
+    alert('Volunteer records can be entered only by the Class Teacher of the selected class.');
     renderWorkspace();
     return;
   }
@@ -674,7 +633,7 @@ function saveWorkspaceVolunteer(studentId,value){
 function deleteWorkspaceVolunteer(studentId){
   const c=classes().find(x=>x.id===workspaceClassId);
   if(!canManageVolunteerRecord(c)){
-    alert('Volunteer records can be deleted by any authenticated staff user.');
+    alert('Only the Class Teacher of the selected class can delete volunteer records.');
     return;
   }
 
