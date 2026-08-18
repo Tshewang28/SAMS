@@ -585,10 +585,9 @@ function renderAssessment(){
   }
 
   // Discipline is a student-specific deduction that also contributes once to the class total.
-  // Each criterion is assigned to the selected student only; it is never copied to other students.
+  // Compact checklist design: select one student, then tick only applicable criteria.
   if(a==="Discipline"){
     const students=getStudentsForSelection(c,s);
-
     const studentOptions=students.map(st=>{
       const id=st.id||st.studentCode||st.name||"";
       const code=st.studentCode||st.code||"";
@@ -597,61 +596,90 @@ function renderAssessment(){
       return `<option value="${escapeHTML(id)}">${escapeHTML(label)}</option>`;
     }).join("");
 
-    const emptyStudent=students.length
-      ? '<option value="">Select individual student</option>'
-      : '<option value="">No students found for this class/section</option>';
+    if(studentSelect){
+      studentSelect.innerHTML='<option value="">Select Student</option>'+studentOptions;
+      studentSelect.disabled=!students.length;
+    }
 
-    const studentSelectHTML=`
-      ${emptyStudent}
-      ${studentOptions}
-    `;
+    if(!document.getElementById("compactDisciplineStyles")){
+      const style=document.createElement("style");
+      style.id="compactDisciplineStyles";
+      style.textContent=`
+        .discipline-checklist{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+        .discipline-check-row{border:1px solid #e5e7eb;border-radius:10px;background:#fff;overflow:hidden;transition:.15s ease}
+        .discipline-check-row.selected{border-color:#cbd5e1;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+        .discipline-check-main{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 14px}
+        .discipline-check-main input{width:19px;height:19px;cursor:pointer}
+        .discipline-check-name{font-weight:700;color:#111827}
+        .discipline-check-description{font-size:.82rem;color:#6b7280;margin-top:3px}
+        .discipline-check-points{font-weight:800;white-space:nowrap;color:#b91c1c}
+        .discipline-comment-wrap{display:none;padding:0 14px 13px 58px}
+        .discipline-check-row.selected .discipline-comment-wrap{display:block}
+        .discipline-comment-wrap label{display:block;font-size:.8rem;font-weight:700;margin-bottom:5px}
+        .discipline-comment-wrap textarea{width:100%;min-height:68px;resize:vertical}
+        .discipline-summary{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;padding:13px 15px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0}
+        .discipline-summary strong{font-size:1.05rem}.discipline-total{color:#b91c1c}
+        .discipline-empty-note{padding:14px;border-radius:10px;background:#f8fafc;color:#64748b;text-align:center;margin-top:12px}
+        @media(max-width:600px){.discipline-check-main{grid-template-columns:30px minmax(0,1fr) auto;padding:11px 10px}.discipline-comment-wrap{padding-left:50px;padding-right:10px}.discipline-summary{align-items:flex-start;flex-direction:column}}
+      `;
+      document.head.appendChild(style);
+    }
 
     criteriaList.innerHTML=`
       <div class="discipline-student-box">
         <div class="discipline-student-info">
           <div class="criteria-number">INDIVIDUAL DISCIPLINE</div>
-          <div class="criteria-name">Individual student deduction</div>
-          <div class="criteria-description">
-            Select a student only for the discipline criterion you want to record. Unselected criteria are skipped. The configured deduction is applied automatically to the selected student's report and contributes once to the class total.
-          </div>
-          <div class="discipline-student-count">
-            ${students.length} student${students.length===1?"":"s"} available${principalDisciplineOnly ? " across all classes and sections" : ` in Class ${escapeHTML(c)} • ${escapeHTML(s)}`}
-          </div>
+          <div class="criteria-name">Select the student, then tick the applicable discipline criteria.</div>
+          <div class="criteria-description">Only checked criteria are recorded. Each deduction affects this student only and is counted once in the class total.</div>
+          <div class="discipline-student-count">${students.length} student${students.length===1?"":"s"} available${principalDisciplineOnly ? " across all classes and sections" : ` in Class ${escapeHTML(c)} • ${escapeHTML(s)}`}</div>
         </div>
       </div>
-      ${criteria.map((x,i)=>`
-        <article class="criteria-card discipline-card" data-id="${escapeHTML(x.id)}">
-          <div class="criteria-main">
-            <div>
-              <div class="criteria-number">CRITERION ${i+1}</div>
-              <div class="criteria-name">${escapeHTML(x.name)}</div>
-              <div class="criteria-description">
-                ${escapeHTML(x.description)||"Record the discipline issue for the selected student."}
-              </div>
+      <div class="discipline-checklist" id="disciplineChecklist">
+        ${criteria.map(x=>{
+          const point=(x.point!==undefined&&x.point!==null&&x.point!=="")?Number(x.point):null;
+          const pointText=point===null||Number.isNaN(point)?"Not configured":`${point>0?"-":""}${Math.abs(point)}`;
+          return `<article class="discipline-check-row" data-id="${escapeHTML(x.id)}">
+            <div class="discipline-check-main">
+              <input type="checkbox" class="discipline-check" aria-label="Select ${escapeHTML(x.name)}">
+              <div><div class="discipline-check-name">${escapeHTML(x.name)}</div>${x.description?`<div class="discipline-check-description">${escapeHTML(x.description)}</div>`:""}</div>
+              <div class="discipline-check-points">${escapeHTML(pointText)}</div>
             </div>
+            <div class="discipline-comment-wrap"><label>Comment <span class="muted">(optional)</span></label><textarea class="discipline-comment" placeholder="Write a brief comment about this incident..."></textarea></div>
+          </article>`;
+        }).join("")}
+      </div>
+      <div class="discipline-summary"><div><span id="disciplineSelectedCount">0</span> incident<span id="disciplinePlural">s</span> selected</div><div>Total Discipline Deduction: <strong class="discipline-total" id="disciplineTotal">0</strong></div></div>
+      <div class="discipline-empty-note" id="disciplineStudentHint">Select a student above before selecting a discipline criterion.</div>
+    `;
 
-            <div class="discipline-controls">
-              <div class="discipline-student-field">
-                <label>Individual Student</label>
-                <select class="discipline-student" ${students.length?"":"disabled"}>
-                  ${studentSelectHTML}
-                </select>
-              </div>
-
-              <div class="discipline-student-field">
-                <label>Configured Deduction</label>
-                <div class="point-auto discipline-configured-point">${x.point!==undefined && x.point!==null && x.point!=="" ? escapeHTML(String(x.point)) : "Not configured"}</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="comment-box">
-            <label>Discipline / Assessor Comment</label>
-            <textarea class="comment" placeholder="Write the discipline incident or assessor comment..."></textarea>
-          </div>
-        </article>
-      `).join("")}`;
-
+    const checklist=document.getElementById("disciplineChecklist");
+    const updateSummary=()=>{
+      const selected=[...checklist.querySelectorAll(".discipline-check:checked")];
+      let total=0;
+      selected.forEach(box=>{
+        const row=box.closest(".discipline-check-row");
+        const criterion=criteria.find(x=>String(x.id)===String(row?.dataset.id));
+        const p=Number(criterion?.point);
+        if(Number.isFinite(p)) total+=p;
+      });
+      document.getElementById("disciplineSelectedCount").textContent=selected.length;
+      document.getElementById("disciplinePlural").textContent=selected.length===1?"":"s";
+      document.getElementById("disciplineTotal").textContent=total;
+    };
+    checklist.querySelectorAll(".discipline-check").forEach(box=>box.addEventListener("change",()=>{
+      const row=box.closest(".discipline-check-row"); row.classList.toggle("selected",box.checked);
+      if(!box.checked){const comment=row.querySelector(".discipline-comment");if(comment)comment.value="";}
+      updateSummary();
+    }));
+    const applyStudentState=()=>{
+      const hasStudent=!!studentSelect?.value;
+      checklist.querySelectorAll(".discipline-check").forEach(box=>{box.disabled=!hasStudent;if(!hasStudent&&box.checked){box.checked=false;box.closest(".discipline-check-row")?.classList.remove("selected")}});
+      const hint=document.getElementById("disciplineStudentHint");
+      if(hint)hint.textContent=hasStudent?"Tick every discipline criterion that applies to this student.":"Select a student above before selecting a discipline criterion.";
+      updateSummary();
+    };
+    studentSelect?.addEventListener("change",applyStudentState);
+    applyStudentState();
     return;
   }
 
@@ -751,51 +779,31 @@ function saveAssessment(){
     }];
   }else if(a==="Discipline"){
     const students=getStudentsForSelection(c,s);
-    const cards=[...document.querySelectorAll(".discipline-card")];
+    const selectedStudentId=studentSelect?.value||"";
+    const selectedStudent=students.find(st=>String(st.id||st.studentCode||st.name)===String(selectedStudentId));
+    const cards=[...document.querySelectorAll(".discipline-check-row")];
 
-    if(!cards.length)
-      return alert("No discipline criteria are available for this class and section.");
+    if(!selectedStudent) return alert("Please select a student before recording Discipline.");
+    const checked=cards.filter(card=>card.querySelector(".discipline-check")?.checked);
+    if(!checked.length) return alert("Please tick at least one discipline criterion.");
 
     records=[];
-
-    for(const card of cards){
-      const studentSelect=card.querySelector(".discipline-student");
-      const studentId=studentSelect?.value||"";
-
-      // Discipline criteria are optional. If no student is selected for this
-      // criterion, simply skip it. The assessor may record one, some, or all
-      // discipline criteria in a single assessment.
-      if(!studentId) continue;
-
+    for(const card of checked){
       const criterion=readJSON("sams_assessment_criteria",[]).find(x=>String(x.id)===String(card.dataset.id));
       const deduction=criterion?.point;
-
-      if(deduction===undefined || deduction===null || deduction==="" || Number.isNaN(Number(deduction)))
+      if(deduction===undefined||deduction===null||deduction===""||Number.isNaN(Number(deduction)))
         return alert(`No deduction point has been configured for discipline criterion "${criterion?.name||"Unknown"}". Please configure it in Assessment Criteria.`);
-
-      const selectedStudent=students.find(st=>
-        String(st.id||st.studentCode||st.name)===String(studentId)
-      );
-
-      if(!selectedStudent)
-        return alert("The selected student could not be found in the selected class/section.");
-
       records.push({
         criterionId:card.dataset.id,
         point:Number(deduction),
-        comment:card.querySelector(".comment")?.value.trim()||"",
+        comment:card.querySelector(".discipline-comment")?.value.trim()||"",
         studentId:selectedStudent.id||selectedStudent.studentCode||selectedStudent.name,
         studentName:selectedStudent.name||selectedStudent.studentName||selectedStudent["Student Name"]||"",
         studentCode:selectedStudent.studentCode||selectedStudent.code||"",
-        // This deduction belongs only to this student, while the same
-        // deduction is counted once in the selected class total.
         individualOnly:true,
         affectsClassTotal:true
       });
     }
-
-    if(!records.length)
-      return alert("Please select at least one student for a discipline criterion before saving.");
   }else{
     records=[...document.querySelectorAll(".criteria-card")].map(card=>({
       criterionId:card.dataset.id,
