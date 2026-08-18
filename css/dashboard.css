@@ -1032,3 +1032,366 @@ a:active {
         grid-template-columns: 1fr;
     }
 }
+
+/* =========================================================
+   WEEKLY ASSESSMENT PROGRESS
+   Visible to every authenticated SAMS user, including students.
+========================================================= */
+
+.weekly-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.weekly-summary-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 18px 16px;
+    box-shadow: 0 3px 12px rgba(20, 45, 75, 0.07);
+    min-width: 0;
+}
+
+.weekly-card-top {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.weekly-card-icon {
+    width: 54px;
+    height: 54px;
+    flex: 0 0 54px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 23px;
+}
+
+.weekly-summary-card.blue .weekly-card-icon {
+    background: #e8f2ff;
+}
+
+.weekly-summary-card.green .weekly-card-icon {
+    background: #e8f7ee;
+}
+
+.weekly-summary-card.orange .weekly-card-icon {
+    background: #fff3df;
+}
+
+.weekly-summary-card.purple .weekly-card-icon {
+    background: #f2edff;
+}
+
+.weekly-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.weekly-card-number {
+    margin-top: 3px;
+    font-size: 29px;
+    line-height: 1;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.weekly-card-label {
+    margin-top: 5px;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.weekly-card-progress {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+    margin-top: 17px;
+    font-size: 11px;
+}
+
+.weekly-card-progress strong {
+    white-space: nowrap;
+}
+
+.weekly-summary-card.blue .weekly-card-progress strong:first-child {
+    color: var(--blue);
+}
+
+.weekly-summary-card.green .weekly-card-progress strong:first-child {
+    color: var(--green);
+}
+
+.weekly-summary-card.orange .weekly-card-progress strong:first-child {
+    color: var(--orange);
+}
+
+.weekly-summary-card.purple .weekly-card-progress strong:first-child {
+    color: var(--purple);
+}
+
+.weekly-progress-track {
+    height: 8px;
+    border-radius: 20px;
+    background: #e9eef5;
+    overflow: hidden;
+}
+
+.weekly-progress-track span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+}
+
+.weekly-summary-card.blue .weekly-progress-track span {
+    background: var(--blue);
+}
+
+.weekly-summary-card.green .weekly-progress-track span {
+    background: var(--green);
+}
+
+.weekly-summary-card.orange .weekly-progress-track span {
+    background: var(--orange);
+}
+
+.weekly-summary-card.purple .weekly-progress-track span {
+    background: var(--purple);
+}
+
+.weekly-progress-panel {
+    margin-top: 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 3px 12px rgba(20, 45, 75, 0.05);
+}
+
+.weekly-panel-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.weekly-panel-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.weekly-panel-header p {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.weekly-assessment-table {
+    width: 100%;
+}
+
+.weekly-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.weekly-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+}
+
+.weekly-table th,
+.weekly-table td {
+    padding: 15px 16px;
+    border-bottom: 1px solid #edf1f6;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.weekly-table th {
+    background: #fbfcfe;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.weekly-table td {
+    font-size: 12px;
+}
+
+.weekly-table tbody tr:hover {
+    background: #fbfdff;
+}
+
+.weekly-class-name {
+    min-width: 155px;
+}
+
+.weekly-class-name strong {
+    font-size: 13px;
+}
+
+.weekly-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 95px;
+}
+
+.weekly-status-icon {
+    width: 23px;
+    height: 23px;
+    flex: 0 0 23px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    border: 1.5px solid currentColor;
+}
+
+.weekly-status.done {
+    color: var(--green);
+}
+
+.weekly-status.pending {
+    color: #e33d49;
+}
+
+.weekly-status strong,
+.weekly-status small {
+    display: block;
+}
+
+.weekly-status strong {
+    font-size: 12px;
+}
+
+.weekly-status small {
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.weekly-overall {
+    display: flex;
+    justify-content: center;
+}
+
+.weekly-ring {
+    --progress: 0deg;
+    --ring-color: #e33d49;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: conic-gradient(var(--ring-color) var(--progress), #edf1f6 0);
+    position: relative;
+    font-weight: 800;
+    color: var(--text);
+    font-size: 10px;
+}
+
+.weekly-ring::after {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    background: white;
+    border-radius: 50%;
+}
+
+.weekly-ring span {
+    position: relative;
+    z-index: 1;
+}
+
+.weekly-table-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 13px 18px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.weekly-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.weekly-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    border: 1.5px solid currentColor;
+}
+
+.legend-dot.done {
+    color: var(--green);
+}
+
+.legend-dot.pending {
+    color: #e33d49;
+}
+
+.legend-dot.na {
+    color: #9aa7b6;
+}
+
+.weekly-updated {
+    white-space: nowrap;
+}
+
+.weekly-empty {
+    min-height: 260px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    text-align: center;
+    color: var(--muted);
+}
+
+.weekly-empty strong {
+    color: var(--text);
+}
+
+@media (max-width: 1050px) {
+    .weekly-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .weekly-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .weekly-panel-header {
+        padding: 16px;
+    }
+
+    .weekly-table-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .weekly-updated {
+        white-space: normal;
+    }
+}
