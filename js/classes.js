@@ -116,6 +116,69 @@ function userRole(){return String(currentUser()?.role||currentUser()?.staffRole|
 // This prevents stale localStorage from making an assigned Class Teacher appear
 // as "Not assigned" or from denying Games & Sports on another device.
 let cloudUserHydrated=false;
+let cloudTeacherAssignments=[];
+
+function profileRoleIsClassTeacher(p){
+  const r=String(p?.role||p?.staffRole||p?.userRole||p?.accountType||'').trim().toLowerCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ');
+  return r==='class teacher';
+}
+
+function profileMatchesClass(p,c){
+  if(!p||!c)return false;
+  const ac=String(p.assigned_class??p.assignedClass??'').trim();
+  const as=String(p.assigned_section??p.assignedSection??'').trim();
+  const ast=String(p.assigned_stream??p.assignedStream??'').trim();
+  if(!ac || String(romanGradeNumber(c.grade))!==String(romanGradeNumber(ac)))return false;
+  if(as && !/^no section$/i.test(as) && !same(as,c.section))return false;
+  if(ast && !/^general$/i.test(ast) && !same(ast,c.stream))return false;
+  return true;
+}
+
+function cloudClassTeacher(c){
+  if(!c)return '';
+  const p=cloudTeacherAssignments.find(x=>profileRoleIsClassTeacher(x)&&profileMatchesClass(x,c));
+  return p ? teacherName(p) : '';
+}
+
+function effectiveClassTeacher(c){
+  return cloudClassTeacher(c) || String(c?.classTeacher||'').trim();
+}
+
+async function hydrateClassTeacherAssignmentsFromCloud(){
+  if(!window.samsSupabase)return;
+  try{
+    const {data,error}=await window.samsSupabase
+      .from('profiles')
+      .select('id,full_name,email,name,display_name,role,assigned_class,assigned_section,assigned_stream')
+      .limit(1000);
+    if(error){
+      console.warn('SAMS class-teacher assignment hydration failed:',error);
+      return;
+    }
+    cloudTeacherAssignments=Array.isArray(data)?data.filter(profileRoleIsClassTeacher):[];
+    // Keep the browser cache aligned with the authoritative profile data for
+    // the current device, but never use it as the source of truth.
+    const list=accounts();
+    cloudTeacherAssignments.forEach(p=>{
+      const email=String(p.email||'').trim().toLowerCase();
+      if(!email)return;
+      const idx=list.findIndex(a=>String(a.email||a.educationalEmail||a.educational_email||'').trim().toLowerCase()===email);
+      const merged={
+        ...(idx>=0?list[idx]:{}),
+        id:p.id||'',
+        name:p.full_name||p.fullName||p.name||p.display_name||'',
+        email:p.email||email,
+        role:normalizeRole(p.role||'Class Teacher'),
+        assignedClass:p.assigned_class??'',
+        assignedSection:p.assigned_section??'',
+        assignedStream:p.assigned_stream??''
+      };
+      if(idx>=0)list[idx]=merged; else list.push(merged);
+    });
+    writeLS(ACCOUNTS_KEY,list);
+  }catch(e){console.warn('SAMS class-teacher assignment hydration error:',e)}
+}
+
 async function hydrateCurrentUserFromCloud(){
   if(cloudUserHydrated)return currentUser();
   cloudUserHydrated=true;
@@ -173,8 +236,9 @@ function assignedClassMatches(c,u){
 function teacherCanManage(c){
   const u=currentUser();
   return isAdmin() || !!(c && (
-    (c.classTeacher && same(c.classTeacher,loggedInTeacherName())) ||
-    assignedClassMatches(c,u)
+    (effectiveClassTeacher(c) && same(effectiveClassTeacher(c),loggedInTeacherName())) ||
+    assignedClassMatches(c,u) ||
+    cloudTeacherAssignments.some(p=>profileRoleIsClassTeacher(p) && same(p.email,u?.email) && profileMatchesClass(p,c))
   ));
 }
 // Games & Sports is deliberately stricter than the general Classes workspace:
@@ -532,7 +596,8 @@ function workspaceSectionOptions(grade){
 function workspaceOwnClass(){
   const u=currentUser();
   return classes().find(c=>assignedClassMatches(c,u)) ||
-         classes().find(c=>c.classTeacher&&same(c.classTeacher,loggedInTeacherName()))||null;
+         classes().find(c=>cloudTeacherAssignments.some(p=>profileRoleIsClassTeacher(p)&&same(p.email,u?.email)&&profileMatchesClass(p,c))) ||
+         classes().find(c=>effectiveClassTeacher(c)&&same(effectiveClassTeacher(c),loggedInTeacherName()))||null;
 }
 function renderWorkspace(){
   const body=$('workspaceStudentBody');if(!body)return;
@@ -554,15 +619,11 @@ function renderWorkspace(){
   const sts=classStudents(c.id);
   $('workspaceClassTitle').textContent=`Grade ${c.grade} • Section ${c.section}${c.stream&&c.stream!=='General'?` • ${c.stream}`:''}`;
 
-  // Prefer the class record, but fall back to the staff assignment so the
-  // assigned Class Teacher is shown even when the class record is blank.
-  let teacher=c.classTeacher||'';
+  // Supabase staff assignment is authoritative. The local class record is
+  // only a fallback for legacy classes. This keeps every device consistent.
+  let teacher=effectiveClassTeacher(c);
   if(!teacher){
-    const assigned=accounts().find(a=>{
-      const role=String(a?.role||a?.staffRole||a?.accountType||'').trim().toLowerCase();
-      if(!role.includes('class teacher'))return false;
-      return assignedClassMatches(c,a);
-    });
+    const assigned=accounts().find(a=>profileRoleIsClassTeacher(a)&&assignedClassMatches(c,a));
     if(assigned)teacher=teacherName(assigned);
   }
   $('workspaceTeacher').textContent=teacher||'Not assigned';
@@ -1258,6 +1319,7 @@ function initSportsRecord(){
 
 async function init(){
   await hydrateCurrentUserFromCloud();
+  await hydrateClassTeacherAssignmentsFromCloud();
   setupUser();
   const backDashboard=$('backDashboard');
   if(backDashboard) backDashboard.addEventListener('click',()=>window.location.href='dashboard.html');
@@ -1306,6 +1368,3 @@ document.addEventListener("DOMContentLoaded", function(){
     }
   }catch(e){}
 });
-
-
-
