@@ -17,6 +17,8 @@
     ];
 
     let pulling = false;
+    let resetting = false;
+    let suppressSync = false;
     let readyResolve;
 
     const ready = new Promise(function (resolve) {
@@ -27,7 +29,9 @@
         ready: ready,
         pullAll: pullAll,
         syncKey: syncKey,
-        syncAll: syncAll
+        syncAll: syncAll,
+        deleteKey: deleteKey,
+        resetAssessmentData: resetAssessmentData
     };
 
     async function currentUserId() {
@@ -44,6 +48,8 @@
     }
 
     async function pullAll() {
+        if (resetting) return false;
+
         if (!window.samsSupabase) {
             readyResolve(false);
             return false;
@@ -69,12 +75,70 @@
             pulling = true;
 
             (result.data || []).forEach(function (row) {
-                if (KEYS.includes(row.key)) {
-                    localStorage.setItem(
-                        row.key,
-                        JSON.stringify(row.value)
-                    );
+                if (!KEYS.includes(row.key)) return;
+
+                // Keep the authenticated device's account in the shared
+                // account list. Older cloud snapshots may not contain it.
+                if (row.key === "sams_accounts") {
+                    let cloudAccounts = Array.isArray(row.value) ? row.value : [];
+                    let localAccounts = [];
+                    try {
+                        const raw = localStorage.getItem("sams_accounts");
+                        const parsed = raw ? JSON.parse(raw) : [];
+                        localAccounts = Array.isArray(parsed) ? parsed : [];
+                    } catch (e) {}
+
+                    const merged = [...cloudAccounts];
+                    localAccounts.forEach(function (localAccount) {
+                        const email = String(
+                            localAccount?.email ||
+                            localAccount?.educationalEmail ||
+                            localAccount?.educational_email ||
+                            ""
+                        ).trim().toLowerCase();
+                        const id = String(localAccount?.id || "").trim();
+                        const exists = merged.some(function (account) {
+                            const accountEmail = String(
+                                account?.email ||
+                                account?.educationalEmail ||
+                                account?.educational_email ||
+                                ""
+                            ).trim().toLowerCase();
+                            return (id && String(account?.id || "").trim() === id) ||
+                                   (email && accountEmail === email);
+                        });
+                        if (!exists) merged.push(localAccount);
+                    });
+
+                    localStorage.setItem(row.key, JSON.stringify(merged));
+                    return;
                 }
+
+                // Do not allow an empty cloud snapshot to erase valid local data.
+// This is especially important for classes and students while the
+// Supabase database is being populated.
+if (
+    (row.key === "sams_classes" || row.key === "sams_students") &&
+    Array.isArray(row.value) &&
+    row.value.length === 0
+) {
+    const localRaw = localStorage.getItem(row.key);
+
+    if (localRaw) {
+        try {
+            const localValue = JSON.parse(localRaw);
+
+            if (Array.isArray(localValue) && localValue.length > 0) {
+                return;
+            }
+        } catch (e) {}
+    }
+}
+
+localStorage.setItem(
+    row.key,
+    JSON.stringify(row.value)
+);
             });
 
             pulling = false;
@@ -106,6 +170,8 @@
 
         if (
             pulling ||
+            resetting ||
+            suppressSync ||
             !KEYS.includes(key) ||
             !window.samsSupabase
         ) {
@@ -122,12 +188,18 @@
 
             const raw = localStorage.getItem(key);
 
-            const value =
-                raw === null
-                    ? null
-                    : parse(raw);
+            // A removed localStorage key must be removed from the cloud too.
+            // Previously this was upserted as { value: null }, which left the
+            // old key in sams_store and allowed pullAll() to bring stale data
+            // back after a reset/reload.
+            if (raw === null) {
+                await deleteKey(key);
+                return;
+            }
 
-            await window.samsSupabase
+            const value = parse(raw);
+
+            const result = await window.samsSupabase
                 .from("sams_store")
                 .upsert(
                     {
@@ -141,6 +213,8 @@
                         onConflict: "key"
                     }
                 );
+
+            if (result.error) throw result.error;
 
         } catch (error) {
 
@@ -159,6 +233,74 @@
         }
     }
 
+    async function deleteKey(key) {
+        if (!KEYS.includes(key) || !window.samsSupabase) {
+            return true;
+        }
+
+        const uid = await currentUserId();
+        if (!uid) {
+            throw new Error("No authenticated SAMS user is available for cloud deletion.");
+        }
+
+        const result = await window.samsSupabase
+            .from("sams_store")
+            .delete()
+            .eq("key", key);
+
+        if (result.error) {
+            throw result.error;
+        }
+
+        // Verify that the row is actually gone. This prevents Reset from
+        // claiming success when Supabase/RLS has rejected the deletion.
+        const verify = await window.samsSupabase
+            .from("sams_store")
+            .select("key")
+            .eq("key", key)
+            .maybeSingle();
+
+        if (verify.error) {
+            throw verify.error;
+        }
+
+        if (verify.data) {
+            throw new Error(`Cloud reset could not delete ${key}. Check the sams_store RLS policy.`);
+        }
+
+        return true;
+    }
+
+    async function resetAssessmentData(keys) {
+        const resetKeys = Array.isArray(keys)
+            ? keys.filter(key => KEYS.includes(key))
+            : [];
+
+        if (!resetKeys.length) return true;
+        if (!window.samsSupabase) {
+            throw new Error("Supabase is not available.");
+        }
+
+        resetting = true;
+        suppressSync = true;
+
+        try {
+            // Delete cloud rows first. If any deletion fails, the reset throws
+            // and the UI must not report a successful reset.
+            for (const key of resetKeys) {
+                await deleteKey(key);
+            }
+
+            // Only after cloud deletion succeeds do we clear local copies.
+            resetKeys.forEach(key => localStorage.removeItem(key));
+
+            return true;
+        } finally {
+            suppressSync = false;
+            resetting = false;
+        }
+    }
+
     const originalSetItem =
         Storage.prototype.setItem;
 
@@ -174,7 +316,9 @@
             if (
                 this === localStorage &&
                 KEYS.includes(key) &&
-                !pulling
+                !pulling &&
+                !resetting &&
+                !suppressSync
             ) {
                 queueMicrotask(
                     function () {
@@ -198,7 +342,9 @@
             if (
                 this === localStorage &&
                 KEYS.includes(key) &&
-                !pulling
+                !pulling &&
+                !resetting &&
+                !suppressSync
             ) {
                 queueMicrotask(
                     function () {
