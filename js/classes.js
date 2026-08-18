@@ -149,7 +149,7 @@ async function hydrateClassTeacherAssignmentsFromCloud(){
   try{
     const {data,error}=await window.samsSupabase
       .from('profiles')
-      .select('id,full_name,email,name,display_name,role,assigned_class,assigned_section,assigned_stream')
+      .select('id,full_name,email,name,display_name,role,assigned_class,assigned_section')
       .limit(1000);
     if(error){
       console.warn('SAMS class-teacher assignment hydration failed:',error);
@@ -171,7 +171,7 @@ async function hydrateClassTeacherAssignmentsFromCloud(){
         role:normalizeRole(p.role||'Class Teacher'),
         assignedClass:p.assigned_class??'',
         assignedSection:p.assigned_section??'',
-        assignedStream:p.assigned_stream??''
+        assignedStream:p.assigned_stream??p.assignedStream??''
       };
       if(idx>=0)list[idx]=merged; else list.push(merged);
     });
@@ -234,29 +234,41 @@ function assignedClassMatches(c,u){
   return true;
 }
 function teacherCanManage(c){
+  if(isAdmin()) return true;
+  if(!c) return false;
+
   const u=currentUser();
-  return isAdmin() || !!(c && (
-    (effectiveClassTeacher(c) && same(effectiveClassTeacher(c),loggedInTeacherName())) ||
-    assignedClassMatches(c,u) ||
-    cloudTeacherAssignments.some(p=>profileRoleIsClassTeacher(p) && same(p.email,u?.email) && profileMatchesClass(p,c))
-  ));
+  const email=String(u?.email||'').trim().toLowerCase();
+
+  // Supabase assignment is authoritative.
+  if(email && cloudTeacherAssignments.some(p=>
+      profileRoleIsClassTeacher(p) &&
+      String(p.email||'').trim().toLowerCase()===email &&
+      profileMatchesClass(p,c)
+  )) return true;
+
+  // Current user's hydrated profile is the next source.
+  if(profileRoleIsClassTeacher(u) && assignedClassMatches(c,u)) return true;
+
+  // Legacy local classTeacher fallback.
+  const effective=effectiveClassTeacher(c);
+  return !!(effective && same(effective,loggedInTeacherName()));
 }
 // Games & Sports is deliberately stricter than the general Classes workspace:
 // ONLY an account whose role is exactly "Class Teacher" may enter/delete records.
 // Principal, Vice Principal, Administrator, Non-Class Teacher and other staff
 // are never permitted, even if they have administrator/assignment access.
 function isClassTeacherRole(){
-  const role=userRole().replace(/[_-]+/g,' ').replace(/\\s+/g,' ').trim();
+  const role=userRole().replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
   return role==='class teacher';
 }
 function canManageGamesSports(c){
   return isClassTeacherRole() && !!c && teacherCanManage(c) && !isAdmin();
 }
 function canManageVolunteerRecord(c){
-  // Volunteer RECORD entry is Class Teacher-only.
-  // The separate Volunteer Programme Description remains available to
-  // authenticated staff who organise a programme, as required previously.
-  return isClassTeacherRole() && !!c && teacherCanManage(c) && !isAdmin();
+  // Volunteer Programme/records are available to every authenticated staff
+  // user, irrespective of role. Games & Sports remains Class Teacher-only.
+  return !!c && !!currentUser();
 }
 function volunteerRecordEnabledKey(classId){
   return `sams_volunteer_record_enabled_${classId}`;
@@ -303,17 +315,38 @@ function populateGrades(div,selected=''){
 function render(){
   const all=classes(), q=$('searchInput').value.toLowerCase(), stream=$('streamFilter').value;
   let visible=all.filter(c=>c.division===selectedDivision&&classVisible(c));
-  visible=visible.filter(c=>(!q||`${c.grade} ${c.section} ${c.stream} ${c.classTeacher}`.toLowerCase().includes(q))&&(stream==='all'||c.stream===stream));
-  const body=$('classTableBody'); body.innerHTML=''; $('emptyState').hidden=visible.length>0;
+  visible=visible.filter(c=>
+    (!q||`${c.grade} ${c.section} ${c.stream} ${effectiveClassTeacher(c)}`.toLowerCase().includes(q)) &&
+    (stream==='all'||c.stream===stream)
+  );
+
+  const body=$('classTableBody');
+  body.innerHTML='';
+  $('emptyState').hidden=visible.length>0;
+
   visible.forEach(c=>{
     const n=classStudents(c.id).length;
+    const teacher=effectiveClassTeacher(c);
     const teacherActions=isAdmin()?`<button class="icon-button" data-action="edit" data-id="${c.id}" title="Edit class">✎</button>`:'';
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td><span class="class-name">Grade ${escapeHtml(c.grade)} – ${escapeHtml(c.section)}</span></td><td>${escapeHtml(c.section)}</td><td><span class="badge ${String(c.stream).toLowerCase()}">${escapeHtml(c.stream)}</span></td><td class="teacher">${c.classTeacher?escapeHtml(c.classTeacher):'<span class="muted">Not assigned</span>'}</td><td><strong>${n}</strong></td><td>${escapeHtml(c.academicYear||'2026')}</td><td><div class="actions"><button class="icon-button" data-action="students" data-id="${c.id}" title="Open class dashboard">👥</button>${teacherActions}<button class="icon-button delete" data-action="delete" data-id="${c.id}" title="Delete class">⌫</button></div></td>`;
+
+    tr.innerHTML=`<td><span class="class-name">Grade ${escapeHtml(c.grade)} – ${escapeHtml(c.section)}</span></td>
+      <td>${escapeHtml(c.section)}</td>
+      <td><span class="badge ${String(c.stream).toLowerCase()}">${escapeHtml(c.stream)}</span></td>
+      <td class="teacher">${teacher?escapeHtml(teacher):'<span class="muted">Not assigned</span>'}</td>
+      <td><strong>${n}</strong></td>
+      <td>${escapeHtml(c.academicYear||'2026')}</td>
+      <td><div class="actions">
+        <button class="icon-button" data-action="students" data-id="${c.id}" title="Open class dashboard">👥</button>
+        ${teacherActions}
+        <button class="icon-button delete" data-action="delete" data-id="${c.id}" title="Delete class">⌫</button>
+      </div></td>`;
+
     body.appendChild(tr);
   });
+
   $('totalClasses').textContent=visible.length;
-  $('assignedTeachers').textContent=visible.filter(c=>c.classTeacher).length;
+  $('assignedTeachers').textContent=visible.filter(c=>!!effectiveClassTeacher(c)).length;
   $('totalStudents').textContent=visible.reduce((a,c)=>a+classStudents(c.id).length,0);
   $('divisionLabel').textContent=divisionNames[selectedDivision];
   $('divisionTitle').textContent=`Classes ${divisionNames[selectedDivision]}`;
@@ -327,24 +360,68 @@ function populateStreamFilter(items){
   if(vals.includes(old))$('streamFilter').value=old;
 }
 function openModal(id,item){
-  const m=$(id);m.classList.add('show');m.setAttribute('aria-hidden','false');
+  const m=$(id);
+  m.classList.add('show');
+  m.setAttribute('aria-hidden','false');
+
   if(id==='classModal'){
-    populateTeachers(item?.classTeacher||'');
+    // Class Teacher assignment is managed in Staff Management.
+    // Keep the legacy select synchronized only when it exists.
+    populateTeachers(effectiveClassTeacher(item)||item?.classTeacher||'');
     populateGrades(item?.division||selectedDivision,item?.grade||'');
-    $('classId').value=item?.id||'';$('division').value=item?.division||selectedDivision;$('section').value=item?.section||'';
-    $('stream').value=item?.stream||'General';$('academicYear').value=item?.academicYear||'2026';
+    $('classId').value=item?.id||'';
+    $('division').value=item?.division||selectedDivision;
+    $('section').value=item?.section||'';
+    $('stream').value=item?.stream||'General';
+    $('academicYear').value=item?.academicYear||'2026';
     $('modalTitle').textContent=item?'Edit Class':'Create Class';
+
+    const teacherSelect=$('classTeacher');
+    if(teacherSelect){
+      teacherSelect.disabled=true;
+      teacherSelect.title='Class Teachers are assigned from Staff Management.';
+    }
   }
 }
 function closeModal(id){const m=$(id);if(!m)return;m.classList.remove('show');m.setAttribute('aria-hidden','true')}
 function saveClass(e){
-  e.preventDefault();if(!isAdmin())return;
-  const arr=classes(),id=$('classId').value||`class-${Date.now()}`;
-  const r={id,division:$('division').value,grade:$('grade').value,section:$('section').value.trim().toUpperCase(),stream:$('stream').value,classTeacher:$('classTeacher').value,academicYear:$('academicYear').value.trim()};
-  const dup=arr.find(c=>c.id!==id&&c.division===r.division&&c.grade===r.grade&&c.section===r.section&&c.stream===r.stream);
+  e.preventDefault();
+  if(!isAdmin())return;
+
+  const arr=classes();
+  const id=$('classId').value||`class-${Date.now()}`;
+  const existing=arr.find(c=>c.id===id);
+
+  // Never let this page create a second, stale Class Teacher assignment.
+  const r={
+    ...(existing||{}),
+    id,
+    division:$('division').value,
+    grade:$('grade').value,
+    section:$('section').value.trim().toUpperCase(),
+    stream:$('stream').value,
+    classTeacher:existing?.classTeacher||'',
+    academicYear:$('academicYear').value.trim()
+  };
+
+  const dup=arr.find(c=>
+    c.id!==id &&
+    c.division===r.division &&
+    c.grade===r.grade &&
+    c.section===r.section &&
+    c.stream===r.stream
+  );
   if(dup)return alert('This class already exists.');
-  const i=arr.findIndex(c=>c.id===id);if(i>=0)arr[i]=r;else arr.push(r);saveClasses(arr);
-  closeModal('classModal');selectedDivision=r.division;syncDivisionButtons();render();
+
+  const i=arr.findIndex(c=>c.id===id);
+  if(i>=0)arr[i]=r;
+  else arr.push(r);
+
+  saveClasses(arr);
+  closeModal('classModal');
+  selectedDivision=r.division;
+  syncDivisionButtons();
+  render();
 }
 function deleteClass(id){
   const c=classes().find(x=>x.id===id);if(!c||!teacherCanManage(c))return;
@@ -356,7 +433,7 @@ function openStudents(id){
   const c=classes().find(x=>x.id===id);if(!c||!teacherCanManage(c))return;
   selectedClassId=id;
   $('studentModalTitle').textContent=`Grade ${c.grade} – ${c.section}`;
-  $('studentModalSub').textContent=`${c.stream} • Class Teacher: ${c.classTeacher||'Not assigned'}`;
+  $('studentModalSub').textContent=`${c.stream} • Class Teacher: ${effectiveClassTeacher(c)||'Not assigned'}`;
   $('deleteWholeClassBtn').disabled=!teacherCanManage(c);
   $('deleteAllStudentsBtn').hidden=!isAdmin();
   $('importWorkbookClassBtn').hidden=false;
@@ -1318,8 +1395,11 @@ function initSportsRecord(){
 }
 
 async function init(){
+  // Supabase is authoritative. Hydrate both the current user and all
+  // Class Teacher assignments before the first render.
   await hydrateCurrentUserFromCloud();
   await hydrateClassTeacherAssignmentsFromCloud();
+  await hydrateCurrentUserFromCloud();
   setupUser();
   const backDashboard=$('backDashboard');
   if(backDashboard) backDashboard.addEventListener('click',()=>window.location.href='dashboard.html');
