@@ -1,15 +1,18 @@
 {
+  "id": "/",
   "name": "SAMS - Student Assessment Management System",
   "short_name": "SAMS",
   "description": "Student Assessment Management System",
-  "start_url": "index.html",
-  "scope": "./",
+  "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "orientation": "portrait-primary",
   "background_color": "#f4f7fb",
   "theme_color": "#123f6d",
+  "prefer_related_applications": false,
   "icons": [
-    {"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
   ]
 }
