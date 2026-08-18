@@ -19,9 +19,21 @@ function samsIsAuthenticatedStaff(user) {
 }
 
 function samsIsClassTeacher(user) {
-    return samsNormaliseRole(
+    if (!user || samsIsAssessor(user)) return false;
+    const role = samsNormaliseRole(
         user?.role || user?.staffRole || user?.userRole || user?.user_role || user?.position || ""
-    ) === "class teacher";
+    );
+    if (role === "class teacher") return true;
+
+    // Fallback for older accounts/session records where the role label is
+    // missing but a class + section assignment identifies the Class Teacher.
+    const assignedClass = String(
+        user?.assignedClass || user?.assigned_class || user?.classAssignment || ""
+    ).trim();
+    const assignedSection = String(
+        user?.assignedSection || user?.assigned_section || user?.section || ""
+    ).trim();
+    return !!(assignedClass && assignedSection);
 }
 
 function samsIsAssessor(user) {
@@ -35,8 +47,8 @@ function samsCanVolunteer(user) {
 }
 
 function samsCanGamesAndSports(user) {
-    // Assessor status alone must NEVER grant Games & Sports.
-    return samsIsClassTeacher(user);
+    // Games & Sports is Class Teacher only. An assessor must not see it.
+    return samsIsClassTeacher(user) && !samsIsAssessor(user);
 }
 
 function classSection(c){return String(c?.section||c?.stream||'');}
@@ -187,13 +199,12 @@ function isClassTeacherRole(){
   return role==='class teacher';
 }
 function canManageGamesSports(c){
-  return isClassTeacherRole() && !!c && teacherCanManage(c) && !isAdmin();
+  const u=currentUser();
+  return samsCanGamesAndSports(u) && !!c && teacherCanManage(c) && !isAdmin();
 }
 function canManageVolunteerRecord(c){
-  // Volunteer RECORD entry is Class Teacher-only.
-  // The separate Volunteer Programme Description remains available to
-  // authenticated staff who organise a programme, as required previously.
-  return isClassTeacherRole() && !!c && teacherCanManage(c) && !isAdmin();
+  // Volunteer records are available to every authenticated staff user.
+  return samsCanVolunteer(currentUser()) && !!c;
 }
 function volunteerRecordEnabledKey(classId){
   return `sams_volunteer_record_enabled_${classId}`;
@@ -614,7 +625,7 @@ function renderWorkspace(){
 function saveWorkspaceVolunteer(studentId,value){
   const c=classes().find(x=>x.id===workspaceClassId);
   if(!canManageVolunteerRecord(c)){
-    alert('Volunteer records can be entered only by the Class Teacher of the selected class.');
+    alert('Volunteer records can be entered by any authenticated staff user.');
     renderWorkspace();
     return;
   }
@@ -663,7 +674,7 @@ function saveWorkspaceVolunteer(studentId,value){
 function deleteWorkspaceVolunteer(studentId){
   const c=classes().find(x=>x.id===workspaceClassId);
   if(!canManageVolunteerRecord(c)){
-    alert('Only the Class Teacher of the selected class can delete volunteer records.');
+    alert('Volunteer records can be deleted by any authenticated staff user.');
     return;
   }
 
