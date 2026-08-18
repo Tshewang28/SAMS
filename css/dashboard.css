@@ -1034,364 +1034,350 @@ a:active {
 }
 
 /* =========================================================
-   WEEKLY ASSESSMENT PROGRESS
-   Visible to every authenticated SAMS user, including students.
-========================================================= */
+   WEEKLY ASSESSMENT PROGRESS - DASHBOARD BOARD
+   ========================================================= */
+.weekly-progress-section {
+    margin-top: 8px;
+}
+
+.weekly-section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 18px;
+}
+
+.weekly-section-heading .section-eyebrow {
+    margin-bottom: 6px;
+    color: #1d74bd;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.weekly-section-heading h2 {
+    margin: 0;
+    color: #153e63;
+    font-size: 26px;
+    line-height: 1.2;
+}
+
+.weekly-section-heading p {
+    margin: 6px 0 0;
+    color: #6a7f93;
+    font-size: 14px;
+}
+
+/* The page-heading date card becomes the Monday-Sunday range badge. */
+#weeklyRangeTop {
+    min-width: 205px;
+    text-align: center;
+    white-space: nowrap;
+}
 
 .weekly-summary-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
+    margin-bottom: 18px;
 }
 
 .weekly-summary-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 18px 16px;
-    box-shadow: 0 3px 12px rgba(20, 45, 75, 0.07);
-    min-width: 0;
-}
-
-.weekly-card-top {
     display: flex;
     align-items: center;
-    gap: 13px;
-}
-
-.weekly-card-icon {
-    width: 54px;
-    height: 54px;
-    flex: 0 0 54px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    font-size: 23px;
-}
-
-.weekly-summary-card.blue .weekly-card-icon {
-    background: #e8f2ff;
-}
-
-.weekly-summary-card.green .weekly-card-icon {
-    background: #e8f7ee;
-}
-
-.weekly-summary-card.orange .weekly-card-icon {
-    background: #fff3df;
-}
-
-.weekly-summary-card.purple .weekly-card-icon {
-    background: #f2edff;
-}
-
-.weekly-card-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
-}
-
-.weekly-card-number {
-    margin-top: 3px;
-    font-size: 29px;
-    line-height: 1;
-    font-weight: 800;
-    color: var(--text);
-}
-
-.weekly-card-label {
-    margin-top: 5px;
-    font-size: 11px;
-    color: var(--muted);
-}
-
-.weekly-card-progress {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 8px;
-    margin-top: 17px;
-    font-size: 11px;
-}
-
-.weekly-card-progress strong {
-    white-space: nowrap;
-}
-
-.weekly-summary-card.blue .weekly-card-progress strong:first-child {
-    color: var(--blue);
-}
-
-.weekly-summary-card.green .weekly-card-progress strong:first-child {
-    color: var(--green);
-}
-
-.weekly-summary-card.orange .weekly-card-progress strong:first-child {
-    color: var(--orange);
-}
-
-.weekly-summary-card.purple .weekly-card-progress strong:first-child {
-    color: var(--purple);
-}
-
-.weekly-progress-track {
-    height: 8px;
-    border-radius: 20px;
-    background: #e9eef5;
-    overflow: hidden;
-}
-
-.weekly-progress-track span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-}
-
-.weekly-summary-card.blue .weekly-progress-track span {
-    background: var(--blue);
-}
-
-.weekly-summary-card.green .weekly-progress-track span {
-    background: var(--green);
-}
-
-.weekly-summary-card.orange .weekly-progress-track span {
-    background: var(--orange);
-}
-
-.weekly-summary-card.purple .weekly-progress-track span {
-    background: var(--purple);
-}
-
-.weekly-progress-panel {
-    margin-top: 18px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 3px 12px rgba(20, 45, 75, 0.05);
-}
-
-.weekly-panel-header {
+    gap: 14px;
+    min-height: 112px;
     padding: 18px 20px;
-    border-bottom: 1px solid var(--border);
+    border: 1px solid transparent;
+    border-radius: 16px;
+    box-sizing: border-box;
 }
 
-.weekly-panel-header h2 {
-    margin: 0;
+.weekly-summary-icon {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    place-items: center;
+    border-radius: 13px;
     font-size: 18px;
+    font-weight: 900;
 }
 
-.weekly-panel-header p {
-    margin: 5px 0 0;
-    color: var(--muted);
+.weekly-summary-label {
+    margin-bottom: 3px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #38556f;
+}
+
+.weekly-summary-value {
+    color: #163f64;
+    font-size: 26px;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+.weekly-summary-note {
+    margin-top: 3px;
+    color: #71869a;
     font-size: 12px;
 }
 
-.weekly-assessment-table {
-    width: 100%;
+.supw-card {
+    background: #eef7ff;
+    border-color: #d5eaff;
+}
+.supw-card .weekly-summary-icon {
+    background: #d8ecff;
+    color: #1472ba;
+}
+
+.classroom-card {
+    background: #eefaf3;
+    border-color: #d6f0df;
+}
+.classroom-card .weekly-summary-icon {
+    background: #d9f2e2;
+    color: #16804a;
+}
+
+.assembly-card {
+    background: #f4f0ff;
+    border-color: #e4dafc;
+}
+.assembly-card .weekly-summary-icon {
+    background: #e9defe;
+    color: #7651bd;
+}
+
+a.overall-card,
+.overall-card {
+    background: #fff7e9;
+    border-color: #f8e6c2;
+}
+.overall-card .weekly-summary-icon {
+    background: #ffedc9;
+    color: #c77b0a;
 }
 
 .weekly-table-wrap {
-    width: 100%;
-    overflow-x: auto;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #dce7f1;
+    border-radius: 17px;
+    box-shadow: 0 5px 18px rgba(20, 60, 95, .055);
 }
 
-.weekly-table {
-    width: 100%;
-    min-width: 760px;
-    border-collapse: collapse;
-}
-
-.weekly-table th,
-.weekly-table td {
-    padding: 15px 16px;
-    border-bottom: 1px solid #edf1f6;
-    text-align: left;
-    vertical-align: middle;
-}
-
-.weekly-table th {
-    background: #fbfcfe;
-    color: var(--text);
-    font-size: 12px;
-    font-weight: 800;
-    white-space: nowrap;
-}
-
-.weekly-table td {
-    font-size: 12px;
-}
-
-.weekly-table tbody tr:hover {
-    background: #fbfdff;
-}
-
-.weekly-class-name {
-    min-width: 155px;
-}
-
-.weekly-class-name strong {
-    font-size: 13px;
-}
-
-.weekly-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 95px;
-}
-
-.weekly-status-icon {
-    width: 23px;
-    height: 23px;
-    flex: 0 0 23px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    font-weight: 900;
-    border: 1.5px solid currentColor;
-}
-
-.weekly-status.done {
-    color: var(--green);
-}
-
-.weekly-status.pending {
-    color: #e33d49;
-}
-
-.weekly-status strong,
-.weekly-status small {
-    display: block;
-}
-
-.weekly-status strong {
-    font-size: 12px;
-}
-
-.weekly-status small {
-    margin-top: 2px;
-    color: var(--muted);
-    font-size: 10px;
-}
-
-.weekly-overall {
-    display: flex;
-    justify-content: center;
-}
-
-.weekly-ring {
-    --progress: 0deg;
-    --ring-color: #e33d49;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: conic-gradient(var(--ring-color) var(--progress), #edf1f6 0);
-    position: relative;
-    font-weight: 800;
-    color: var(--text);
-    font-size: 10px;
-}
-
-.weekly-ring::after {
-    content: "";
-    position: absolute;
-    inset: 5px;
-    background: white;
-    border-radius: 50%;
-}
-
-.weekly-ring span {
-    position: relative;
-    z-index: 1;
-}
-
-.weekly-table-footer {
+.weekly-table-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 15px;
-    padding: 13px 18px;
-    color: var(--muted);
-    font-size: 11px;
+    gap: 20px;
+    padding: 18px 20px;
+    border-bottom: 1px solid #e3ebf3;
+}
+
+.weekly-table-header h3 {
+    margin: 0;
+    color: #173f62;
+    font-size: 18px;
+}
+
+.weekly-table-header p {
+    margin: 5px 0 0;
+    color: #70869a;
+    font-size: 12px;
 }
 
 .weekly-legend {
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
     gap: 16px;
+    flex: 0 0 auto;
+    color: #5f758a;
+    font-size: 12px;
+    font-weight: 700;
 }
 
-.weekly-legend > span {
+.weekly-legend span {
     display: inline-flex;
     align-items: center;
     gap: 6px;
 }
 
-.legend-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
+.status-dot {
     display: inline-block;
-    border: 1.5px solid currentColor;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+.status-dot.done { background: #22a05a; }
+.status-dot.pending { background: #f1a21b; }
+
+.weekly-table-scroll {
+    width: 100%;
+    overflow-x: auto;
 }
 
-.legend-dot.done {
-    color: var(--green);
+.weekly-progress-table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
 }
 
-.legend-dot.pending {
-    color: #e33d49;
+.weekly-progress-table th,
+.weekly-progress-table td {
+    padding: 15px 18px;
+    border-bottom: 1px solid #e9eff5;
+    text-align: left;
+    vertical-align: middle;
 }
 
-.legend-dot.na {
-    color: #9aa7b6;
+.weekly-progress-table thead th {
+    background: #f5f8fb;
+    color: #5d758b;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .045em;
+    text-transform: uppercase;
 }
 
-.weekly-updated {
+.weekly-progress-table tbody tr:last-child th,
+.weekly-progress-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.weekly-progress-table tbody tr:hover {
+    background: #fbfdff;
+}
+
+.weekly-progress-table tbody th {
+    color: #173f62;
+    font-size: 14px;
+    font-weight: 800;
     white-space: nowrap;
 }
 
-.weekly-empty {
-    min-height: 260px;
-    padding: 30px;
-    display: flex;
-    flex-direction: column;
+.class-label {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+}
+
+.weekly-status {
+    display: inline-flex;
+    align-items: center;
     gap: 7px;
-    text-align: center;
-    color: var(--muted);
+    min-width: 76px;
+    padding: 7px 10px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
 }
 
-.weekly-empty strong {
-    color: var(--text);
+.weekly-status .status-check {
+    display: inline-grid;
+    width: 18px;
+    height: 18px;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 900;
 }
 
-@media (max-width: 1050px) {
+.weekly-status.done {
+    background: #e9f8ef;
+    color: #167846;
+}
+.weekly-status.done .status-check {
+    background: #22a05a;
+    color: #fff;
+}
+
+.weekly-status.pending {
+    background: #fff5df;
+    color: #ad6b08;
+}
+.weekly-status.pending .status-check {
+    background: #f1a21b;
+    color: #fff;
+}
+
+.progress-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 145px;
+}
+
+.progress-track {
+    width: 90px;
+    height: 7px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: #e6edf4;
+}
+
+.progress-track span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #2a80c9;
+}
+
+.progress-cell strong {
+    min-width: 42px;
+    color: #1b4e76;
+    font-size: 13px;
+    text-align: right;
+}
+
+.weekly-loading,
+.weekly-empty-cell {
+    padding: 34px 20px !important;
+    color: #70869a;
+    text-align: center !important;
+    font-size: 14px;
+}
+
+.recent-panel {
+    margin-top: 18px;
+}
+
+@media (max-width: 1100px) {
     .weekly-summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 760px) {
-    .weekly-summary-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .weekly-panel-header {
-        padding: 16px;
-    }
-
-    .weekly-table-footer {
+    .weekly-section-heading {
         align-items: flex-start;
         flex-direction: column;
     }
 
-    .weekly-updated {
-        white-space: normal;
+    #weeklyRangeTop {
+        min-width: 0;
+    }
+
+    .weekly-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .weekly-table-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .weekly-legend {
+        flex-wrap: wrap;
+    }
+
+    .weekly-progress-table th,
+    .weekly-progress-table td {
+        padding: 12px 10px;
     }
 }
