@@ -173,13 +173,17 @@ async function resetData(){
 
   ASSESSMENT_RESET_KEYS.forEach(key=>localStorage.removeItem(key));
 
-  // sams-cloud.js watches localStorage.removeItem() and synchronizes the
-  // deletion to the shared Supabase sams_store. Explicitly wait for each
-  // sync as well, so a page reload cannot immediately pull the old records
-  // back from the cloud.
-  if(window.samsCloud && typeof window.samsCloud.syncKey === "function") {
+  // Remove the same records from the central sams_store. The cloud bridge
+  // uses a real DELETE for removeItem()/deleteKey(), so the old assessment
+  // records cannot return after refresh, login or opening SAMS on another
+  // device.
+  if(window.samsCloud) {
     try {
-      await Promise.all(ASSESSMENT_RESET_KEYS.map(key=>window.samsCloud.syncKey(key)));
+      if(typeof window.samsCloud.deleteKey === "function") {
+        await Promise.all(ASSESSMENT_RESET_KEYS.map(key=>window.samsCloud.deleteKey(key)));
+      } else if(typeof window.samsCloud.syncKey === "function") {
+        await Promise.all(ASSESSMENT_RESET_KEYS.map(key=>window.samsCloud.syncKey(key)));
+      }
     } catch(error) {
       console.warn("SAMS assessment reset cloud sync warning:", error);
     }
