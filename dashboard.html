@@ -294,12 +294,11 @@
                     <div>
 
                         <h1>
-                            Dashboard
+                            Weekly Assessment Progress
                         </h1>
 
                         <p>
-                            Overview of Student Assessment
-                            Management System
+                            Track weekly assessment completion across all classes
                         </p>
 
                     </div>
@@ -318,145 +317,26 @@
                      SUMMARY
                      ===================================== -->
 
-                <div class="summary-grid">
-
-
-                    <div class="summary-card blue">
-
-                        <div class="card-label">
-                            Total Students
-                        </div>
-
-                        <div
-                            class="card-number"
-                            id="studentCount"
-                        >
-                            0
-                        </div>
-
-                        <div class="card-link">
-                            <a href="classes.html">View students →</a>
-                        </div>
-
-                    </div>
-
-
-
-                    <div class="summary-card green">
-
-                        <div class="card-label">
-                            Total Staff
-                        </div>
-
-                        <div
-                            class="card-number"
-                            id="staffCount"
-                        >
-                            0
-                        </div>
-
-                        <div class="card-link">
-
-                            <a href="staff-management.html">
-                                View staff →
-                            </a>
-
-                        </div>
-
-                    </div>
-
-
-
-                    <div class="summary-card orange">
-
-                        <div class="card-label">
-                            Total Classes
-                        </div>
-
-                        <div
-                            class="card-number"
-                            id="classCount"
-                        >
-                            0
-                        </div>
-
-                        <div class="card-link">
-                            <a href="classes.html">View classes →</a>
-                        </div>
-
-                    </div>
-
-
-
-                    <div class="summary-card purple" id="assessmentSummaryCard">
-
-                        <div class="card-label" id="assessmentCardLabel">
-                            Assessment Records
-                        </div>
-
-                        <div
-                            class="card-number"
-                            id="assessmentCount"
-                        >
-                            0
-                        </div>
-
-                        <div class="card-link">
-                            <a id="assessmentCardLink" href="assessment-dashboard.html">View assessments →</a>
-                        </div>
-
-                    </div>
-
+                <div class="weekly-summary-grid" id="weeklySummaryCards" aria-label="Weekly assessment summary">
+                    <!-- Weekly summary cards are rendered by dashboard.js -->
                 </div>
-
-
 
                 <!-- =====================================
                      LOWER PANELS
                      ===================================== -->
 
-                <div class="dashboard-grid">
-
-
-                    <section class="panel">
-
-                        <div class="panel-header">
-
-                            <h2>
-                                Students Overview
-                            </h2>
-
+                <section class="weekly-progress-panel" aria-labelledby="weeklyAssessmentTitle">
+                    <div class="weekly-panel-header">
+                        <div>
+                            <h2 id="weeklyAssessmentTitle">Weekly Assessment Progress</h2>
+                            <p>Track weekly assessment completion across all classes</p>
                         </div>
+                    </div>
 
-
-                        <div class="overview-content" id="studentsOverview">
-                            <div class="chart-message">Loading student statistics…</div>
-                        </div>
-
-                    </section>
-
-
-
-                    <section class="panel">
-
-                        <div class="panel-header">
-
-                            <h2>
-                                Recent Activities
-                            </h2>
-
-                        </div>
-
-
-                        <div class="activity-list" id="recentActivities">
-                            <div class="activity-empty">Loading recent activities…</div>
-                        </div>
-
-                    </section>
-
-                </div>
-
-
+                    <div id="weeklyAssessmentTable" class="weekly-assessment-table">
+                        <div class="chart-message">Loading weekly assessment progress…</div>
+                    </div>
+                </section>
 
                 <!-- =====================================
                      QUICK ACTIONS
@@ -524,6 +404,9 @@
 
 
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/sams-cloud.js"></script>
 <script src="js/auth-sync.js"></script>
 <script src="js/dashboard.js"></script>
 
