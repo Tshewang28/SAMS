@@ -1,3 +1,44 @@
+
+/* SAMS FINAL FEATURE PERMISSIONS
+   Volunteer Programme: every authenticated staff user.
+   Games & Sports: Class Teachers only, and never assessor-only access.
+*/
+function samsNormaliseRole(role) {
+    return String(role || "").trim().toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ");
+}
+
+function samsIsAuthenticatedStaff(user) {
+    if (!user || typeof user !== "object") return false;
+    const role = samsNormaliseRole(
+        user.role || user.staffRole || user.userRole || user.user_role || user.position || ""
+    );
+    return role !== "student" && !!(
+        user.email || user.educationalEmail || user.educational_email ||
+        user.id || user.user_id
+    );
+}
+
+function samsIsClassTeacher(user) {
+    return samsNormaliseRole(
+        user?.role || user?.staffRole || user?.userRole || user?.user_role || user?.position || ""
+    ) === "class teacher";
+}
+
+function samsIsAssessor(user) {
+    return user?.isAssessor === true ||
+           user?.is_assessor === true ||
+           String(user?.isAssessor ?? user?.is_assessor ?? "").trim().toLowerCase() === "true";
+}
+
+function samsCanVolunteer(user) {
+    return samsIsAuthenticatedStaff(user);
+}
+
+function samsCanGamesAndSports(user) {
+    // Assessor status alone must NEVER grant Games & Sports.
+    return samsIsClassTeacher(user);
+}
+
 function classSection(c){return String(c?.section||c?.stream||'');}
 function classGrade(c){return String(c?.grade||c?.className||c?.class||'');}
 function studentName(s){return String(s?.name||s?.studentName||s?.fullName||'Unnamed Student');}
