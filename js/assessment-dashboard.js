@@ -50,6 +50,10 @@ function isEligibleAppointedAssessor(user){
   return role==="vice principal" || role==="non-class teacher";
 }
 
+function isTrueAssessorFlag(value){
+  return value===true || String(value ?? "").trim().toLowerCase()==="true";
+}
+
 function isAppointedAssessor(){
   const user=getCurrentUserForAssessmentAccess();
   if(!user) return false;
@@ -57,15 +61,23 @@ function isAppointedAssessor(){
   // Principal access is limited to Discipline assessment.
   if(isPrincipalUser(user)) return true;
 
-  // Class Teachers and other roles can never inherit assessor access
-  // from a stale isAssessor flag.
+  // Only Vice Principal and Non-Class Teacher can be appointed assessors.
+  // Class Teachers can never receive assessment access.
   if(!isEligibleAppointedAssessor(user)) return false;
 
-  if(user.isAssessor===true) return true;
+  // Check the current session first.
+  if(
+    isTrueAssessorFlag(user.isAssessor) ||
+    isTrueAssessorFlag(user.is_assessor)
+  ) return true;
 
+  // Then check the registered account by email. This handles cases where
+  // Staff Management has updated the appointment but the current session
+  // still contains an older user object.
   const email=String(
     user.email||user.educationalEmail||user.educational_email||
-    sessionStorage.getItem("sams_email")||""
+    sessionStorage.getItem("sams_email")||
+    localStorage.getItem("sams_email")||""
   ).trim().toLowerCase();
 
   if(!email) return false;
@@ -74,7 +86,10 @@ function isAppointedAssessor(){
     String(a.email||a.educationalEmail||a.educational_email||"").trim().toLowerCase()===email
   );
 
-  return account?.isAssessor===true;
+  return !!account && (
+    isTrueAssessorFlag(account.isAssessor) ||
+    isTrueAssessorFlag(account.is_assessor)
+  );
 }
 
 const assessmentUser=getCurrentUserForAssessmentAccess();
