@@ -319,141 +319,101 @@
 
                 <section class="weekly-progress-section" aria-labelledby="weeklyProgressTitle">
 
-                    <div class="weekly-section-heading">
-                        <div>
-                            <div class="section-eyebrow">WEEKLY MONITOR</div>
-                            <h2 id="weeklyProgressTitle">Weekly Assessment Progress</h2>
-                            <p>Track weekly assessment completion across all classes</p>
-                        </div>
-                    </div>
-
                     <div class="weekly-summary-grid" id="weeklySummaryGrid">
                         <article class="weekly-summary-card supw-card">
                             <div class="weekly-summary-icon">S</div>
-                            <div>
+                            <div class="weekly-summary-content">
                                 <div class="weekly-summary-label">SUPW</div>
                                 <div class="weekly-summary-value" id="supwSummary">—</div>
-                                <div class="weekly-summary-note">classes completed</div>
+                                <div class="weekly-summary-note" id="supwPercent">—</div><div class="weekly-summary-meter"><span id="supwMeter"></span></div>
                             </div>
                         </article>
 
                         <article class="weekly-summary-card classroom-card">
                             <div class="weekly-summary-icon">C</div>
-                            <div>
+                            <div class="weekly-summary-content">
                                 <div class="weekly-summary-label">Classroom</div>
                                 <div class="weekly-summary-value" id="classroomSummary">—</div>
-                                <div class="weekly-summary-note">classes completed</div>
+                                <div class="weekly-summary-note" id="classroomPercent">—</div><div class="weekly-summary-meter"><span id="classroomMeter"></span></div>
                             </div>
                         </article>
 
                         <article class="weekly-summary-card assembly-card">
                             <div class="weekly-summary-icon">A</div>
-                            <div>
+                            <div class="weekly-summary-content">
                                 <div class="weekly-summary-label">Assembly</div>
                                 <div class="weekly-summary-value" id="assemblySummary">—</div>
-                                <div class="weekly-summary-note">classes completed</div>
+                                <div class="weekly-summary-note" id="assemblyPercent">—</div><div class="weekly-summary-meter"><span id="assemblyMeter"></span></div>
                             </div>
                         </article>
 
                         <article class="weekly-summary-card overall-card">
                             <div class="weekly-summary-icon">%</div>
-                            <div>
+                            <div class="weekly-summary-content">
                                 <div class="weekly-summary-label">Overall Progress</div>
                                 <div class="weekly-summary-value" id="overallSummary">—</div>
-                                <div class="weekly-summary-note">of weekly targets completed</div>
+                                <div class="weekly-summary-note" id="overallPercent">—</div><div class="weekly-summary-meter"><span id="overallMeter"></span></div>
                             </div>
                         </article>
                     </div>
 
-                    <div class="weekly-table-wrap">
-                        <div class="weekly-table-header">
-                            <div>
-                                <h3>Class-by-Class Progress</h3>
-                                <p>Green means the weekly assessment is complete; orange means it is still pending.</p>
+                    <div class="weekly-board-grid">
+
+                        <section class="weekly-table-wrap" aria-labelledby="classProgressTitle">
+                            <div class="weekly-table-header">
+                                <div>
+                                    <h3 id="classProgressTitle">Class-by-Class Progress</h3>
+                                </div>
+                                <span class="class-count-badge" id="weeklyClassCount">0 Classes</span>
                             </div>
-                            <div class="weekly-legend" aria-label="Status legend">
-                                <span><i class="status-dot done"></i> Done</span>
-                                <span><i class="status-dot pending"></i> Pending</span>
+
+                            <div class="weekly-table-scroll">
+                                <table class="weekly-progress-table">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Class / Section</th>
+                                            <th scope="col">SUPW</th>
+                                            <th scope="col">Classroom</th>
+                                            <th scope="col">Assembly</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="weeklyProgressBody">
+                                        <tr>
+                                            <td colspan="4" class="weekly-loading">Loading weekly assessment progress…</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
-                        </div>
 
-                        <div class="weekly-table-scroll">
-                            <table class="weekly-progress-table">
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Class / Section</th>
-                                        <th scope="col">SUPW</th>
-                                        <th scope="col">Classroom</th>
-                                        <th scope="col">Assembly</th>
-                                        <th scope="col">Progress</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="weeklyProgressBody">
-                                    <tr>
-                                        <td colspan="5" class="weekly-loading">Loading weekly assessment progress…</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                            <div class="weekly-table-footer">
+                                <div class="weekly-legend" aria-label="Status legend">
+                                    <span><i class="status-dot done"></i> Done</span>
+                                    <span><i class="status-dot pending"></i> Pending</span>
+                                </div>
+                            </div>
+                        </section>
 
-                </section>
-
-
-                <!-- =====================================
-                     RECENT ACTIVITIES
-                     ===================================== -->
-
-                <section class="panel recent-panel">
-                    <div class="panel-header">
-                        <h2>Recent Activities</h2>
-                    </div>
-                    <div class="activity-list" id="recentActivities">
-                        <div class="activity-empty">Loading recent activities…</div>
-                    </div>
-                </section>
-
-                <!-- =====================================
-                     QUICK ACTIONS
-                     ===================================== -->
-
-                <section class="panel quick-panel">
-
-                    <div class="panel-header">
-
-                        <h2>
-                            Quick Actions
-                        </h2>
-
-                    </div>
-
-
-                    <div class="quick-actions">
-
-                        <a href="classes.html">
-                            Classes
-                        </a>
-
-                        <a href="staff-management.html">
-                            Staff Management
-                        </a>
-
-                        <a id="criteriaQuickAction" href="assessment.html" style="display:none">
-                            Assessment Criteria
-                        </a>
-
-                        <a id="assessmentQuickAction" href="assessment-dashboard.html">
-                            Assessment
-                        </a>
-
-                        <a href="reports.html">
-                            Reports
-                        </a>
+                        <section class="weekly-chart-wrap" aria-labelledby="wholeClassWeeklyTitle">
+                            <div class="weekly-chart-header">
+                                <div>
+                                    <h3 id="wholeClassWeeklyTitle">Whole Class Weekly Progress</h3>
+                                </div>
+                                <span class="chart-range-badge">Week 1 – Week 3</span>
+                            </div>
+                            <div class="chart-legend" id="weeklyChartLegend">
+                                <span><i class="chart-line-dot supw"></i> SUPW</span>
+                                <span><i class="chart-line-dot classroom"></i> Classroom</span>
+                                <span><i class="chart-line-dot assembly"></i> Assembly</span>
+                                <span><i class="chart-line-dot overall"></i> Overall</span>
+                            </div>
+                            <div class="weekly-chart" id="weeklyProgressChart" aria-label="Whole class weekly progress line chart">
+                                <div class="chart-loading">Loading weekly chart…</div>
+                            </div>
+                        </section>
 
                     </div>
 
                 </section>
-
 
             </section>
 
