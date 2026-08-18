@@ -79,26 +79,28 @@ function students(){return read(STUDENTS_KEY,[])}
 function saveStudents(x){localStorage.setItem(STUDENTS_KEY,JSON.stringify(x))}
 function accounts(){return read(ACCOUNTS_KEY,[])}
 function currentUser(){
-  // IMPORTANT: use the authenticated session profile first.
-  // The browser's sams_accounts cache can be older than the Supabase profile
-  // and may not contain assignedClass/assignedSection. That caused a valid
-  // Class Teacher to be rejected for Games & Sports on some devices.
+  // Prefer the authenticated session profile. Do NOT replace it with a stale
+  // local cached account, because class/section assignments can change.
   try{
     const raw=sessionStorage.getItem('sams_current_user');
     if(raw){
-      const sessionUser=JSON.parse(raw);
-      if(sessionUser&&typeof sessionUser==='object'){
-        const canonical={...sessionUser};
-        canonical.role=String(canonical.role||canonical.staffRole||canonical.accountType||'').trim();
-        sessionStorage.setItem('sams_current_user',JSON.stringify(canonical));
-        sessionStorage.setItem('sams_user_role',canonical.role||'');
-        sessionStorage.setItem('sams_user_name',canonical.name||canonical.fullName||canonical.staffName||'');
+      const u=JSON.parse(raw);
+      if(u && typeof u==='object'){
+        const canonical={...u};
+        canonical.role=String(
+          u.role || u.staffRole || u.userRole || u.user_role || u.accountType || ''
+        ).trim();
+        canonical.assignedClass =
+          u.assignedClass ?? u.assigned_class ?? u.classAssignment ?? u.class_assignment ?? '';
+        canonical.assignedSection =
+          u.assignedSection ?? u.assigned_section ?? u.sectionAssignment ?? u.section_assignment ?? '';
+        canonical.assignedStream =
+          u.assignedStream ?? u.assigned_stream ?? u.streamAssignment ?? u.stream_assignment ?? '';
         return canonical;
       }
     }
   }catch(e){}
 
-  // Fallback only for older sessions that do not have sams_current_user.
   const sessionEmail=String(sessionStorage.getItem('sams_email')||'').trim().toLowerCase();
   const sessionName=String(sessionStorage.getItem('sams_user_name')||'').trim().toLowerCase();
   const list=accounts();
@@ -110,16 +112,19 @@ function currentUser(){
     a=list.find(x=>String(x.name||x.fullName||x.staffName||'').trim().toLowerCase()===sessionName)||null;
   }
   if(a){
-    const canonical={...a,role:String(a.role||a.staffRole||a.accountType||'').trim()};
+    const canonical={
+      ...a,
+      role:String(a.role||a.staffRole||a.userRole||a.user_role||a.accountType||'').trim(),
+      assignedClass:a.assignedClass ?? a.assigned_class ?? a.classAssignment ?? a.class_assignment ?? '',
+      assignedSection:a.assignedSection ?? a.assigned_section ?? a.sectionAssignment ?? a.section_assignment ?? '',
+      assignedStream:a.assignedStream ?? a.assigned_stream ?? a.streamAssignment ?? a.stream_assignment ?? ''
+    };
     sessionStorage.setItem('sams_current_user',JSON.stringify(canonical));
     sessionStorage.setItem('sams_user_role',canonical.role||'');
     sessionStorage.setItem('sams_user_name',canonical.name||canonical.fullName||canonical.staffName||'');
     return canonical;
   }
   return null;
-}
-function normaliseSamsRole(value){
-  return String(value||'').trim().toLowerCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
 }
 function userRole(){return normaliseSamsRole(currentUser()?.role||currentUser()?.staffRole||currentUser()?.accountType||'')}
 function isAdmin(){return userRole().includes('admin')}
@@ -133,28 +138,59 @@ function romanGradeNumber(v){
 }
 function assignedClassMatches(c,u){
   if(!c||!u)return false;
-  const ac=String(u.assignedClass||u.assigned_class||u.classAssignment||u.class_assignment||'').trim();
-  const as=String(u.assignedSection||u.assigned_section||u.section||'').trim();
-  const ast=String(u.assignedStream||u.assigned_stream||u.stream||'').trim();
+
+  const ac=String(
+    u.assignedClass ?? u.assigned_class ??
+    u.classAssignment ?? u.class_assignment ?? ''
+  ).trim();
+
+  const as=String(
+    u.assignedSection ?? u.assigned_section ??
+    u.sectionAssignment ?? u.section_assignment ?? ''
+  ).trim();
+
+  const ast=String(
+    u.assignedStream ?? u.assigned_stream ??
+    u.streamAssignment ?? u.stream_assignment ?? ''
+  ).trim();
+
   if(!ac)return false;
   if(String(romanGradeNumber(c.grade))!==String(romanGradeNumber(ac)))return false;
   if(as && !same(as,c.section))return false;
-  if(ast && ast!=='General' && !same(ast,c.stream))return false;
+  if(ast && ast.toLowerCase()!=='general' && !same(ast,c.stream))return false;
   return true;
 }
+
 function teacherCanManage(c){
   const u=currentUser();
-  return isAdmin() || !!(c && (
+  if(!c || !u)return false;
+
+  const role=String(
+    u.role||u.staffRole||u.userRole||u.user_role||u.accountType||''
+  ).toLowerCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
+
+  if(role==='class teacher'){
+    const assignedMatch=assignedClassMatches(c,u);
+    const namedMatch=c.classTeacher && same(c.classTeacher,loggedInTeacherName());
+    return !!(assignedMatch || namedMatch);
+  }
+
+  return isAdmin() || !!(
     (c.classTeacher && same(c.classTeacher,loggedInTeacherName())) ||
     assignedClassMatches(c,u)
-  ));
+  );
 }
+
 // Games & Sports is deliberately stricter than the general Classes workspace:
 // ONLY an account whose role is exactly "Class Teacher" may enter/delete records.
 // Principal, Vice Principal, Administrator, Non-Class Teacher and other staff
 // are never permitted, even if they have administrator/assignment access.
 function isClassTeacherRole(){
-  return userRole()==='class teacher';
+  const u=currentUser();
+  const role=String(
+    u?.role||u?.staffRole||u?.userRole||u?.user_role||u?.accountType||''
+  ).toLowerCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
+  return role==='class teacher';
 }
 function canManageGamesSports(c){
   return isClassTeacherRole() && !!c && teacherCanManage(c) && !isAdmin();
