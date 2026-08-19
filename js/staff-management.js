@@ -1,3805 +1,580 @@
-/* =========================================================
-   SAMS - STAFF MANAGEMENT.JS
-
-   Handles ONLY staff-management.html
-
-   PERMISSIONS
-   ---------------------------------------------------------
-   Administrator   -> Full Staff Management
-   Principal       -> Full Staff Management
-   Vice Principal  -> Full Staff Management
-   Class Teacher   -> View Only
-   Non-Class Teacher -> View Only
-
-   ASSESSOR
-   ---------------------------------------------------------
-   Only Vice Principals can be appointed as Assessors.
-
-   ========================================================= */
+// SAMS - Staff Management
+// Uses Supabase profiles as the central staff registry.
+// Grade IV-X  -> Section A/B/C/D
+// Grade XI-XII -> Stream Arts/Science/Commerce
 
 (function () {
-
     "use strict";
 
+    const $ = id => document.getElementById(id);
 
-    /* =====================================================
-       STORAGE KEY
-       ===================================================== */
+    let currentUser = null;
+    let currentRole = "";
+    let staffList = [];
+    let editingId = null;
 
-    const ACCOUNTS_KEY = "sams_accounts";
+    const ROLE_LABELS = {
+        admin: "Administrator",
+        administrator: "Administrator",
+        principal: "Principal",
+        vice_principal: "Vice Principal",
+        "vice principal": "Vice Principal",
+        class_teacher: "Class Teacher",
+        "class teacher": "Class Teacher",
+        non_class_teacher: "Non-Class Teacher",
+        "non class teacher": "Non-Class Teacher",
+        "non-class teacher": "Non-Class Teacher"
+    };
 
-
-    /* =====================================================
-       GET ACCOUNTS
-       ===================================================== */
-
-    function getAccounts() {
-
-        try {
-
-            const saved =
-                localStorage.getItem(
-                    ACCOUNTS_KEY
-                );
-
-            if (!saved) {
-                return [];
-            }
-
-            const accounts =
-                JSON.parse(saved);
-
-            return Array.isArray(accounts)
-                ? accounts
-                : [];
-
-        }
-
-        catch (error) {
-
-            console.error(
-                "Unable to read SAMS accounts:",
-                error
-            );
-
-            return [];
-
-        }
-
+    function norm(value) {
+        return String(value ?? "").trim().toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ");
     }
 
-
-    /* =====================================================
-       SAVE ACCOUNTS
-       ===================================================== */
-
-    function saveAccounts(accounts) {
-
-        localStorage.setItem(
-            ACCOUNTS_KEY,
-            JSON.stringify(accounts)
-        );
-
+    function esc(value) {
+        return String(value ?? "").replace(/[&<>"']/g, ch => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        }[ch]));
     }
 
-
-    /* =====================================================
-       SYNC STAFF PERMISSION TO SUPABASE
-
-       Local storage remains the UI cache, but role/status/assessor
-       permissions must also be written to the central profile so the
-       same account works on another computer or phone.
-       ===================================================== */
-
-    async function syncProfileToCloud(account, changes) {
-        try {
-            if (!window.samsSupabase || !account) return;
-
-            const email = String(
-                account?.email ||
-                account?.educationalEmail ||
-                account?.educational_email ||
-                ""
-            ).trim().toLowerCase();
-
-            if (!email) return;
-
-            let profileId = String(account?.id || "").trim();
-
-            if (!profileId) {
-                const lookup = await window.samsSupabase
-                    .from("profiles")
-                    .select("id")
-                    .eq("email", email)
-                    .maybeSingle();
-
-                if (lookup.error || !lookup.data?.id) {
-                    console.warn("Could not find Supabase profile for", email, lookup.error);
-                    return;
-                }
-                profileId = String(lookup.data.id);
-                account.id = profileId;
-            }
-
-            const payload = { ...changes };
-            if (payload.role) {
-                const roleMap = {
-                    "Administrator":"admin",
-                    "Principal":"principal",
-                    "Vice Principal":"vice_principal",
-                    "Class Teacher":"class_teacher",
-                    "Non-Class Teacher":"non_class_teacher"
-                };
-                payload.role = roleMap[payload.role] || payload.role;
-            }
-
-            const result = await window.samsSupabase
-                .from("profiles")
-                .update(payload)
-                .eq("id", profileId);
-
-            if (result.error) {
-                console.error("SAMS profile sync failed:", result.error);
-            }
-        } catch (error) {
-            console.error("SAMS profile sync error:", error);
-        }
+    function attr(value) {
+        return esc(value).replace(/`/g, "&#096;");
     }
-
-
-    async function syncAllStaffProfilesToCloud() {
-        if (!window.samsSupabase) return;
-        const staff = getAccounts().filter(isStaff);
-        for (const account of staff) {
-            await syncProfileToCloud(account, {
-                role: account.role,
-                active: String(account.status || "").trim().toLowerCase() === "active",
-                status: String(account.status || "").trim() || "Pending",
-                is_assessor: account.isAssessor === true
-            });
-        }
-    }
-
-
-    /* =====================================================
-       LOAD ALL REGISTERED USERS FROM SUPABASE
-       ===================================================== */
-
-    function mapCloudRole(role) {
-
-        const value =
-            String(role || "")
-                .trim()
-                .toLowerCase()
-                .replace(/[-_]+/g, " ")
-                .replace(/\s+/g, " ");
-
-        const roleMap = {
-            "admin": "Administrator",
-            "administrator": "Administrator",
-            "administration": "Administrator",
-            "principal": "Principal",
-            "vice principal": "Vice Principal",
-            "viceprincipal": "Vice Principal",
-            "vp": "Vice Principal",
-            "class teacher": "Class Teacher",
-                "non class teacher": "Non-Class Teacher",
-            "non-class teacher": "Non-Class Teacher",
-            "assessor": "Assessor",
-            "student": "Student"
-        };
-
-        return roleMap[value] || "";
-    }
-
-
-    function isExplicitStudent(profile) {
-
-        const role =
-            String(
-                profile?.role ||
-                profile?.user_role ||
-                profile?.userRole ||
-                profile?.accountType ||
-                profile?.account_type ||
-                profile?.type ||
-                profile?.user_type ||
-                profile?.userType ||
-                ""
-            )
-            .trim()
-            .toLowerCase()
-            .replace(/[-_]+/g, " ")
-            .replace(/\s+/g, " ");
-
-        return role === "student";
-
-    }
-
-
-    function cloudProfileToAccount(profile, existingAccount) {
-
-        const mappedRole =
-            mapCloudRole(
-                profile?.role ||
-                profile?.user_role ||
-                profile?.userRole ||
-                profile?.accountType ||
-                profile?.account_type
-            );
-
-        const rawStatus =
-            String(
-                profile?.status ||
-                profile?.account_status ||
-                profile?.accountStatus ||
-                ""
-            )
-            .trim()
-            .toLowerCase();
-
-        let status = "";
-
-        if (
-            rawStatus === "active" ||
-            rawStatus === "approved"
-        ) {
-            status = "active";
-        }
-        else if (rawStatus === "rejected") {
-            status = "rejected";
-        }
-        else if (rawStatus === "pending") {
-            status = "pending";
-        }
-        else {
-            status =
-                profile?.active === true
-                    ? "active"
-                    : "pending";
-        }
-
-        const name =
-            profile?.full_name ||
-            profile?.fullName ||
-            profile?.name ||
-            profile?.staffName ||
-            profile?.display_name ||
-            profile?.displayName ||
-            profile?.email ||
-            "Unnamed Staff";
-
-        const email =
-            String(
-                profile?.email ||
-                profile?.educationalEmail ||
-                profile?.educational_email ||
-                ""
-            )
-            .trim()
-            .toLowerCase();
-
-        const employeeId =
-            profile?.employee_code ||
-            profile?.employeeCode ||
-            profile?.employee_id ||
-            profile?.employeeId ||
-            profile?.employeeID ||
-            existingAccount?.employeeId ||
-            "";
-
-        return {
-
-            ...(existingAccount || {}),
-
-            id:
-                profile?.id ||
-                existingAccount?.id,
-
-            name:
-                name,
-
-            fullName:
-                name,
-
-            staffName:
-                name,
-
-            email:
-                email,
-
-            educationalEmail:
-                email,
-
-            educational_email:
-                email,
-
-            employeeId:
-                employeeId,
-
-            employeeID:
-                employeeId,
-
-            employee_id:
-                employeeId,
-
-            role:
-                mappedRole,
-
-            staffRole:
-                mappedRole,
-
-            userRole:
-                mappedRole,
-
-            accountType:
-                isExplicitStudent(profile)
-                    ? "student"
-                    : "staff",
-
-            userType:
-                isExplicitStudent(profile)
-                    ? "student"
-                    : "staff",
-
-            status:
-                status,
-
-            active:
-                status === "active",
-
-            isAssessor:
-                profile?.is_assessor === true ||
-                profile?.isAssessor === true ||
-                existingAccount?.isAssessor === true,
-
-            assignedClass:
-                profile?.assigned_class ||
-                profile?.assignedClass ||
-                existingAccount?.assignedClass ||
-                "",
-
-            assignedStream:
-                profile?.assigned_stream ||
-                profile?.assignedStream ||
-                existingAccount?.assignedStream ||
-                "",
-
-            assignedSection:
-                profile?.assigned_section ||
-                profile?.assignedSection ||
-                existingAccount?.assignedSection ||
-                "No Section"
-
-        };
-
-    }
-
-
-    async function loadAllProfilesFromCloud() {
-
-        const tbody =
-            document.getElementById(
-                "staffTableBody"
-            );
-
-        /* Always render the local staff cache first so the table is never
-           left on a permanent "Loading" state while Supabase responds. */
-        renderStaff();
-
-        if (!window.samsSupabase) {
-
-            console.warn(
-                "SAMS Supabase client is not available. Using local cache."
-            );
-
-            updateSummary();
-            renderStaff();
-            return;
-
-        }
-
-        try {
-
-            /*
-             * SUPABASE IS NOW THE SOURCE OF TRUTH.
-             * All registered non-student profiles are loaded.
-             */
-            const result =
-                await window.samsSupabase
-                    .from("profiles")
-                    .select("*");
-
-            if (result.error) {
-
-                console.error(
-                    "Unable to load registered SAMS users:",
-                    result.error
-                );
-
-                updateSummary();
-                renderStaff();
-                return;
-
-            }
-
-            const profiles =
-                Array.isArray(result.data)
-                    ? result.data
-                    : [];
-
-            const oldAccounts =
-                getAccounts();
-
-            const oldByEmail =
-                new Map();
-
-            oldAccounts.forEach(
-                account => {
-
-                    const email =
-                        String(
-                            account?.email ||
-                            account?.educationalEmail ||
-                            account?.educational_email ||
-                            ""
-                        )
-                        .trim()
-                        .toLowerCase();
-
-                    if (email) {
-                        oldByEmail.set(
-                            email,
-                            account
-                        );
-                    }
-
-                }
-            );
-
-
-            /*
-             * A newly registered user with no role is deliberately
-             * shown as Staff + Pending. The Administrator can then
-             * assign the correct role and press Approve.
-             */
-            const cloudAccounts =
-                profiles
-                    .filter(
-                        profile =>
-                            !isExplicitStudent(profile)
-                    )
-                    .map(
-                        profile => {
-
-                            const email =
-                                String(
-                                    profile?.email ||
-                                    profile?.educationalEmail ||
-                                    profile?.educational_email ||
-                                    ""
-                                )
-                                .trim()
-                                .toLowerCase();
-
-                            return cloudProfileToAccount(
-                                profile,
-                                oldByEmail.get(email)
-                            );
-
-                        }
-                    );
-
-
-            /*
-             * Keep old local-only staff records so manually-created
-             * staff do not disappear if they are not yet in Supabase.
-             */
-            const cloudIds =
-                new Set(
-                    cloudAccounts.map(
-                        account =>
-                            String(
-                                account?.id || ""
-                            )
-                    )
-                );
-
-            const cloudEmails =
-                new Set(
-                    cloudAccounts.map(
-                        account =>
-                            String(
-                                account?.email || ""
-                            )
-                            .trim()
-                            .toLowerCase()
-                    )
-                );
-
-            oldAccounts
-                .filter(isStaff)
-                .forEach(
-                    account => {
-
-                        const id =
-                            String(
-                                account?.id || ""
-                            );
-
-                        const email =
-                            String(
-                                account?.email ||
-                                account?.educationalEmail ||
-                                account?.educational_email ||
-                                ""
-                            )
-                            .trim()
-                            .toLowerCase();
-
-                        if (
-                            (!id || !cloudIds.has(id)) &&
-                            (!email || !cloudEmails.has(email))
-                        ) {
-                            cloudAccounts.push(
-                                account
-                            );
-                        }
-
-                    }
-                );
-
-
-            saveAccounts(
-                cloudAccounts
-            );
-
-            updateCurrentUser();
-            updateSummary();
-            renderStaff();
-
-            console.log(
-                `SAMS: loaded ${cloudAccounts.length} registered staff profile(s) from Supabase.`
-            );
-
-        }
-
-        catch (error) {
-
-            console.error(
-                "SAMS cloud profile loading failed:",
-                error
-            );
-
-            updateSummary();
-            renderStaff();
-
-        }
-
-    }
-
-
-    function setupCloudRefresh() {
-
-        document.addEventListener(
-            "visibilitychange",
-            function () {
-
-                if (
-                    document.visibilityState === "visible"
-                ) {
-                    loadAllProfilesFromCloud();
-                }
-
-            }
-        );
-
-        window.addEventListener(
-            "focus",
-            function () {
-                loadAllProfilesFromCloud();
-            }
-        );
-
-    }
-
-
-    /* =====================================================
-       NORMALIZE ROLE
-       ===================================================== */
-
-    function normalizeRole(account) {
-
-        return String(
-
-            account?.role ||
-            account?.staffRole ||
-            account?.userRole ||
-            account?.designation ||
-            account?.position ||
-            account?.accountType ||
-            ""
-
-        )
-        .trim()
-        .toLowerCase()
-        .replace(/[-_]+/g, " ")
-        .replace(/\s+/g, " ");
-
-    }
-
-
-    /* =====================================================
-       CURRENT USER
-
-       IMPORTANT:
-       Always resolve the user from the canonical
-       sams_accounts record first.
-
-       This prevents a stale session object from
-       giving the user the wrong role.
-       ===================================================== */
 
     function getCurrentUser() {
-
-        const accounts =
-            getAccounts();
-
-
-        /*
-         * -------------------------------------------------
-         * 1. Get logged-in email
-         * -------------------------------------------------
-         */
-
-        const sessionEmail =
-            String(
-                sessionStorage.getItem(
-                    "sams_email"
-                ) ||
-                ""
-            )
-            .trim()
-            .toLowerCase();
-
-
-        /*
-         * -------------------------------------------------
-         * 2. Find canonical account by email
-         * -------------------------------------------------
-         */
-
-        if (sessionEmail) {
-
-            const canonicalAccount =
-                accounts.find(
-                    account => {
-
-                        const email =
-                            String(
-                                account?.email ||
-                                account?.educationalEmail ||
-                                account?.educational_email ||
-                                ""
-                            )
-                            .trim()
-                            .toLowerCase();
-
-
-                        return (
-                            email ===
-                            sessionEmail
-                        );
-
-                    }
-                );
-
-
-            if (canonicalAccount) {
-
-                return canonicalAccount;
-
-            }
-
-        }
-
-
-        /*
-         * -------------------------------------------------
-         * 3. Try SAMS_AUTH
-         * -------------------------------------------------
-         */
-
         try {
-
-            if (
-                window.SAMS_AUTH &&
-                typeof window.SAMS_AUTH.getCurrentUser ===
-                    "function"
-            ) {
-
-                const authenticatedUser =
-                    window.SAMS_AUTH.getCurrentUser();
-
-
-                if (authenticatedUser) {
-
-                    const authenticatedEmail =
-                        String(
-                            authenticatedUser.email ||
-                            authenticatedUser.educationalEmail ||
-                            authenticatedUser.educational_email ||
-                            ""
-                        )
-                        .trim()
-                        .toLowerCase();
-
-
-                    if (authenticatedEmail) {
-
-                        const matchedAccount =
-                            accounts.find(
-                                account => {
-
-                                    const email =
-                                        String(
-                                            account?.email ||
-                                            account?.educationalEmail ||
-                                            account?.educational_email ||
-                                            ""
-                                        )
-                                        .trim()
-                                        .toLowerCase();
-
-
-                                    return (
-                                        email ===
-                                        authenticatedEmail
-                                    );
-
-                                }
-                            );
-
-
-                        if (matchedAccount) {
-
-                            return matchedAccount;
-
-                        }
-
-                    }
-
-
-                    return authenticatedUser;
-
-                }
-
-            }
-
-        }
-
-        catch (error) {
-
-            console.warn(
-                "SAMS_AUTH resolution failed:",
-                error
-            );
-
-        }
-
-
-        /*
-         * -------------------------------------------------
-         * 4. Fallback to saved session user
-         * -------------------------------------------------
-         */
-
-        try {
-
-            const savedUser =
-                JSON.parse(
-                    sessionStorage.getItem(
-                        "sams_current_user"
-                    ) ||
-                    "null"
-                );
-
-
-            if (
-                savedUser &&
-                typeof savedUser === "object"
-            ) {
-
-                return savedUser;
-
-            }
-
-        }
-
-        catch (error) {
-
-            console.warn(
-                "SAMS saved-user lookup failed:",
-                error
-            );
-
-        }
-
+            const raw = sessionStorage.getItem("sams_current_user");
+            if (raw) return JSON.parse(raw);
+        } catch (_) {}
 
         return null;
-
     }
 
-
-    /* =====================================================
-       CURRENT USER ROLE
-       ===================================================== */
-
-    function getCurrentUserRole() {
-
-        const user =
-            getCurrentUser();
-
-
-        if (!user) {
-
-            return "";
-
-        }
-
-
-        return normalizeRole(user);
-
-    }
-
-
-    /* =====================================================
-       DISPLAY CURRENT USER
-       ===================================================== */
-
-    function updateCurrentUser() {
-
-        const user =
-            getCurrentUser();
-
-
-        const nameElement =
-            document.getElementById(
-                "userName"
-            );
-
-
-        const roleElement =
-            document.getElementById(
-                "userRole"
-            );
-
-
-        const avatarElement =
-            document.getElementById(
-                "userAvatar"
-            );
-
-
-        if (!user) {
-
-            if (nameElement) {
-
-                nameElement.textContent =
-                    "Administrator";
-
-            }
-
-
-            if (roleElement) {
-
-                roleElement.textContent =
-                    "Administrator";
-
-            }
-
-
-            if (avatarElement) {
-
-                avatarElement.textContent =
-                    "A";
-
-            }
-
-
-            return;
-
-        }
-
-
-        const name =
-            String(
-                user.name ||
-                user.fullName ||
-                user.staffName ||
-                user.displayName ||
-                user.email ||
-                "User"
-            )
-            .trim();
-
-
-        const displayRole =
-            String(
-                user.role ||
-                user.staffRole ||
-                user.userRole ||
-                user.designation ||
-                user.position ||
-                user.accountType ||
-                "User"
-            )
-            .trim();
-
-
-        if (nameElement) {
-
-            nameElement.textContent =
-                name;
-
-        }
-
-
-        if (roleElement) {
-
-            roleElement.textContent =
-                displayRole;
-
-        }
-
-
-        if (avatarElement) {
-
-            avatarElement.textContent =
-                name
-                    .charAt(0)
-                    .toUpperCase();
-
-        }
-
-    }
-
-
-    /* =====================================================
-       FULL STAFF MANAGEMENT ACCESS
-
-       Administrator
-       Principal
-       Vice Principal
-
-       All three have full access.
-       ===================================================== */
-
-    function hasFullStaffManagementAccess() {
-
-        const role =
-            getCurrentUserRole();
-
-
-        return (
-
-            role === "administrator" ||
-            role === "administration" ||
-            role === "admin" ||
-
-            role === "principal" ||
-
-            role === "vice principal" ||
-            role === "viceprincipal" ||
-            role === "vp"
-
-        );
-
-    }
-
-
-    /* =====================================================
-       CAN APPOINT ASSESSOR
-
-       Administrator, Principal and Vice Principal
-       can appoint an assessor.
-
-       HOWEVER:
-       Only a Vice Principal can actually become
-       an assessor.
-       ===================================================== */
-
-    function canAppointAssessor() {
-
-        return hasFullStaffManagementAccess();
-
-    }
-
-
-    /* =====================================================
-       ASSESSOR ELIGIBILITY
-
-       Administrator, Principal and Vice Principal manage
-       appointments. Eligible assessors are Vice Principals
-       and Non-Class Teachers. Class Teachers are never assessors.
-       ===================================================== */
-
-    function isAssessorEligible(account) {
-        const role = normalizeRole(account);
-        return (
-            role === "vice principal" ||
-            role === "non class teacher" ||
-            role === "non-class teacher"
+    function roleOf(user) {
+        return norm(
+            user?.role ||
+            user?.userRole ||
+            user?.staffRole ||
+            user?.account_role ||
+            ""
         );
     }
 
-
-    /* =====================================================
-       CAN APPROVE STAFF
-
-       Administrator, Principal and Vice Principal
-       have staff-management approval access.
-       ===================================================== */
-
-    function canApproveStaff() {
-
-        return hasFullStaffManagementAccess();
-
+    function isManager() {
+        return ["admin", "administrator", "principal", "vice principal"]
+            .includes(norm(currentRole));
     }
 
-
-    /* =====================================================
-       CAN CHANGE STAFF ROLE
-
-       Administrator, Principal and Vice Principal
-       can change staff roles.
-       ===================================================== */
-
-    function canChangeStaffRole() {
-
-        return hasFullStaffManagementAccess();
-
+    function isAssessorEligible(staff) {
+        const role = norm(staff.role);
+        return role === "vice principal" || role === "non class teacher";
     }
 
+    function getAssignment(staff) {
+        const grade = String(staff.assignedClass || "").trim();
+        const section = String(staff.assignedSection || "").trim();
+        const stream = String(staff.assignedStream || "").trim();
 
-    /* =====================================================
-       CAN DELETE STAFF
+        if (!grade) return "—";
 
-       Administrator, Principal and Vice Principal
-       can delete staff.
-       ===================================================== */
+        const roman = grade.replace(/^Grade\s+/i, "").trim().toUpperCase();
+        if (roman === "XI" || roman === "XII") {
+            return stream ? `${grade} • ${stream}` : grade;
+        }
 
-    function canDeleteStaff() {
-
-        return hasFullStaffManagementAccess();
-
+        return section ? `${grade} • ${section}` : grade;
     }
 
-
-    /* =====================================================
-       ACCOUNT IS STAFF
-       ===================================================== */
-
-    function isStaff(account) {
-
-        const email =
-            String(
-                account?.email ||
-                account?.educationalEmail ||
-                account?.educational_email ||
-                ""
-            )
-            .trim()
-            .toLowerCase();
-
-        const type =
-            String(
-                account?.accountType ||
-                account?.type ||
-                account?.userType ||
-                ""
-            )
-            .trim()
-            .toLowerCase()
-            .replace(/[-_]+/g, " ")
-            .replace(/\\s+/g, " ");
-
-        const role =
-            String(
-                account?.role ||
-                account?.staffRole ||
-                account?.userRole ||
-                ""
-            )
-            .trim()
-            .toLowerCase()
-            .replace(/[-_]+/g, " ")
-            .replace(/\\s+/g, " ");
-
-        /*
-         * Every registered non-student account is a STAFF APPLICANT.
-         * A NULL role is intentional: the Administrator assigns the role.
-         */
-        if (!email) {
-            return false;
-        }
-
-        if (
-            type === "student" ||
-            role === "student"
-        ) {
-            return false;
-        }
-
-        return true;
-
+    function statusLabel(staff) {
+        if (staff.active === true) return "Active";
+        return "Pending";
     }
 
-
-    /* =====================================================
-       GET STAFF
-       ===================================================== */
-
-    function getStaff() {
-
-        return getAccounts().filter(
-            account =>
-                isStaff(account)
-        );
-
+    function statusClass(staff) {
+        return staff.active === true ? "active" : "pending";
     }
 
-
-    /* =====================================================
-       COUNT SUMMARY
-       ===================================================== */
-
-    function updateSummary() {
-
-        const staff =
-            getStaff();
-
-
-        const pending =
-            staff.filter(
-                account =>
-
-                    String(
-                        account.status || ""
-                    )
-                    .trim()
-                    .toLowerCase()
-                    === "pending"
-
-            ).length;
-
-
-        const active =
-            staff.filter(
-                account =>
-
-                    String(
-                        account.status || ""
-                    )
-                    .trim()
-                    .toLowerCase()
-                    === "active"
-
-            ).length;
-
-
-        const rejected =
-            staff.filter(
-                account =>
-
-                    String(
-                        account.status || ""
-                    )
-                    .trim()
-                    .toLowerCase()
-                    === "rejected"
-
-            ).length;
-
-
-        const pendingElement =
-            document.getElementById(
-                "pendingStaffCount"
-            );
-
-
-        const activeElement =
-            document.getElementById(
-                "activeStaffCount"
-            );
-
-
-        const rejectedElement =
-            document.getElementById(
-                "rejectedCount"
-            );
-
-
-        const totalElement =
-            document.getElementById(
-                "totalStaffCount"
-            );
-
-
-        const entryElement =
-            document.getElementById(
-                "pageDescription"
-            );
-
-
-        const notificationElement =
-            document.getElementById(
-                "notificationCount"
-            );
-
-
-        if (pendingElement) {
-
-            pendingElement.textContent =
-                pending;
-
-        }
-
-
-        if (activeElement) {
-
-            activeElement.textContent =
-                active;
-
-        }
-
-
-        if (rejectedElement) {
-
-            rejectedElement.textContent =
-                rejected;
-
-        }
-
-
-        if (totalElement) {
-
-            totalElement.textContent =
-                staff.length;
-
-        }
-
-
-        if (entryElement) {
-
-            entryElement.textContent =
-                `Showing ${staff.length} staff account${staff.length === 1 ? "" : "s"}`;
-
-        }
-
-
-        if (notificationElement) {
-
-            notificationElement.textContent =
-                pending;
-
-        }
-
+    function roleLabel(role) {
+        const key = norm(role);
+        return ROLE_LABELS[key] || String(role || "Pending");
     }
-
-
-    /* =====================================================
-       INITIALS
-       ===================================================== */
 
     function getInitials(name) {
+        const parts = String(name || "User").trim().split(/\s+/).filter(Boolean);
+        return parts.slice(0, 2).map(x => x.charAt(0).toUpperCase()).join("") || "U";
+    }
 
-        const words =
-            String(
-                name || "User"
-            )
-            .trim()
-            .split(/\s+/);
-
-
-        if (words.length === 1) {
-
-            return words[0]
-                .substring(0, 2)
-                .toUpperCase();
-
+    async function loadStaff() {
+        const body = $("staffTableBody");
+        if (body) {
+            body.innerHTML = '<tr><td colspan="7" class="empty-state">Loading registered staff...</td></tr>';
         }
 
-
-        return (
-
-            words[0].charAt(0) +
-            words[words.length - 1].charAt(0)
-
-        )
-        .toUpperCase();
-
-    }
-
-
-    /* =====================================================
-       CREATE ROLE OPTIONS
-       ===================================================== */
-
-    function roleOptions(selectedRole) {
-
-        const roles = [
-
-            "Administrator",
-            "Principal",
-            "Vice Principal",
-            "Class Teacher",
-            "Non-Class Teacher"
-
-        ];
-
-
-        const selected =
-            String(
-                selectedRole || ""
-            )
-            .trim()
-            .toLowerCase();
-
-
-        return `
-
-            <option value="">
-                Select Role
-            </option>
-
-            ${roles.map(role => `
-
-                <option
-                    value="${role}"
-                    ${
-                        String(role)
-                            .toLowerCase()
-                        === selected
-                            ? "selected"
-                            : ""
-                    }
-                >
-                    ${role}
-                </option>
-
-            `).join("")}
-
-        `;
-
-    }
-
-
-    /* =====================================================
-       CLASS OPTIONS
-       ===================================================== */
-
-    function classOptions(selectedClass) {
-
-        let html =
-            `<option value="">Class</option>`;
-
-
-        for (
-            let i = 7;
-            i <= 12;
-            i++
-        ) {
-
-            html += `
-
-                <option
-                    value="${i}"
-                    ${
-                        String(selectedClass)
-                        === String(i)
-                            ? "selected"
-                            : ""
-                    }
-                >
-                    ${i}
-                </option>
-
-            `;
-
-        }
-
-
-        return html;
-
-    }
-
-
-    /* =====================================================
-       STREAM OPTIONS
-       ===================================================== */
-
-    function streamOptions(selectedStream) {
-
-        const streams = [
-
-            "Science",
-            "Arts",
-            "Commerce"
-
-        ];
-
-
-        let html =
-            `<option value="">Stream</option>`;
-
-
-        streams.forEach(
-            stream => {
-
-                html += `
-
-                    <option
-                        value="${stream}"
-                        ${
-                            stream === selectedStream
-                                ? "selected"
-                                : ""
-                        }
-                    >
-                        ${stream}
-                    </option>
-
-                `;
-
-            }
-        );
-
-
-        return html;
-
-    }
-
-
-    /* =====================================================
-       SECTION OPTIONS
-       ===================================================== */
-
-    function sectionOptions(selectedSection) {
-
-        const sections = [
-
-            "A",
-            "B",
-            "C",
-            "D",
-            "No Section"
-
-        ];
-
-
-        let html =
-            `<option value="">Section</option>`;
-
-
-        sections.forEach(
-            section => {
-
-                html += `
-
-                    <option
-                        value="${section}"
-                        ${
-                            section === selectedSection
-                                ? "selected"
-                                : ""
-                        }
-                    >
-                        ${section}
-                    </option>
-
-                `;
-
-            }
-        );
-
-
-        return html;
-
-    }
-
-
-    /* =====================================================
-       ASSIGNMENT HTML
-       ===================================================== */
-
-    function assignmentHTML(
-        account,
-        index
-    ) {
-
-        const role =
-            String(
-                account.role ||
-                account.staffRole ||
-                ""
-            ).trim();
-
-
-        /*
-         * Only Class Teachers need
-         * class/stream/section assignment.
-         */
-
-        if (
-            role !==
-            "Class Teacher"
-        ) {
-
-            return `
-
-                <div class="no-assignment">
-
-                    —
-                    <span style="margin-left:5px;">
-                        No class assignment
-                    </span>
-
-                </div>
-
-            `;
-
-        }
-
-
-        const selectedClass =
-            account.assignedClass ||
-            account.classAssignment ||
-            "";
-
-
-        const selectedStream =
-            account.assignedStream ||
-            account.stream ||
-            "";
-
-
-        const selectedSection =
-            account.assignedSection ||
-            account.section ||
-            "No Section";
-
-
-        const classNumber =
-            Number(selectedClass);
-
-
-        /*
-         * Class Teacher / Non-Class Teacher
-         * cannot edit assignments.
-         */
-
-        if (
-            !canChangeStaffRole()
-        ) {
-
-            let assignmentText =
-                selectedClass
-                    ? `Class ${selectedClass}`
-                    : "Class not assigned";
-
-
-            if (
-                classNumber === 11 ||
-                classNumber === 12
-            ) {
-
-                if (selectedStream) {
-
-                    assignmentText +=
-                        ` • ${selectedStream}`;
-
-                }
-
-            }
-
-
-            if (
-                selectedSection &&
-                selectedSection !==
-                    "No Section"
-            ) {
-
-                assignmentText +=
-                    ` • Section ${selectedSection}`;
-
-            }
-
-
-            return `
-
-                <div
-                    class="no-assignment read-only-assignment"
-                    title="Class Teacher and other staff have view-only access."
-                >
-
-                    ${escapeHTML(
-                        assignmentText
-                    )}
-
-                </div>
-
-            `;
-
-        }
-
-
-        /*
-         * Grade 11 / 12
-         * need Stream.
-         */
-
-        if (
-            classNumber === 11 ||
-            classNumber === 12
-        ) {
-
-            return `
-
-                <div
-                    class="assignment-inline"
-                    data-assignment="${index}"
-                >
-
-                    <div
-                        class="assignment-field class-field"
-                    >
-
-                        <label>
-                            Class
-                        </label>
-
-                        <select
-                            class="assignment-select assignment-class"
-                            data-index="${index}"
-                        >
-
-                            ${classOptions(
-                                selectedClass
-                            )}
-
-                        </select>
-
-                    </div>
-
-
-                    <div
-                        class="assignment-field stream-field"
-                    >
-
-                        <label>
-                            Stream
-                        </label>
-
-                        <select
-                            class="assignment-select assignment-stream"
-                            data-index="${index}"
-                        >
-
-                            ${streamOptions(
-                                selectedStream
-                            )}
-
-                        </select>
-
-                    </div>
-
-
-                    <div
-                        class="assignment-field section-field"
-                    >
-
-                        <label>
-                            Section
-                        </label>
-
-                        <select
-                            class="assignment-select assignment-section"
-                            data-index="${index}"
-                        >
-
-                            ${sectionOptions(
-                                selectedSection
-                            )}
-
-                        </select>
-
-                    </div>
-
-                </div>
-
-            `;
-
-        }
-
-
-        /*
-         * Grades 7-10
-         * do not need Stream.
-         */
-
-        return `
-
-            <div
-                class="assignment-inline"
-                data-assignment="${index}"
-            >
-
-                <div
-                    class="assignment-field class-field"
-                >
-
-                    <label>
-                        Class
-                    </label>
-
-                    <select
-                        class="assignment-select assignment-class"
-                        data-index="${index}"
-                    >
-
-                        ${classOptions(
-                            selectedClass
-                        )}
-
-                    </select>
-
-                </div>
-
-
-                <div
-                    class="assignment-field section-field"
-                >
-
-                    <label>
-                        Section
-                    </label>
-
-                    <select
-                        class="assignment-select assignment-section"
-                        data-index="${index}"
-                    >
-
-                        ${sectionOptions(
-                            selectedSection
-                        )}
-
-                    </select>
-
-                </div>
-
-            </div>
-
-        `;
-
-    }
-
-
-    /* =====================================================
-       ACTION HTML
-       ===================================================== */
-
-    function actionHTML(
-        account,
-        index
-    ) {
-
-        const assessorAllowed =
-            canAppointAssessor() &&
-            isAssessorEligible(
-                account
-            );
-
-
-        const deleteAllowed =
-            canDeleteStaff();
-
-
-        const approvalAllowed =
-            canApproveStaff();
-
-
-        const isAssessor =
-            account.isAssessor === true;
-
-
-        const status =
-            String(
-                account.status || ""
-            )
-            .trim()
-            .toLowerCase();
-
-
-        const isPending =
-            status === "pending";
-
-
-        return `
-
-            <div class="action-buttons">
-
-
-                <!-- APPROVE / REJECT -->
-
-                ${
-                    approvalAllowed &&
-                    isPending
-
-                    ?
-
-                    `
-
-                    <button
-                        type="button"
-                        class="action-button approve-button"
-                        data-action="approve"
-                        data-index="${index}"
-                    >
-                        ✓ Approve
-                    </button>
-
-
-                    <button
-                        type="button"
-                        class="action-button reject-button"
-                        data-action="reject"
-                        data-index="${index}"
-                    >
-                        Reject
-                    </button>
-
-                    `
-
-                    :
-
-                    ``
-                }
-
-
-                <!-- ASSESSOR -->
-
-                ${
-                    assessorAllowed
-
-                    ?
-
-                    `
-
-                    <button
-                        type="button"
-                        class="action-button assessor-button"
-                        data-action="assessor"
-                        data-index="${index}"
-                    >
-
-                        ${
-                            isAssessor
-                                ? "✓ Assessor"
-                                : "Appoint Assessor"
-                        }
-
-                    </button>
-
-                    `
-
-                    :
-
-                    ``
-                }
-
-
-                <!-- DELETE -->
-
-                ${
-                    deleteAllowed
-
-                    ?
-
-                    `
-
-                    <button
-                        type="button"
-                        class="action-button delete-button"
-                        data-action="delete"
-                        data-index="${index}"
-                    >
-                        Delete
-                    </button>
-
-                    `
-
-                    :
-
-                    ``
-                }
-
-
-            </div>
-
-        `;
-
-    }
-
-
-    /* =====================================================
-       RENDER STAFF TABLE
-       ===================================================== */
-
-    function renderStaff() {
-
-        const staff = getStaff();
-        const tbody = document.getElementById("staffTableBody");
-        if (!tbody) return;
-
-        if (!staff.length) {
-            tbody.innerHTML = `
-                <tr class="empty-row">
-                    <td colspan="6" class="empty-state">No staff accounts found.</td>
-                </tr>`;
-            updateSummary();
+        if (!window.samsSupabase) {
+            showError("Supabase connection is not available.");
             return;
         }
 
-        tbody.innerHTML = staff.map((account, index) => {
-            const name = String(
-                account.name || account.fullName || account.staffName || "Unnamed Staff"
-            ).trim();
-            const employeeId = String(
-                account.employeeId || account.employeeID || account.employee_id || "Not provided"
-            ).trim();
-            const email = String(
-                account.email || account.educationalEmail || account.educational_email || ""
-            ).trim();
-            const role = String(
-                account.role || account.staffRole || account.userRole || ""
-            ).trim();
-            const status = String(account.status || "pending").trim().toLowerCase();
-            const statusLabel = status === "active" ? "Active" : status === "rejected" ? "Rejected" : "Pending";
-            const isAssessor = account.isAssessor === true;
+        try {
+            const result = await window.samsSupabase
+                .from("profiles")
+                .select(`
+                    id,
+                    full_name,
+                    email,
+                    employee_code,
+                    role,
+                    active,
+                    is_assessor,
+                    assigned_class,
+                    assigned_section,
+                    assigned_stream,
+                    created_at
+                `)
+                .order("created_at", { ascending: true });
+
+            if (result.error) throw result.error;
+
+            staffList = (result.data || [])
+                .filter(profile => norm(profile.role) !== "student")
+                .map(profile => ({
+                    id: profile.id,
+                    name: profile.full_name || profile.email || "Unnamed Staff",
+                    email: profile.email || "",
+                    employeeCode: profile.employee_code || "",
+                    role: profile.role || "",
+                    active: profile.active === true,
+                    assessor: profile.is_assessor === true,
+                    assignedClass: profile.assigned_class || "",
+                    assignedSection: profile.assigned_section || "",
+                    assignedStream: profile.assigned_stream || "",
+                    createdAt: profile.created_at || "",
+                    raw: profile
+                }));
+
+            render();
+        } catch (error) {
+            console.error("Unable to load SAMS staff:", error);
+            if (body) {
+                body.innerHTML = `<tr><td colspan="7" class="empty-state">Unable to load staff from the central database.</td></tr>`;
+            }
+            alert("Unable to load staff from Supabase. Please check the database connection and permissions.");
+        }
+    }
+
+    function render() {
+        const body = $("staffTableBody");
+        if (!body) return;
+
+        const active = staffList.filter(x => x.active).length;
+        const pending = staffList.filter(x => !x.active).length;
+
+        if ($("totalStaffCount")) $("totalStaffCount").textContent = staffList.length;
+        if ($("activeStaffCount")) $("activeStaffCount").textContent = active;
+        if ($("pendingStaffCount")) $("pendingStaffCount").textContent = pending;
+        if ($("notificationCount")) $("notificationCount").textContent = pending;
+
+        if (!staffList.length) {
+            body.innerHTML = '<tr><td colspan="7" class="empty-state"><strong>No staff users found</strong><br>Registered staff accounts will appear here.</td></tr>';
+            return;
+        }
+
+        body.innerHTML = staffList.map((staff, index) => {
+            const actions = isManager() ? `
+                <div class="action-group">
+                    ${!staff.active ? `<button class="action-btn approve" type="button" data-action="approve" data-id="${attr(staff.id)}">✓ Approve</button>` : ""}
+                    ${!staff.active ? `<button class="action-btn reject" type="button" data-action="reject" data-id="${attr(staff.id)}">Reject</button>` : ""}
+                    <button class="action-btn edit" type="button" data-action="edit" data-id="${attr(staff.id)}">Edit</button>
+                    ${isAssessorEligible(staff) ? `<button class="action-btn assessor" type="button" data-action="assessor" data-id="${attr(staff.id)}">${staff.assessor ? "Remove Assessor" : "Appoint Assessor"}</button>` : ""}
+                    <button class="action-btn delete" type="button" data-action="delete" data-id="${attr(staff.id)}">Delete</button>
+                </div>
+            ` : "";
 
             return `
                 <tr>
-                    <td class="sl-number">${index + 1}</td>
+                    <td>${index + 1}</td>
                     <td>
                         <div class="staff-person">
-                            <div class="staff-avatar">${getInitials(name)}</div>
+                            <div class="staff-avatar">${esc(getInitials(staff.name))}</div>
                             <div>
-                                <div class="staff-name">${escapeHTML(name)}</div>
-                                <div class="staff-email">${escapeHTML(email)}</div>
-                                <div class="employee-id">Employee ID: ${escapeHTML(employeeId)}</div>
+                                <div class="staff-name">${esc(staff.name)}</div>
+                                <div class="staff-email">${esc(staff.email || "—")}</div>
+                                ${staff.employeeCode ? `<div class="employee-id">${esc(staff.employeeCode)}</div>` : ""}
                             </div>
                         </div>
                     </td>
-                    <td>
-                        ${canChangeStaffRole()
-                            ? `<select class="role-select" data-index="${index}" title="Change staff role">${roleOptions(role)}</select>`
-                            : `<div class="read-only-role">${escapeHTML(role || "Not assigned")}</div>`}
-                    </td>
-                    <td>${assignmentHTML(account, index)}</td>
-                    <td>
-                        <span class="assessor-badge ${isAssessor ? "yes" : "no"}">${isAssessor ? "Yes" : "No"}</span>
-                    </td>
-                    <td>
-                        <span class="status-badge ${status}">${statusLabel}</span>
-                    </td>
-                    <td>${actionHTML(account, index)}</td>
-                </tr>`;
+                    <td><span class="role-badge">${esc(roleLabel(staff.role))}</span></td>
+                    <td>${esc(getAssignment(staff))}</td>
+                    <td>${staff.assessor ? '<span class="assessor-badge yes">Yes</span>' : '<span class="assessor-badge no">No</span>'}</td>
+                    <td><span class="status-badge ${statusClass(staff)}">${statusLabel(staff)}</span></td>
+                    <td>${actions}</td>
+                </tr>
+            `;
         }).join("");
-
-        updateSummary();
-        attachTableEvents();
     }
 
+    function setupRoleOptions() {
+        const role = $("staffRole");
+        if (!role) return;
 
-    /* =====================================================
-       ESCAPE HTML
-       ===================================================== */
-
-    function escapeHTML(value) {
-
-        return String(
-            value ?? ""
-        )
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
-        );
-
+        role.innerHTML = `
+            <option value="class_teacher">Class Teacher</option>
+            <option value="non_class_teacher">Non-Class Teacher</option>
+            <option value="vice_principal">Vice Principal</option>
+            <option value="principal">Principal</option>
+            <option value="admin">Administrator</option>
+        `;
     }
 
-
-    /* =====================================================
-       CHANGE STAFF ROLE
-       ===================================================== */
-
-    function changeRole(
-        staffIndex,
-        newRole
-    ) {
-
-        if (
-            !canChangeStaffRole()
-        ) {
-
-            alert(
-                "Only the Administrator, Principal or Vice Principal can change staff roles."
-            );
-
-
-            renderStaff();
-
-
-            return;
-
-        }
-
-
-        const accounts =
-            getAccounts();
-
-
-        const staffIndexes =
-            accounts
-                .map(
-                    (
-                        account,
-                        index
-                    ) =>
-
-                        isStaff(account)
-                            ? index
-                            : -1
-
-                )
-                .filter(
-                    index =>
-                        index !== -1
-                );
-
-
-        const actualIndex =
-            staffIndexes[
-                staffIndex
-            ];
-
-
-        if (
-            actualIndex ===
-            undefined
-        ) {
-
-            return;
-
-        }
-
-
-        const account =
-            accounts[
-                actualIndex
-            ];
-
-
-        const requestedRole =
-            String(
-                newRole || ""
-            )
-            .trim()
-            .toLowerCase();
-
-
-        const adminRoles = [
-
-            "administrator",
-            "admin",
-            "administration"
-
-        ];
-
-
-        /*
-         * Only one Administrator.
-         */
-
-        if (
-            adminRoles.includes(
-                requestedRole
-            )
-        ) {
-
-            const anotherAdmin =
-                accounts.some(
-                    (
-                        a,
-                        i
-                    ) => {
-
-                        if (
-                            i ===
-                            actualIndex
-                        ) {
-
-                            return false;
-
-                        }
-
-
-                        const r =
-                            normalizeRole(
-                                a
-                            );
-
-
-                        return adminRoles.includes(
-                            r
-                        );
-
-                    }
-                );
-
-
-            if (
-                anotherAdmin
-            ) {
-
-                alert(
-                    "SAMS allows only one Administrator."
-                );
-
-
-                renderStaff();
-
-
-                return;
-
-            }
-
-        }
-
-
-        const oldRole =
-            normalizeRole(
-                account
-            );
-
-
-        /*
-         * Do not remove the only Administrator.
-         */
-
-        if (
-            adminRoles.includes(
-                oldRole
-            ) &&
-            !adminRoles.includes(
-                requestedRole
-            )
-        ) {
-
-            const anotherAdmin =
-                accounts.some(
-                    (
-                        a,
-                        i
-                    ) => {
-
-                        if (
-                            i ===
-                            actualIndex
-                        ) {
-
-                            return false;
-
-                        }
-
-
-                        const r =
-                            normalizeRole(
-                                a
-                            );
-
-
-                        return adminRoles.includes(
-                            r
-                        );
-
-                    }
-                );
-
-
-            if (
-                !anotherAdmin
-            ) {
-
-                alert(
-                    "The system must always have one Administrator."
-                );
-
-
-                renderStaff();
-
-
-                return;
-
-            }
-
-        }
-
-
-        /*
-         * Save new role.
-         */
-
-        account.role =
-            newRole;
-
-        const roleStatus =
-            String(
-                account.status || ""
-            )
-            .trim()
-            .toLowerCase();
-
-        /*
-         * Role and class assignment must be written to Supabase together.
-         * Staff Management is the single source of truth for Class Teacher
-         * assignments used by Classes & Students.
-         */
-        const cloudRoleChanges = {
-            role: account.role,
-            active: roleStatus === "active",
-            status: roleStatus === "active" ? "Active" : "Pending",
-            is_assessor: account.isAssessor === true
-        };
-
-        if (newRole === "Class Teacher") {
-            cloudRoleChanges.assigned_class = account.assignedClass || "";
-            cloudRoleChanges.assigned_section = account.assignedSection || "";
-            cloudRoleChanges.assigned_stream = account.assignedStream || "";
+    function updateAssignmentFields() {
+        const role = norm($("staffRole")?.value || "");
+        const classSelect = $("staffClass");
+        const sectionSelect = $("staffSection");
+        const streamGroup = $("staffStreamGroup");
+        const streamSelect = $("staffStream");
+
+        if (!classSelect || !sectionSelect || !streamGroup || !streamSelect) return;
+
+        const needsAssignment = role === "class teacher";
+        const isSeniorClass = ["grade xi", "grade xii"].includes(norm(classSelect.value));
+
+        classSelect.disabled = !needsAssignment;
+        sectionSelect.disabled = !needsAssignment || isSeniorClass;
+        streamSelect.disabled = !needsAssignment || !isSeniorClass;
+
+        classSelect.style.opacity = needsAssignment ? "1" : "0.65";
+        sectionSelect.style.opacity = needsAssignment && !isSeniorClass ? "1" : "0.65";
+        streamSelect.style.opacity = needsAssignment && isSeniorClass ? "1" : "0.65";
+
+        streamGroup.style.display = needsAssignment && isSeniorClass ? "flex" : "none";
+
+        if (!needsAssignment) {
+            classSelect.value = "";
+            sectionSelect.value = "";
+            streamSelect.value = "";
+        } else if (isSeniorClass) {
+            sectionSelect.value = "";
         } else {
-            /* Leaving Class Teacher must also clear the central assignment. */
-            account.assignedClass = "";
-            account.assignedSection = "";
-            account.assignedStream = "";
-            cloudRoleChanges.assigned_class = "";
-            cloudRoleChanges.assigned_section = "";
-            cloudRoleChanges.assigned_stream = "";
+            streamSelect.value = "";
         }
-
-        saveAccounts(accounts);
-
-        syncProfileToCloud(account, cloudRoleChanges);
-
-
-        /*
-         * Update current session if
-         * the logged-in account itself
-         * was changed.
-         */
-
-        const currentUser =
-            getCurrentUser();
-
-
-        if (
-            currentUser &&
-            String(
-                currentUser.email ||
-                currentUser.educationalEmail ||
-                ""
-            )
-            .trim()
-            .toLowerCase()
-            ===
-            String(
-                account.email ||
-                account.educationalEmail ||
-                ""
-            )
-            .trim()
-            .toLowerCase()
-        ) {
-
-            currentUser.role =
-                newRole;
-
-
-            sessionStorage.setItem(
-                "sams_current_user",
-                JSON.stringify(
-                    currentUser
-                )
-            );
-
-        }
-
-
-        renderStaff();
-
     }
 
-
-    /* =====================================================
-       SAVE ASSIGNMENT
-       ===================================================== */
-
-    function saveAssignment(
-        staffIndex,
-        field,
-        value
-    ) {
-
-        if (
-            !canChangeStaffRole()
-        ) {
-
-            alert(
-                "Only the Administrator, Principal or Vice Principal can change class, stream or section assignments."
-            );
-
-
-            renderStaff();
-
-
-            return;
-
-        }
-
-
-        const accounts =
-            getAccounts();
-
-
-        const staffIndexes =
-            accounts
-                .map(
-                    (
-                        account,
-                        index
-                    ) =>
-
-                        isStaff(account)
-                            ? index
-                            : -1
-
-                )
-                .filter(
-                    index =>
-                        index !== -1
-                );
-
-
-        const actualIndex =
-            staffIndexes[
-                staffIndex
-            ];
-
-
-        if (
-            actualIndex ===
-            undefined
-        ) {
-
-            return;
-
-        }
-
-
-        const account =
-            accounts[
-                actualIndex
-            ];
-
-
-        if (
-            field ===
-            "class"
-        ) {
-
-            account.assignedClass =
-                value;
-
-
-            /*
-             * Clear stream if class
-             * is not Grade 11 or 12.
-             */
-
-            if (
-                value !== "11" &&
-                value !== "12"
-            ) {
-
-                account.assignedStream =
-                    "";
-
-            }
-
-        }
-
-
-        if (
-            field ===
-            "stream"
-        ) {
-
-            account.assignedStream =
-                value;
-
-        }
-
-
-        if (
-            field ===
-            "section"
-        ) {
-
-            account.assignedSection =
-                value;
-
-        }
-
-
-        saveAccounts(
-            accounts
-        );
-
-        const cloudChanges = {};
-
-        if (field === "class") {
-            cloudChanges.assigned_class =
-                account.assignedClass || "";
-        }
-
-        if (field === "stream") {
-            cloudChanges.assigned_stream =
-                account.assignedStream || "";
-        }
-
-        if (field === "section") {
-            cloudChanges.assigned_section =
-                account.assignedSection || "";
-        }
-
-        if (
-            Object.keys(cloudChanges).length > 0
-        ) {
-            syncProfileToCloud(
-                account,
-                cloudChanges
-            );
-        }
-
-
-        renderStaff();
-
-    }
-
-
-    /* =====================================================
-       APPOINT / REMOVE ASSESSOR
-       ===================================================== */
-
-    function toggleAssessor(
-        staffIndex
-    ) {
-
-        if (
-            !canAppointAssessor()
-        ) {
-
-            alert(
-                "Only an Administrator, Principal or Vice Principal can appoint an assessor."
-            );
-
-
-            return;
-
-        }
-
-
-        const accounts =
-            getAccounts();
-
-
-        const staffIndexes =
-            accounts
-                .map(
-                    (
-                        account,
-                        index
-                    ) =>
-
-                        isStaff(account)
-                            ? index
-                            : -1
-
-                )
-                .filter(
-                    index =>
-                        index !== -1
-                );
-
-
-        const actualIndex =
-            staffIndexes[
-                staffIndex
-            ];
-
-
-        if (
-            actualIndex ===
-            undefined
-        ) {
-
-            return;
-
-        }
-
-
-        const account =
-            accounts[
-                actualIndex
-            ];
-
-
-        /*
-         * IMPORTANT:
-         * Only Vice Principals can be assessors.
-         */
-
-        if (
-            !isAssessorEligible(
-                account
-            )
-        ) {
-
-            alert(
-                "Only Vice Principals and Non-Class Teachers can be appointed as assessors. Class Teachers can never be assessors."
-            );
-
-
-            return;
-
-        }
-
-
-        account.isAssessor =
-            account.isAssessor !==
-            true;
-
-
-        saveAccounts(
-            accounts
-        );
-
-        syncProfileToCloud(account, {
-            is_assessor: account.isAssessor === true
-        });
-
-        renderStaff();
-
-    }
-
-
-    /* =====================================================
-       APPROVE STAFF
-       ===================================================== */
-
-    function approveStaff(
-        staffIndex
-    ) {
-
-        if (
-            !canApproveStaff()
-        ) {
-
-            alert(
-                "Only the Administrator, Principal or Vice Principal can approve staff registrations."
-            );
-
-
-            return;
-
-        }
-
-
-        const accounts =
-            getAccounts();
-
-
-        const staffIndexes =
-            accounts
-                .map(
-                    (
-                        account,
-                        index
-                    ) =>
-
-                        isStaff(account)
-                            ? index
-                            : -1
-
-                )
-                .filter(
-                    index =>
-                        index !== -1
-                );
-
-
-        const actualIndex =
-            staffIndexes[
-                staffIndex
-            ];
-
-
-        if (
-            actualIndex ===
-            undefined
-        ) {
-
-            return;
-
-        }
-
-
-        const account =
-            accounts[
-                actualIndex
-            ];
-
-
-        if (
-            String(
-                account.status ||
-                ""
-            )
-            .trim()
-            .toLowerCase()
-            !==
-            "pending"
-        ) {
-
-            return;
-
-        }
-
-
-        account.status =
-            "active";
-
-
-        saveAccounts(
-            accounts
-        );
-
-        syncProfileToCloud(account, {
-            active: true,
-            status: "Active",
-            role: account.role || ""
-        });
-
-
-        renderStaff();
-
-    }
-
-
-    /* =====================================================
-       REJECT STAFF
-       ===================================================== */
-
-    function rejectStaff(
-        staffIndex
-    ) {
-
-        if (
-            !canApproveStaff()
-        ) {
-
-            alert(
-                "Only the Administrator, Principal or Vice Principal can reject staff registrations."
-            );
-
-
-            return;
-
-        }
-
-
-        const accounts =
-            getAccounts();
-
-
-        const staffIndexes =
-            accounts
-                .map(
-                    (
-                        account,
-                        index
-                    ) =>
-
-                        isStaff(account)
-                            ? index
-                            : -1
-
-                )
-                .filter(
-                    index =>
-                        index !== -1
-                );
-
-
-        const actualIndex =
-            staffIndexes[
-                staffIndex
-            ];
-
-
-        if (
-            actualIndex ===
-            undefined
-        ) {
-
-            return;
-
-        }
-
-
-        const account =
-            accounts[
-                actualIndex
-            ];
-
-
-        const name =
-            account.name ||
-            account.fullName ||
-            account.staffName ||
-            account.email ||
-            "this staff member";
-
-
-        if (
-            !confirm(
-                `Reject the staff registration for ${name}?`
-            )
-        ) {
-
-            return;
-
-        }
-
-
-        account.status =
-            "rejected";
-
-        account.active =
-            false;
-
-
-        saveAccounts(
-            accounts
-        );
-
-        syncProfileToCloud(account, {
-            active: false,
-            status: "Rejected",
-            role: account.role || ""
-        });
-
-
-        renderStaff();
-
-    }
-
-
-    /* =====================================================
-       DELETE STAFF
-       ===================================================== */
-
-    function deleteStaff(
-        staffIndex
-    ) {
-
-        if (
-            !canDeleteStaff()
-        ) {
-
-            alert(
-                "You do not have permission to delete staff accounts."
-            );
-
-
-            return;
-
-        }
-
-
-        const accounts =
-            getAccounts();
-
-
-        const staffIndexes =
-            accounts
-                .map(
-                    (
-                        account,
-                        index
-                    ) =>
-
-                        isStaff(account)
-                            ? index
-                            : -1
-
-                )
-                .filter(
-                    index =>
-                        index !== -1
-                );
-
-
-        const actualIndex =
-            staffIndexes[
-                staffIndex
-            ];
-
-
-        if (
-            actualIndex ===
-            undefined
-        ) {
-
-            return;
-
-        }
-
-
-        const account =
-            accounts[
-                actualIndex
-            ];
-
-
-        const name =
-            account.name ||
-            account.fullName ||
-            account.staffName ||
-            account.email ||
-            "this staff member";
-
-
-        const confirmed =
-            confirm(
-                `Are you sure you want to delete ${name}?\n\nThis will remove the staff account from SAMS.`
-            );
-
-
-        if (!confirmed) {
-
-            return;
-
-        }
-
-
-        accounts.splice(
-            actualIndex,
-            1
-        );
-
-
-        saveAccounts(
-            accounts
-        );
-
-        if (
-            window.samsSupabase &&
-            account?.id
-        ) {
-
-            window.samsSupabase
-                .from("profiles")
-                .delete()
-                .eq("id", account.id)
-                .then(
-                    result => {
-
-                        if (result.error) {
-                            console.error(
-                                "SAMS profile deletion failed:",
-                                result.error
-                            );
-                        }
-
-                    }
-                );
-
-        }
-
-
-        renderStaff();
-
-    }
-
-
-    /* =====================================================
-       TABLE EVENTS
-       ===================================================== */
-
-    function attachTableEvents() {
-
-
-        /* -------------------------------------------------
-           ROLE
-           ------------------------------------------------- */
-
-        document
-            .querySelectorAll(
-                ".role-select"
-            )
-            .forEach(
-                select => {
-
-                    select.addEventListener(
-                        "change",
-                        function () {
-
-                            changeRole(
-
-                                Number(
-                                    this.dataset.index
-                                ),
-
-                                this.value
-
-                            );
-
-                        }
-                    );
-
-                }
-            );
-
-
-        /* -------------------------------------------------
-           CLASS ASSIGNMENT
-           ------------------------------------------------- */
-
-        document
-            .querySelectorAll(
-                ".assignment-class"
-            )
-            .forEach(
-                select => {
-
-                    select.addEventListener(
-                        "change",
-                        function () {
-
-                            saveAssignment(
-
-                                Number(
-                                    this.dataset.index
-                                ),
-
-                                "class",
-
-                                this.value
-
-                            );
-
-                        }
-                    );
-
-                }
-            );
-
-
-        /* -------------------------------------------------
-           STREAM ASSIGNMENT
-           ------------------------------------------------- */
-
-        document
-            .querySelectorAll(
-                ".assignment-stream"
-            )
-            .forEach(
-                select => {
-
-                    select.addEventListener(
-                        "change",
-                        function () {
-
-                            saveAssignment(
-
-                                Number(
-                                    this.dataset.index
-                                ),
-
-                                "stream",
-
-                                this.value
-
-                            );
-
-                        }
-                    );
-
-                }
-            );
-
-
-        /* -------------------------------------------------
-           SECTION ASSIGNMENT
-           ------------------------------------------------- */
-
-        document
-            .querySelectorAll(
-                ".assignment-section"
-            )
-            .forEach(
-                select => {
-
-                    select.addEventListener(
-                        "change",
-                        function () {
-
-                            saveAssignment(
-
-                                Number(
-                                    this.dataset.index
-                                ),
-
-                                "section",
-
-                                this.value
-
-                            );
-
-                        }
-                    );
-
-                }
-            );
-
-
-        /* -------------------------------------------------
-           APPROVE
-           ------------------------------------------------- */
-
-        document
-            .querySelectorAll(
-                "[data-action='approve']"
-            )
-            .forEach(
-                button => {
-
-                    button.addEventListener(
-                        "click",
-                        function () {
-
-                            approveStaff(
-
-                                Number(
-                                    this.dataset.index
-                                )
-
-                            );
-
-                        }
-                    );
-
-                }
-            );
-
-
-        /* -------------------------------------------------
-           REJECT
-           ------------------------------------------------- */
-
-        document
-            .querySelectorAll(
-                "[data-action='reject']"
-            )
-            .forEach(
-                button => {
-
-                    button.addEventListener(
-                        "click",
-                        function () {
-
-                            rejectStaff(
-
-                                Number(
-                                    this.dataset.index
-                                )
-
-                            );
-
-                        }
-                    );
-
-                }
-            );
-
-
-        /* -------------------------------------------------
-           ASSESSOR
-           ------------------------------------------------- */
-
-        document
-            .querySelectorAll(
-                "[data-action='assessor']"
-            )
-            .forEach(
-                button => {
-
-                    button.addEventListener(
-                        "click",
-                        function () {
-
-                            toggleAssessor(
-
-                                Number(
-                                    this.dataset.index
-                                )
-
-                            );
-
-                        }
-                    );
-
-                }
-            );
-
-
-        /* -------------------------------------------------
-           DELETE
-           ------------------------------------------------- */
-
-        document
-            .querySelectorAll(
-                "[data-action='delete']"
-            )
-            .forEach(
-                button => {
-
-                    button.addEventListener(
-                        "click",
-                        function () {
-
-                            deleteStaff(
-
-                                Number(
-                                    this.dataset.index
-                                )
-
-                            );
-
-                        }
-                    );
-
-                }
-            );
-
-    }
-
-/* =====================================================
-   ADD STAFF MODAL
-   ===================================================== */
-
-function openAddStaffModal() {
-
-    if (!hasFullStaffManagementAccess()) {
-        alert(
-            "Only the Administrator, Principal or Vice Principal can add staff."
-        );
-        return;
-    }
-
-    const modal = document.getElementById("staffModal");
-
-    if (!modal) {
-        alert("Staff form is not available.");
-        return;
-    }
-
-    const title = document.getElementById("modalTitle");
-    const staffId = document.getElementById("staffId");
-    const staffName = document.getElementById("staffName");
-    const staffEmail = document.getElementById("staffEmail");
-    const staffRole = document.getElementById("staffRole");
-
-    if (title) {
-        title.textContent = "Add Staff";
-    }
-
-    if (staffId) {
-        staffId.value = "";
-    }
-
-    if (staffName) {
-        staffName.value = "";
-    }
-
-    if (staffEmail) {
-        staffEmail.value = "";
-    }
-
-    if (staffRole) {
-        staffRole.value = "";
-    }
-
-    modal.classList.add("show");
-
-    setTimeout(() => {
-        if (staffName) {
-            staffName.focus();
-        }
-    }, 50);
-}
-
-
-/* =====================================================
-   CLOSE STAFF MODAL
-   ===================================================== */
-
-function closeStaffModal() {
-
-    const modal =
-        document.getElementById("staffModal");
-
-    if (modal) {
-        modal.classList.remove("show");
-    }
-
-}
-
-
-/* =====================================================
-   SAVE NEW STAFF
-   ===================================================== */
-
-function saveNewStaff() {
-
-    if (!hasFullStaffManagementAccess()) {
-
-        alert(
-            "Only the Administrator, Principal or Vice Principal can add staff."
-        );
-
-        return;
-    }
-
-
-    const name =
-        String(
-            document.getElementById("staffName")?.value || ""
-        ).trim();
-
-
-    const email =
-        String(
-            document.getElementById("staffEmail")?.value || ""
-        ).trim().toLowerCase();
-
-
-    const role =
-        String(
-            document.getElementById("staffRole")?.value || ""
-        ).trim();
-
-
-    if (!name) {
-
-        alert("Please enter the staff member's full name.");
-
-        document.getElementById("staffName")?.focus();
-
-        return;
-    }
-
-
-    if (!email) {
-
-        alert("Please enter the educational email.");
-
-        document.getElementById("staffEmail")?.focus();
-
-        return;
-    }
-
-
-    if (!role) {
-
-        alert("Please select a staff role.");
-
-        document.getElementById("staffRole")?.focus();
-
-        return;
-    }
-
-
-    const accounts =
-        getAccounts();
-
-
-    /* -------------------------------------------------
-       CHECK DUPLICATE EMAIL
-       ------------------------------------------------- */
-
-    const duplicate =
-        accounts.some(account => {
-
-            const existingEmail =
-                String(
-                    account?.email ||
-                    account?.educationalEmail ||
-                    account?.educational_email ||
-                    ""
-                )
-                .trim()
-                .toLowerCase();
-
-            return existingEmail === email;
-
-        });
-
-
-    if (duplicate) {
-
-        alert(
-            "A SAMS account already exists for this email address."
-        );
-
-        return;
-    }
-
-
-    /* -------------------------------------------------
-       ONLY ONE ADMINISTRATOR
-       ------------------------------------------------- */
-
-    const requestedRole =
-        role.toLowerCase();
-
-
-    if (
-        requestedRole === "administrator" ||
-        requestedRole === "admin" ||
-        requestedRole === "administration"
-    ) {
-
-        const existingAdministrator =
-            accounts.some(account => {
-
-                const existingRole =
-                    normalizeRole(account);
-
-                return (
-                    existingRole === "administrator" ||
-                    existingRole === "admin" ||
-                    existingRole === "administration"
-                );
-
-            });
-
-
-        if (existingAdministrator) {
-
-            alert(
-                "SAMS allows only one Administrator."
-            );
-
+    function openModal(staff = null) {
+        if (!isManager()) {
+            alert("Staff management changes are not available for your role.");
             return;
         }
 
+        setupRoleOptions();
+        editingId = staff?.id || null;
+
+        $("modalTitle").textContent = staff ? "Edit Staff" : "Add Staff";
+        $("staffId").value = staff?.id || "";
+        $("staffName").value = staff?.name || "";
+        $("staffEmail").value = staff?.email || "";
+        $("staffRole").value = norm(staff?.role || "class teacher").replace(/ /g, "_");
+        $("staffClass").value = staff?.assignedClass || "";
+        $("staffSection").value = staff?.assignedSection || "";
+        $("staffStream").value = staff?.assignedStream || "";
+        $("staffStatus").value = staff?.active ? "active" : "pending";
+
+        updateAssignmentFields();
+        $("staffModal").classList.add("show");
     }
 
+    function closeModal() {
+        $("staffModal")?.classList.remove("show");
+        editingId = null;
+    }
 
-    /* -------------------------------------------------
-       CREATE STAFF ACCOUNT
-       ------------------------------------------------- */
-
-    const newStaff = {
-
-        id:
-            "staff-" +
-            Date.now() +
-            "-" +
-            Math.random()
-                .toString(36)
-                .substring(2, 8),
-
-        name:
-            name,
-
-        fullName:
-            name,
-
-        staffName:
-            name,
-
-        email:
-            email,
-
-        educationalEmail:
-            email,
-
-        educational_email:
-            email,
-
-        role:
-            role,
-
-        staffRole:
-            role,
-
-        accountType:
-            "staff",
-
-        userType:
-            "staff",
-
-        status:
-            "active",
-
-        isAssessor:
-            false,
-
-        employeeId:
-            "STAFF-" +
-            Date.now()
-
-    };
-
-
-    accounts.push(newStaff);
-
-
-    saveAccounts(accounts);
-
-    if (window.samsSupabase) {
-
-        const roleMap = {
-            "Administrator": "admin",
-            "Principal": "principal",
-            "Vice Principal": "vice_principal",
-            "Class Teacher": "class_teacher",
-            "Non-Class Teacher": "non_class_teacher"
-        };
-
-        window.samsSupabase
+    async function findProfileByEmail(email) {
+        const result = await window.samsSupabase
             .from("profiles")
-            .upsert(
-                {
-                    full_name: name,
-                    email: email,
-                    employee_code:
-                        newStaff.employeeId,
-                    role:
-                        roleMap[role] || role,
-                    active: true,
-                    status: "Active"
-                },
-                {
-                    onConflict: "email"
-                }
-            )
-            .then(
-                result => {
+            .select("id, full_name, email, employee_code, role, active, is_assessor, assigned_class, assigned_section, assigned_stream")
+            .eq("email", email)
+            .maybeSingle();
 
-                    if (result.error) {
-                        console.error(
-                            "SAMS manual staff profile sync failed:",
-                            result.error
-                        );
-                    }
-
-                }
-            );
-
+        if (result.error) throw result.error;
+        return result.data || null;
     }
 
+    async function updateProfile(profileId, changes) {
+        const result = await window.samsSupabase
+            .from("profiles")
+            .update(changes)
+            .eq("id", profileId);
 
-    closeStaffModal();
-
-
-    renderStaff();
-
-
-    updateCurrentUser();
-
-
-    alert(
-        `${name} has been added successfully.`
-    );
-
-}
-
-
-/* =====================================================
-   CONNECT ADD STAFF BUTTON
-   ===================================================== */
-
-function setupStaffModal() {
-
-    const addButton =
-        document.getElementById(
-            "addStaffButton"
-        );
-
-
-    const saveButton =
-        document.getElementById(
-            "saveStaffButton"
-        );
-
-
-    const closeButton =
-        document.getElementById(
-            "closeModalButton"
-        );
-
-
-    const cancelButton =
-        document.getElementById(
-            "cancelStaffButton"
-        );
-
-
-    const modal =
-        document.getElementById(
-            "staffModal"
-        );
-
-
-    if (addButton) {
-
-        addButton.onclick =
-            function () {
-
-                openAddStaffModal();
-
-            };
-
+        if (result.error) throw result.error;
     }
 
+    async function saveStaff() {
+        if (!isManager()) return;
 
-    if (saveButton) {
+        const name = $("staffName").value.trim();
+        const email = $("staffEmail").value.trim().toLowerCase();
+        const role = norm($("staffRole").value).replace(/ /g, "_");
+        const assignedClass = $("staffClass").value;
+        const assignedSection = $("staffSection").value;
+        const assignedStream = $("staffStream").value;
+        const active = $("staffStatus").value === "active";
 
-        saveButton.onclick =
-            function () {
+        if (!name) return alert("Please enter the staff member's name.");
+        if (!email) return alert("Please enter the educational email.");
+        if (!role) return alert("Please select a role.");
 
-                saveNewStaff();
+        const senior = ["grade xi", "grade xii"].includes(norm(assignedClass));
 
-            };
-
-    }
-
-
-    if (closeButton) {
-
-        closeButton.onclick =
-            function () {
-
-                closeStaffModal();
-
-            };
-
-    }
-
-
-    if (cancelButton) {
-
-        cancelButton.onclick =
-            function () {
-
-                closeStaffModal();
-
-            };
-
-    }
-
-
-    if (modal) {
-
-        modal.addEventListener(
-            "click",
-            function (event) {
-
-                if (
-                    event.target === modal
-                ) {
-
-                    closeStaffModal();
-
-                }
-
+        if (role === "class_teacher") {
+            if (!assignedClass) return alert("Please select a Class.");
+            if (senior && !assignedStream) {
+                return alert("Please select Arts, Science or Commerce for Grade XI/XII.");
             }
-        );
+            if (!senior && !assignedSection) {
+                return alert("Please select Section A, B, C or D for Grade IV-X.");
+            }
+        }
 
+        try {
+            let profile = editingId
+                ? staffList.find(x => String(x.id) === String(editingId))?.raw
+                : null;
+
+            if (!profile) {
+                profile = await findProfileByEmail(email);
+            }
+
+            if (!profile?.id) {
+                alert("This email is not registered in SAMS yet. Register the staff account first, then assign the role/class here.");
+                return;
+            }
+
+            const duplicate = staffList.find(x =>
+                String(x.email).toLowerCase() === email &&
+                String(x.id) !== String(profile.id)
+            );
+            if (duplicate) {
+                alert("A SAMS account already exists for this email address.");
+                return;
+            }
+
+            if (role === "admin") {
+                const anotherAdmin = staffList.find(x =>
+                    String(x.id) !== String(profile.id) &&
+                    ["admin", "administrator"].includes(norm(x.role))
+                );
+                if (anotherAdmin) {
+                    alert("SAMS allows only one Administrator.");
+                    return;
+                }
+            }
+
+            const changes = {
+                full_name: name,
+                email,
+                role,
+                active,
+                assigned_class: role === "class_teacher" ? assignedClass : null,
+                assigned_section: role === "class_teacher" && !senior ? assignedSection : null,
+                assigned_stream: role === "class_teacher" && senior ? assignedStream : null
+            };
+
+            await updateProfile(profile.id, changes);
+
+            closeModal();
+            await loadStaff();
+            alert("Staff record saved to the central SAMS database.");
+        } catch (error) {
+            console.error("SAMS staff save failed:", error);
+            alert(`The staff record could not be saved.\n\n${error?.message || "Please check Supabase permissions."}`);
+        }
     }
 
+    async function setActive(id, active) {
+        if (!isManager()) return;
 
-    /* Allow Enter key to save */
-
-    const formInputs =
-        document.querySelectorAll(
-            "#staffModal input, #staffModal select"
-        );
-
-
-    formInputs.forEach(
-        input => {
-
-            input.addEventListener(
-                "keydown",
-                function (event) {
-
-                    if (
-                        event.key === "Enter"
-                    ) {
-
-                        event.preventDefault();
-
-                        saveNewStaff();
-
-                    }
-
-                }
-            );
-
+        try {
+            await updateProfile(id, { active });
+            await loadStaff();
+        } catch (error) {
+            console.error("SAMS staff status update failed:", error);
+            alert(`The status could not be saved.\n\n${error?.message || "Please try again."}`);
         }
-    );
+    }
 
+    async function toggleAssessor(id) {
+        if (!isManager()) return;
 
-    /* Make the function available to the HTML button */
+        const staff = staffList.find(x => String(x.id) === String(id));
+        if (!staff) return;
 
-    window.addStaff =
-        openAddStaffModal;
-
-}
-
-
-/* =====================================================
-   EXPOSE STAFF FUNCTIONS
-   ===================================================== */
-
-window.addStaff =
-    openAddStaffModal;
-
-    /* =====================================================
-       BACK TO DASHBOARD
-       ===================================================== */
-
-    function setupBackButton() {
-
-        const button =
-            document.getElementById(
-                "backDashboard"
-            );
-
-
-        if (!button) {
-
+        if (!isAssessorEligible(staff)) {
+            alert("Only Vice Principals and Non-Class Teachers can be appointed as assessors.");
             return;
-
         }
 
-
-        button.addEventListener(
-            "click",
-            function () {
-
-                window.location.href =
-                    "dashboard.html";
-
-            }
-        );
-
+        try {
+            await updateProfile(id, { is_assessor: !staff.assessor });
+            await loadStaff();
+        } catch (error) {
+            console.error("SAMS assessor update failed:", error);
+            alert(`The assessor appointment could not be saved.\n\n${error?.message || "Please try again."}`);
+        }
     }
 
+    async function deleteStaff(id) {
+        if (!isManager()) return;
 
-    /* =====================================================
-       FOOTER YEAR
-       ===================================================== */
+        const staff = staffList.find(x => String(x.id) === String(id));
+        if (!staff) return;
 
-    function updateFooterYear() {
+        if (!confirm(`Delete ${staff.name}'s SAMS account?\n\nThis permanently removes the Auth account and profile.`)) {
+            return;
+        }
 
-        const element =
-            document.getElementById(
-                "footerYear"
+        try {
+            if (!window.samsSupabase?.functions) {
+                throw new Error("Supabase Edge Functions are not available.");
+            }
+
+            const result = await window.samsSupabase.functions.invoke(
+                "delete-sams-user",
+                { body: { userId: id } }
             );
 
+            if (result.error) throw result.error;
+            if (!result.data?.success) {
+                throw new Error(result.data?.message || "The account could not be deleted.");
+            }
 
-        if (element) {
+            await loadStaff();
+            alert("Staff account deleted successfully.");
+        } catch (error) {
+            console.error("SAMS staff deletion failed:", error);
+            alert(`The user was NOT deleted.\n\n${error?.message || "Please try again."}`);
+        }
+    }
 
-            element.textContent =
-                new Date().getFullYear();
+    function logout() {
+        if (!confirm("Are you sure you want to logout?")) return;
 
+        if (window.SAMS_AUTH?.logout) {
+            window.SAMS_AUTH.logout();
+            return;
         }
 
+        if (window.samsSupabase) {
+            window.samsSupabase.auth.signOut().finally(() => {
+                sessionStorage.clear();
+                window.location.href = "index.html";
+            });
+        }
     }
 
+    function applyPermissions() {
+        const fullAccess = isManager();
+        const actionsHeader = document.querySelector(".staff-table th:last-child");
+        const notice = document.querySelector(".view-only-notice");
+        const addButton = $("principalActions");
 
-    /* =====================================================
-       INITIALIZE
-       ===================================================== */
+        if (addButton) addButton.style.display = fullAccess ? "flex" : "none";
+        if (actionsHeader) actionsHeader.style.display = fullAccess ? "table-cell" : "none";
+        if (notice) notice.style.display = fullAccess ? "none" : "block";
 
-    function initialize() {
-
-        updateCurrentUser();
-
-        updateSummary();
-
-        renderStaff();
-
-        setupStaffModal();
-
-        setupBackButton();
-
-        updateFooterYear();
-
-        setupCloudRefresh();
-
-        /*
-         * IMPORTANT:
-         * Supabase is the source of truth for registered users.
-         * Staff Management loads them automatically on opening.
-         */
-        loadAllProfilesFromCloud();
-
+        document.body.classList.toggle("view-only", !fullAccess);
     }
 
+    function updateUserDisplay() {
+        const name = currentUser?.name || currentUser?.full_name || currentUser?.email || "User";
+        const role = roleLabel(currentRole);
 
-    /* =====================================================
-       START
-       ===================================================== */
-
-    if (
-        document.readyState ===
-        "loading"
-    ) {
-
-        document.addEventListener(
-            "DOMContentLoaded",
-            initialize
-        );
-
+        if ($("userName")) $("userName").textContent = name;
+        if ($("userRole")) $("userRole").textContent = role;
+        if ($("userAvatar")) $("userAvatar").textContent = getInitials(name).charAt(0);
     }
 
-    else {
+    function attachEvents() {
+        $("backDashboard")?.addEventListener("click", () => {
+            window.location.href = "dashboard.html";
+        });
 
-        initialize();
+        $("addStaffButton")?.addEventListener("click", () => openModal());
 
+        $("closeModalButton")?.addEventListener("click", closeModal);
+        $("cancelModalButton")?.addEventListener("click", closeModal);
+        $("saveStaffButton")?.addEventListener("click", saveStaff);
+        $("logoutButton")?.addEventListener("click", logout);
+
+        $("staffRole")?.addEventListener("change", updateAssignmentFields);
+        $("staffClass")?.addEventListener("change", updateAssignmentFields);
+
+        $("staffModal")?.addEventListener("click", event => {
+            if (event.target === $("staffModal")) closeModal();
+        });
+
+        $("staffTableBody")?.addEventListener("click", async event => {
+            const button = event.target.closest("button[data-action]");
+            if (!button) return;
+
+            const id = button.dataset.id;
+            const action = button.dataset.action;
+            const staff = staffList.find(x => String(x.id) === String(id));
+
+            if (action === "edit") openModal(staff);
+            if (action === "approve") await setActive(id, true);
+            if (action === "reject") await setActive(id, false);
+            if (action === "assessor") await toggleAssessor(id);
+            if (action === "delete") await deleteStaff(id);
+        });
     }
 
+    async function initialise() {
+        currentUser = getCurrentUser();
 
+        // If the session object is unavailable, ask Supabase for the current
+        // user and then load the corresponding profile.
+        if (!currentUser && window.samsSupabase) {
+            const auth = await window.samsSupabase.auth.getUser();
+            if (auth.data?.user) {
+                const profile = await window.samsSupabase
+                    .from("profiles")
+                    .select("*")
+                    .eq("id", auth.data.user.id)
+                    .maybeSingle();
+
+                if (profile.data) {
+                    currentUser = {
+                        ...profile.data,
+                        name: profile.data.full_name,
+                        role: profile.data.role
+                    };
+                }
+            }
+        }
+
+        currentRole = roleOf(currentUser);
+        updateUserDisplay();
+        applyPermissions();
+        setupRoleOptions();
+
+        // Wait for the shared cloud bridge when possible.
+        if (window.samsCloud?.ready) {
+            await window.samsCloud.ready;
+        }
+
+        await loadStaff();
+    }
+
+    attachEvents();
+    initialise();
+
+    // Public hooks for existing SAMS UI buttons.
+    window.addStaff = () => openModal();
+    window.editStaff = id => openModal(staffList.find(x => String(x.id) === String(id)));
+    window.saveStaff = saveStaff;
+    window.deleteStaff = deleteStaff;
+    window.toggleAssessor = toggleAssessor;
+    window.closeModal = closeModal;
 })();

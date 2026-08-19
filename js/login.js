@@ -365,6 +365,9 @@
             assignedSection:
                 profile.assigned_section || "",
 
+            assignedStream:
+                profile.assigned_stream || "",
+
             status:
                 profile.active === true
                     ? "Active"
@@ -411,95 +414,62 @@
 
 
         // -----------------------------------------------------
-        // Compatibility accounts
+        // Pull the central cloud data BEFORE updating the compatibility
+        // account cache. This prevents a phone/laptop login from replacing
+        // the shared account list with only the currently logged-in user.
         // -----------------------------------------------------
-
         try {
-
-            localStorage.setItem(
-                "sams_accounts",
-                JSON.stringify([
-                    {
-
-                        id:
-                            authUser.id,
-
-                        name:
-                            currentUser.name,
-
-                        email:
-                            currentUser.email,
-
-                        username:
-                            currentUser.email,
-
-                        employeeId:
-                            profile.employee_code || "",
-
-                        employeeCode:
-                            profile.employee_code || "",
-
-                        role:
-                            role,
-
-                        accountType:
-                            role,
-
-                        status:
-                            currentUser.status,
-
-                        isAssessor:
-                            currentUser.isAssessor,
-
-                        assignedClass:
-                            currentUser.assignedClass,
-
-                        assignedSection:
-                            currentUser.assignedSection
-
-                    }
-                ])
-            );
-
-        }
-
-        catch (error) {
-
-            console.warn(
-                "Unable to save compatibility account.",
-                error
-            );
-
-        }
-
-
-        // -----------------------------------------------------
-        // Pull cloud data
-        // -----------------------------------------------------
-
-        try {
-
             if (
                 window.samsCloud &&
-                typeof window.samsCloud.pullAll ===
-                "function"
+                typeof window.samsCloud.pullAll === "function"
             ) {
-
                 await window.samsCloud.pullAll();
-
             }
-
+        } catch (error) {
+            console.warn("SAMS cloud synchronisation failed:", error);
         }
 
-        catch (error) {
-
-            console.warn(
-                "SAMS cloud synchronisation failed:",
-                error
+        // -----------------------------------------------------
+        // Compatibility accounts
+        // Keep the complete cloud account list and merge the current
+        // profile into it. Never replace the list with one user.
+        // -----------------------------------------------------
+        try {
+            const raw = localStorage.getItem("sams_accounts");
+            const accounts = raw ? JSON.parse(raw) : [];
+            const list = Array.isArray(accounts) ? accounts : [];
+            const email = String(currentUser.email || "").trim().toLowerCase();
+            const index = list.findIndex(item =>
+                String(item?.email || item?.educationalEmail || "")
+                    .trim().toLowerCase() === email
             );
 
-        }
+            const compatibilityAccount = {
+                id: authUser.id,
+                name: currentUser.name,
+                email: currentUser.email,
+                username: currentUser.email,
+                employeeId: profile.employee_code || "",
+                employeeCode: profile.employee_code || "",
+                role,
+                accountType: role,
+                status: currentUser.status,
+                isAssessor: currentUser.isAssessor,
+                assignedClass: currentUser.assignedClass || "",
+                assignedSection: currentUser.assignedSection || "",
+                assignedStream: currentUser.assignedStream || ""
+            };
 
+            if (index >= 0) {
+                list[index] = { ...list[index], ...compatibilityAccount };
+            } else {
+                list.push(compatibilityAccount);
+            }
+
+            localStorage.setItem("sams_accounts", JSON.stringify(list));
+        } catch (error) {
+            console.warn("Unable to save compatibility account.", error);
+        }
 
         return true;
     }
@@ -804,7 +774,8 @@
                                 active,
                                 is_assessor,
                                 assigned_class,
-                                assigned_section
+                                assigned_section,
+                                assigned_stream
                                 `
                             )
                             .eq(
