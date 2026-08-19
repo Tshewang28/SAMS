@@ -19,6 +19,12 @@
 -- Run this ONCE in Supabase SQL Editor.
 -- =============================================================
 
+-- Class Teacher assignment fields. Safe to run repeatedly.
+ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS assigned_class TEXT,
+    ADD COLUMN IF NOT EXISTS assigned_section TEXT,
+    ADD COLUMN IF NOT EXISTS assigned_stream TEXT;
+
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- -------------------------------------------------------------
