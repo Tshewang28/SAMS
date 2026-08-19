@@ -188,7 +188,7 @@
               <th class="sl-col">#</th>
               <th>STAFF</th>
               <th>ROLE</th>
-              <th>CLASS / SECTION / STREAM</th>
+              <th>CLASS / SECTION</th>
               <th>ASSESSOR</th>
               <th>STATUS</th>
               <th>ACTIONS</th>
@@ -310,17 +310,7 @@
                 </select>
             </div>
 
-            <div class="form-group" id="staffStreamGroup">
-                <label for="staffStream">Stream</label>
-                <select id="staffStream">
-                    <option value="">Select Stream</option>
-                    <option value="Science">Science</option>
-                    <option value="Arts">Arts</option>
-                    <option value="Commerce">Commerce</option>
-                </select>
-            </div>
-
-            <div class="form-group" id="staffSectionGroup">
+            <div class="form-group">
                 <label for="staffSection">Section</label>
                 <select id="staffSection">
                     <option value="">Select Section</option>
@@ -445,11 +435,6 @@ function isClassTeacher(role) {
 function isNonClassTeacher(role) {
     const r = normaliseRole(role);
     return r === "non class teacher" || r === "non-class teacher";
-}
-
-function getClassNumber(value) {
-    const match = String(value || "").match(/\d+/);
-    return match ? Number(match[0]) : NaN;
 }
 
 /* Principal, Vice Principal and Administrator may manage staff. */
@@ -688,14 +673,8 @@ function normaliseStaff(staff, index) {
         email: staff.email || staff.educational_email || staff.educationalEmail || "",
         role,
         assignedClass: staff.assigned_class || staff.assignedClass || "",
-        assignedStream: staff.assigned_stream || staff.assignedStream || "",
         assignedSection: staff.assigned_section || staff.assignedSection || "",
-        classSection: [
-            staff.assigned_class || staff.assignedClass,
-            ((Number(staff.assigned_class || staff.assignedClass) === 11 || Number(staff.assigned_class || staff.assignedClass) === 12)
-                ? (staff.assigned_stream || staff.assignedStream)
-                : (staff.assigned_section || staff.assignedSection))
-        ].filter(Boolean).join(" • ") || staff.class_section || staff.classSection || "—",
+        classSection: [staff.assigned_class, staff.assigned_section].filter(Boolean).join(" ") || staff.class_section || staff.classSection || "—",
         assessor: staff.isAssessor === true || staff.is_assessor === true || staff.assessor === true || String(staff.isAssessor || staff.is_assessor || staff.assessor || "").toLowerCase() === "true",
         status: normaliseRole(staff.status || (staff.active === true ? "active" : "pending")),
         raw: staff
@@ -720,7 +699,7 @@ async function loadStaff() {
 
         const coreQuery = await window.samsSupabase
             .from("profiles")
-            .select("id, full_name, email, employee_code, role, active, is_assessor, assigned_class, assigned_stream, assigned_section, created_at")
+            .select("id, full_name, email, employee_code, role, active, is_assessor, assigned_class, assigned_section, created_at")
             .order("created_at", { ascending: true });
 
         data = coreQuery.data;
@@ -804,8 +783,7 @@ async function syncStaffProfileToSupabase(item) {
         active: isActive,
         is_assessor: item.assessor === true,
         assigned_class: classTeacher ? (item.assignedClass || "") : "",
-        assigned_stream: classTeacher && (getClassNumber(item.assignedClass) === 11 || getClassNumber(item.assignedClass) === 12) ? (item.assignedStream || "") : "",
-        assigned_section: classTeacher && (getClassNumber(item.assignedClass) !== 11 && getClassNumber(item.assignedClass) !== 12) ? (item.assignedSection || "") : ""
+        assigned_section: classTeacher ? (item.assignedSection || "") : ""
     };
 
     console.log("SAMS profile update", { profileId, email, payload });
@@ -834,7 +812,6 @@ function saveStaffData() {
             role: item.role,
             classSection: item.classSection,
             assignedClass: item.assignedClass || "",
-            assignedStream: item.assignedStream || "",
             assignedSection: item.assignedSection || "",
             assessor: item.assessor,
             isAssessor: item.assessor,
@@ -859,7 +836,6 @@ function saveStaffData() {
                 role: item.role,
                 classSection: item.classSection === "—" ? "" : item.classSection,
                 assignedClass: item.assignedClass || "",
-                assignedStream: item.assignedStream || "",
                 assignedSection: item.assignedSection || "",
                 assessor: item.assessor,
                 isAssessor: item.assessor,
@@ -935,12 +911,8 @@ function createStaffRow(staff, index) {
             <button class="action-btn delete" type="button" onclick="deleteStaff('${escapeAttribute(staff.id)}')">Delete</button>
         </div>` : "";
 
-    const classNumber = getClassNumber(staff.assignedClass);
-    const assignmentValue = (classNumber === 11 || classNumber === 12)
-        ? [staff.assignedClass, staff.assignedStream].filter(Boolean).join(" • ")
-        : [staff.assignedClass, staff.assignedSection].filter(Boolean).join(" • ");
-    const assignment = assignmentValue
-        ? escapeHtml(assignmentValue)
+    const assignment = (staff.assignedClass && staff.assignedSection)
+        ? escapeHtml(`${staff.assignedClass} • ${staff.assignedSection}`)
         : (staff.classSection && staff.classSection !== "—" ? escapeHtml(staff.classSection) : "—");
 
     return `<tr>
@@ -1006,12 +978,8 @@ function openModal(staff = null) {
     setupRoleOptions();
 
     const staffRole = document.getElementById("staffRole");
-    const staffClass = document.getElementById("staffClass");
     if (staffRole) {
-        staffRole.onchange = updateRoleDependentFields;
-    }
-    if (staffClass) {
-        staffClass.onchange = updateRoleDependentFields;
+        staffRole.addEventListener("change", updateRoleDependentFields);
     }
 
     const modal = document.getElementById("staffModal");
@@ -1021,11 +989,10 @@ function openModal(staff = null) {
     const email = document.getElementById("staffEmail");
     const role = document.getElementById("staffRole");
     const classSelect = document.getElementById("staffClass");
-    const streamSelect = document.getElementById("staffStream");
     const sectionSelect = document.getElementById("staffSection");
     const status = document.getElementById("staffStatus");
 
-    if (!modal || !title || !id || !name || !email || !role || !classSelect || !streamSelect || !sectionSelect || !status) return;
+    if (!modal || !title || !id || !name || !email || !role || !classSelect || !sectionSelect || !status) return;
 
     if (staff) {
         editingStaffId = staff.id;
@@ -1035,7 +1002,6 @@ function openModal(staff = null) {
         email.value = staff.email;
         role.value = normaliseRole(staff.role) || "class teacher";
         classSelect.value = staff.assignedClass || "";
-        streamSelect.value = staff.assignedStream || "";
         sectionSelect.value = staff.assignedSection || "";
         status.value = staff.status || "pending";
     } else {
@@ -1046,7 +1012,6 @@ function openModal(staff = null) {
         email.value = "";
         role.value = "class teacher";
         classSelect.value = "";
-        streamSelect.value = "";
         sectionSelect.value = "";
         status.value = "pending";
     }
@@ -1058,36 +1023,18 @@ function openModal(staff = null) {
 function updateRoleDependentFields() {
     const role = normaliseRole(document.getElementById("staffRole")?.value || "");
     const classSelect = document.getElementById("staffClass");
-    const streamSelect = document.getElementById("staffStream");
     const sectionSelect = document.getElementById("staffSection");
-    const streamGroup = document.getElementById("staffStreamGroup");
-    const sectionGroup = document.getElementById("staffSectionGroup");
-    if (!classSelect || !streamSelect || !sectionSelect) return;
+    if (!classSelect || !sectionSelect) return;
 
     const needsClassAssignment = isClassTeacher(role);
-    const classNumber = getClassNumber(classSelect.value);
-    const needsStream = needsClassAssignment && (classNumber === 11 || classNumber === 12);
-    const needsSection = needsClassAssignment && !needsStream;
-
-    classSelect.disabled = !needsClassAssignment;
-    classSelect.style.opacity = needsClassAssignment ? "1" : "0.65";
-
-    streamSelect.disabled = !needsStream;
-    streamSelect.style.opacity = needsStream ? "1" : "0.65";
-    if (streamGroup) streamGroup.style.display = needsStream ? "flex" : "none";
-
-    sectionSelect.disabled = !needsSection;
-    sectionSelect.style.opacity = needsSection ? "1" : "0.65";
-    if (sectionGroup) sectionGroup.style.display = needsSection ? "flex" : "none";
+    [classSelect, sectionSelect].forEach(el => {
+        el.disabled = !needsClassAssignment;
+        el.style.opacity = needsClassAssignment ? "1" : "0.65";
+    });
 
     if (!needsClassAssignment) {
         classSelect.value = "";
-        streamSelect.value = "";
         sectionSelect.value = "";
-    } else if (needsStream) {
-        sectionSelect.value = "";
-    } else {
-        streamSelect.value = "";
     }
 }
 
@@ -1118,7 +1065,6 @@ async function saveStaff() {
     const email = document.getElementById("staffEmail")?.value.trim().toLowerCase() || "";
     const role = normaliseRole(document.getElementById("staffRole")?.value || "");
     const assignedClass = document.getElementById("staffClass")?.value || "";
-    const assignedStream = document.getElementById("staffStream")?.value || "";
     const assignedSection = document.getElementById("staffSection")?.value || "";
     const status = normaliseRole(document.getElementById("staffStatus")?.value || "pending");
 
@@ -1126,18 +1072,8 @@ async function saveStaff() {
     if (!email) return alert("Please enter the educational email.");
     if (!role) return alert("Please select a staff role.");
 
-    if (isClassTeacher(role)) {
-        if (!assignedClass) {
-            return alert("Please select a Class for the Class Teacher.");
-        }
-
-        const seniorClass = getClassNumber(assignedClass) === 11 || getClassNumber(assignedClass) === 12;
-        if (seniorClass && !assignedStream) {
-            return alert("Please select a Stream for Grade XI or Grade XII.");
-        }
-        if (!seniorClass && !assignedSection) {
-            return alert("Please select a Section for the Class Teacher.");
-        }
+    if (isClassTeacher(role) && (!assignedClass || !assignedSection)) {
+        return alert("Please select both Class and Section for a Class Teacher.");
     }
 
     const existing = editingStaffId
@@ -1161,12 +1097,8 @@ async function saveStaff() {
         email,
         role,
         assignedClass: assignedClass || "",
-        assignedStream: (getClassNumber(assignedClass) === 11 || getClassNumber(assignedClass) === 12) ? (assignedStream || "") : "",
-        assignedSection: (getClassNumber(assignedClass) === 11 || getClassNumber(assignedClass) === 12) ? "" : (assignedSection || ""),
-        classSection: [
-            assignedClass,
-            (getClassNumber(assignedClass) === 11 || getClassNumber(assignedClass) === 12) ? assignedStream : assignedSection
-        ].filter(Boolean).join(" • ") || "—",
+        assignedSection: assignedSection || "",
+        classSection: [assignedClass, assignedSection].filter(Boolean).join(" • ") || "—",
         assessor,
         status,
         active: status === "active",
