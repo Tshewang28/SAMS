@@ -1,42 +1,943 @@
+/* =========================================================
+   SAMS REPORTS - MODERN STUDENT REPORT DESIGN
+   ========================================================= */
 
-*{box-sizing:border-box}
-:root{--navy:#142744;--blue:#2f669f;--gold:#c99432;--ink:#182236;--muted:#6e7888;--bg:#f5f7fb;--line:#e4e9f0;--white:#fff;--danger:#a84747}
-body{margin:0;background:linear-gradient(180deg,#f8faff,#f2f5f9);font-family:Inter,Segoe UI,Arial,sans-serif;color:var(--ink)}
-.reports-page{min-height:100vh}
-.reports-header{background:linear-gradient(135deg,#10223e,#2b5686);color:#fff;padding:28px 6vw 32px;display:flex;align-items:center;justify-content:space-between;gap:25px}
-.brand-kicker,.eyebrow{font-size:10px;letter-spacing:1.8px;font-weight:900}
-.brand-kicker{color:#dce8f7}.reports-header h1{margin:6px 0 4px;font-size:34px}.reports-header p{margin:0;color:#dbe5f2}
-.back-btn{background:#fff;color:var(--navy);text-decoration:none;padding:11px 16px;border-radius:10px;font-weight:800}
-.reports-main{max-width:1100px;margin:auto;padding:30px 22px 60px}
-.report-hero{display:flex;align-items:center;gap:22px;background:#fff;border:1px solid var(--line);border-radius:22px;padding:24px 28px;box-shadow:0 12px 32px rgba(24,42,68,.08);margin-bottom:22px}
-.hero-icon{width:66px;height:66px;border-radius:18px;background:#edf3fa;color:var(--blue);display:grid;place-items:center;font-size:31px;font-weight:900}
-.report-hero h2{margin:5px 0 5px;font-size:23px}.report-hero p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
-.report-choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
-.report-choice{border:1px solid var(--line);background:#fff;border-radius:17px;padding:17px;text-align:left;display:flex;align-items:center;gap:14px;cursor:pointer;color:var(--ink);box-shadow:0 6px 20px rgba(20,40,65,.05)}
-.report-choice.active{border:2px solid #3b6e9f;background:#f4f8fc}
-.choice-icon{font-size:28px}.report-choice strong{display:block;font-size:15px}.report-choice small{display:block;color:var(--muted);margin-top:4px}
-.report-panel{background:#fff;border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:0 10px 28px rgba(20,40,65,.06)}
-.hidden{display:none!important}
-.panel-heading{margin-bottom:20px}.panel-heading h2{margin:5px 0 0;font-size:23px}.eyebrow{color:#9b6c13}
-.selection-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:17px;background:#f7f9fc;border:1px solid #e8edf3;border-radius:15px}
-.selection-grid label{font-size:12px;font-weight:800;color:#566174}
-.selection-grid select{display:block;width:100%;margin-top:7px;padding:11px 12px;border:1px solid #d8dee8;border-radius:9px;background:#fff;color:#202c40;font-size:13px}
-.selection-grid select:disabled{background:#eef2f6;color:#8993a2}
-.class-selection{grid-template-columns:1fr 1fr}
-.empty-state{margin-top:18px;padding:28px;text-align:center;border:1px dashed #d8dfe8;border-radius:13px;color:var(--muted);font-size:13px}
-.result-area{margin-top:22px}
-.report-title-card{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px;border-radius:17px;background:linear-gradient(135deg,#142744,#315e8e);color:#fff}
-.report-title-card h3{margin:5px 0;font-size:25px}.report-title-card p{margin:0;color:#dbe6f3;font-size:13px}.total-badge{min-width:125px;text-align:center;padding:12px;border-radius:13px;background:rgba(255,255,255,.12)}.total-badge small{display:block;color:#dbe6f3}.total-badge strong{font-size:24px}
-.area-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
-.area-card{border:1px solid var(--line);border-radius:13px;padding:15px;background:#fafbfd}.area-card small{display:block;color:var(--muted);font-size:10px;font-weight:900;letter-spacing:1px}.area-card strong{display:block;margin-top:7px;font-size:21px}
-.discipline-note{padding:13px 15px;border-radius:11px;background:#fff7f2;border-left:4px solid #d77c45;color:#654a3d;font-size:12px;margin-bottom:16px}
-.report-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
-.report-table{width:100%;border-collapse:collapse;font-size:13px}.report-table th{background:#f2f5f9;color:#536075;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.7px}.report-table th,.report-table td{padding:12px 14px;border-bottom:1px solid #edf0f4}.report-table tr:last-child td{border-bottom:0}.num{text-align:right;font-weight:800}.negative{color:var(--danger)}
-.class-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:17px}.summary-box{padding:16px;border-radius:13px;background:#f7f9fc;border:1px solid var(--line)}.summary-box small{color:var(--muted);display:block;font-size:10px;font-weight:900;letter-spacing:.8px}.summary-box strong{font-size:22px;display:block;margin-top:5px}
-@media(max-width:800px){.reports-header{flex-direction:column;align-items:flex-start}.selection-grid,.class-selection{grid-template-columns:1fr}.area-grid,.class-summary{grid-template-columns:1fr 1fr}.report-title-card{align-items:flex-start;flex-direction:column}.total-badge{width:100%}}
-@media(max-width:520px){.report-choice-grid,.area-grid,.class-summary{grid-template-columns:1fr}.reports-main{padding:20px 14px 45px}}
+* {
+  box-sizing: border-box;
+}
 
-.area-card.discipline-card{background:#fff7f2;border-color:#f0d7c6}
-.area-card.discipline-card strong.negative{color:var(--danger)}
+:root {
+  --navy: #0f2f5f;
+  --navy-dark: #082348;
+  --blue: #2563eb;
+  --blue-light: #eff6ff;
+  --green: #15803d;
+  --green-light: #f0fdf4;
+  --purple: #7c3aed;
+  --purple-light: #faf5ff;
+  --orange: #ea580c;
+  --orange-light: #fff7ed;
+  --red: #dc2626;
+  --red-light: #fef2f2;
+  --gold: #b7791f;
+  --ink: #172554;
+  --muted: #64748b;
+  --line: #dbe4ef;
+  --bg: #f4f7fb;
+  --white: #ffffff;
+}
 
-.report-subtext{display:block;margin-top:5px;color:#7b8999;font-size:9px;font-weight:600;line-height:1.35}
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  color: var(--ink);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.reports-page {
+  min-height: 100vh;
+}
+
+/* =========================================================
+   TOP NAVIGATION
+   ========================================================= */
+
+.reports-header {
+  background: linear-gradient(135deg, #0b2852, #24558d);
+  color: white;
+  padding: 24px 5vw;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.brand-kicker {
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: 900;
+  color: #dbeafe;
+}
+
+.reports-header h1 {
+  margin: 6px 0;
+  font-size: 32px;
+}
+
+.reports-header p {
+  margin: 0;
+  color: #dbe5f2;
+  font-size: 14px;
+}
+
+.back-btn {
+  background: white;
+  color: var(--navy);
+  text-decoration: none;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+.reports-main {
+  max-width: 1380px;
+  margin: auto;
+  padding: 28px 24px 60px;
+}
+
+/* =========================================================
+   HERO / TABS
+   ========================================================= */
+
+.report-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 22px 26px;
+  margin-bottom: 18px;
+  box-shadow: 0 8px 25px rgba(15, 47, 95, 0.06);
+}
+
+.hero-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: var(--blue-light);
+  color: var(--blue);
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+}
+
+.report-hero h2 {
+  margin: 4px 0;
+}
+
+.report-hero p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.report-choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.report-choice {
+  border: 1px solid var(--line);
+  background: white;
+  border-radius: 14px;
+  padding: 16px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.report-choice.active {
+  border: 2px solid var(--blue);
+  background: var(--blue-light);
+}
+
+.choice-icon {
+  font-size: 26px;
+}
+
+.report-choice strong {
+  display: block;
+}
+
+.report-choice small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* =========================================================
+   REPORT PANEL
+   ========================================================= */
+
+.report-panel {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 8px 25px rgba(15, 47, 95, 0.06);
+}
+
+.panel-heading {
+  margin-bottom: 18px;
+}
+
+.panel-heading h2 {
+  margin: 4px 0 0;
+}
+
+.eyebrow {
+  color: var(--gold);
+  font-size: 10px;
+  letter-spacing: 1.8px;
+  font-weight: 900;
+}
+
+/* =========================================================
+   SELECTION
+   ========================================================= */
+
+.selection-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.selection-grid label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #475569;
+}
+
+.selection-grid select {
+  width: 100%;
+  margin-top: 7px;
+  padding: 11px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: white;
+  color: #172033;
+}
+
+.class-selection {
+  grid-template-columns: 1fr 1fr;
+}
+
+.empty-state {
+  margin-top: 18px;
+  padding: 25px;
+  text-align: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 13px;
+  color: var(--muted);
+}
+
+/* =========================================================
+   REPORT RESULT
+   ========================================================= */
+
+.result-area {
+  margin-top: 22px;
+}
+
+/* =========================================================
+   STUDENT HEADER
+   ========================================================= */
+
+.report-title-card {
+  min-height: 140px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+
+  padding: 28px 30px;
+
+  border-radius: 20px;
+
+  background: linear-gradient(
+    135deg,
+    #0b2c5c,
+    #2d5f91
+  );
+
+  color: white;
+
+  box-shadow: 0 10px 25px rgba(15, 47, 95, 0.15);
+}
+
+.report-title-card h3 {
+  margin: 7px 0 5px;
+  font-size: 30px;
+  letter-spacing: -0.5px;
+}
+
+.report-title-card p {
+  margin: 0;
+  color: #dbeafe;
+  font-size: 14px;
+}
+
+/* =========================================================
+   FINAL GRADE BADGE
+   ========================================================= */
+
+.grade-badge {
+  min-width: 220px;
+  text-align: center;
+
+  padding: 14px 20px;
+
+  border-radius: 35px;
+
+  background: white;
+  color: var(--navy);
+
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+.grade-badge small {
+  display: inline;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.grade-badge strong {
+  font-size: 25px;
+  margin-left: 6px;
+}
+
+.grade-badge span {
+  font-size: 13px;
+  margin-left: 5px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   GRADING SUMMARY
+   ========================================================= */
+
+.grading-summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+
+  background: white;
+
+  border: 1px solid var(--line);
+  border-radius: 17px;
+
+  margin: 12px 0 18px;
+
+  padding: 18px;
+
+  box-shadow: 0 5px 18px rgba(15, 47, 95, 0.05);
+}
+
+.grading-box {
+  text-align: center;
+
+  padding: 6px 18px;
+
+  border-right: 1px solid #e2e8f0;
+}
+
+.grading-box:last-child {
+  border-right: none;
+}
+
+.grading-box small {
+  display: block;
+
+  color: var(--muted);
+
+  font-size: 11px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.5px;
+}
+
+.grading-box strong {
+  display: block;
+
+  margin-top: 7px;
+
+  font-size: 22px;
+}
+
+/* =========================================================
+   AREA SECTION
+   ========================================================= */
+
+.report-section-title {
+  font-size: 19px;
+  margin: 20px 0 12px;
+}
+
+.area-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.area-card {
+  min-height: 105px;
+
+  border: 1px solid var(--line);
+  border-radius: 15px;
+
+  padding: 18px;
+
+  background: white;
+
+  box-shadow: 0 4px 14px rgba(15, 47, 95, 0.04);
+}
+
+.area-card small {
+  display: block;
+
+  color: var(--muted);
+
+  font-size: 11px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.7px;
+}
+
+.area-card strong {
+  display: block;
+
+  margin-top: 9px;
+
+  font-size: 25px;
+}
+
+.area-card:nth-child(1) {
+  background: #f8fbff;
+}
+
+.area-card:nth-child(2) {
+  background: #f7fcf8;
+}
+
+.area-card:nth-child(3) {
+  background: #fbf9ff;
+}
+
+.area-card:nth-child(4) {
+  background: #fffaf5;
+}
+
+.area-card.discipline-card {
+  background: var(--red-light);
+  border-color: #fecaca;
+}
+
+.area-card.discipline-card strong.negative {
+  color: var(--red);
+}
+
+.report-subtext {
+  display: block;
+
+  margin-top: 6px;
+
+  color: var(--muted);
+
+  font-size: 10px;
+
+  line-height: 1.4;
+}
+
+/* =========================================================
+   TOTAL POINT SUMMARY
+   ========================================================= */
+
+.points-summary {
+  border: 1px solid #bfdbfe;
+  background: #f8fbff;
+
+  border-radius: 15px;
+
+  padding: 18px;
+
+  margin: 14px 0 18px;
+}
+
+.points-summary h3 {
+  margin: 0 0 13px;
+  font-size: 16px;
+  color: #1d4ed8;
+}
+
+.points-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+
+  padding: 7px 0;
+
+  font-size: 13px;
+
+  border-bottom: 1px dashed #dbeafe;
+}
+
+.points-summary-row:last-child {
+  border-bottom: none;
+}
+
+.points-summary-row strong {
+  font-weight: 800;
+}
+
+/* =========================================================
+   SERIOUS DISCIPLINE
+   ========================================================= */
+
+.serious-discipline {
+  border: 1px solid #fecaca;
+
+  background: #fffafa;
+
+  border-radius: 16px;
+
+  padding: 18px;
+
+  margin: 18px 0;
+}
+
+.serious-discipline h3 {
+  margin: 0 0 4px;
+
+  color: var(--red);
+
+  font-size: 17px;
+}
+
+.serious-discipline-intro {
+  margin: 0 0 16px;
+
+  color: #475569;
+
+  font-size: 12px;
+}
+
+.serious-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+
+  align-items: stretch;
+}
+
+.serious-item {
+  padding: 10px 15px;
+
+  border-right: 1px solid #fecaca;
+}
+
+.serious-item:last-child {
+  border-right: none;
+}
+
+.serious-item small {
+  display: block;
+
+  color: #475569;
+
+  font-weight: 700;
+
+  line-height: 1.35;
+}
+
+.serious-item strong {
+  display: block;
+
+  margin-top: 8px;
+
+  font-size: 23px;
+
+  color: #1e293b;
+}
+
+.serious-total {
+  text-align: center;
+}
+
+.serious-total strong {
+  color: var(--red);
+
+  font-size: 32px;
+}
+
+/* =========================================================
+   INFORMATION BOXES
+   ========================================================= */
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+
+  margin: 16px 0;
+}
+
+.info-box {
+  padding: 16px;
+
+  border-radius: 14px;
+
+  border: 1px solid #bfdbfe;
+
+  background: #f8fbff;
+
+  color: #334155;
+
+  font-size: 12px;
+
+  line-height: 1.55;
+}
+
+.info-box.warning {
+  border-color: #fed7aa;
+  background: #fffaf5;
+}
+
+.info-box strong {
+  display: block;
+
+  margin-bottom: 5px;
+
+  font-size: 13px;
+}
+
+/* =========================================================
+   GRADING SCALE
+   ========================================================= */
+
+.grade-scale-title {
+  margin: 18px 0 10px;
+
+  font-size: 18px;
+}
+
+.grade-legend {
+  display: grid;
+
+  grid-template-columns: repeat(5, 1fr);
+
+  border: 1px solid var(--line);
+
+  border-radius: 14px;
+
+  overflow: hidden;
+
+  margin-top: 8px;
+}
+
+.grade-legend-item {
+  text-align: center;
+
+  padding: 13px 8px;
+
+  border-right: 1px solid var(--line);
+}
+
+.grade-legend-item:last-child {
+  border-right: none;
+}
+
+.grade-legend-item strong {
+  display: block;
+
+  font-size: 21px;
+}
+
+.grade-legend-item span {
+  display: block;
+
+  margin-top: 3px;
+
+  font-size: 12px;
+
+  font-weight: 700;
+}
+
+.grade-a {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.grade-b {
+  background: #f7fee7;
+  color: #3f6212;
+}
+
+.grade-c {
+  background: #fffbeb;
+  color: #a16207;
+}
+
+.grade-d {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.grade-e {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* =========================================================
+   NOTE
+   ========================================================= */
+
+.report-footer-note {
+  margin-top: 12px;
+
+  color: #64748b;
+
+  font-size: 11px;
+
+  font-style: italic;
+}
+
+/* =========================================================
+   DISCIPLINE TABLE
+   ========================================================= */
+
+.report-table-wrap {
+  overflow-x: auto;
+
+  border: 1px solid var(--line);
+
+  border-radius: 14px;
+
+  margin-top: 18px;
+}
+
+.report-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  font-size: 13px;
+}
+
+.report-table th {
+  background: #f1f5f9;
+
+  color: #475569;
+
+  text-align: left;
+
+  font-size: 11px;
+
+  text-transform: uppercase;
+
+  letter-spacing: .7px;
+}
+
+.report-table th,
+.report-table td {
+  padding: 12px 14px;
+
+  border-bottom: 1px solid #edf0f4;
+}
+
+.report-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.num {
+  text-align: right;
+
+  font-weight: 800;
+}
+
+.negative {
+  color: var(--red);
+}
+
+.table-grade {
+  display: inline-flex;
+
+  min-width: 30px;
+  height: 30px;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 8px;
+
+  background: #edf3fa;
+
+  font-weight: 900;
+}
+
+/* =========================================================
+   CLASS REPORT
+   ========================================================= */
+
+.class-summary {
+  display: grid;
+
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 12px;
+
+  margin: 16px 0;
+}
+
+.summary-box {
+  padding: 16px;
+
+  border-radius: 13px;
+
+  background: #f7f9fc;
+
+  border: 1px solid var(--line);
+}
+
+.summary-box small {
+  color: var(--muted);
+
+  display: block;
+
+  font-size: 10px;
+
+  font-weight: 900;
+}
+
+.summary-box strong {
+  font-size: 22px;
+
+  display: block;
+
+  margin-top: 5px;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+  .grading-summary {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .grading-box:nth-child(3) {
+    border-right: none;
+  }
+
+  .area-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .serious-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .serious-item:nth-child(3) {
+    border-right: none;
+  }
+
+  .serious-total {
+    grid-column: span 3;
+    border-top: 1px solid #fecaca;
+    padding-top: 12px;
+  }
+}
+
+@media (max-width: 800px) {
+
+  .reports-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .selection-grid,
+  .class-selection {
+    grid-template-columns: 1fr;
+  }
+
+  .report-title-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .grade-badge {
+    width: 100%;
+  }
+
+  .grading-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .grading-box {
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .area-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grade-legend {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .grade-legend-item:nth-child(2),
+  .grade-legend-item:nth-child(4) {
+    border-right: none;
+  }
+}
+
+@media (max-width: 520px) {
+
+  .reports-main {
+    padding: 18px 12px 40px;
+  }
+
+  .report-choice-grid,
+  .area-grid,
+  .grading-summary,
+  .class-summary,
+  .grade-legend {
+    grid-template-columns: 1fr;
+  }
+
+  .serious-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .serious-item {
+    border-right: none;
+    border-bottom: 1px solid #fecaca;
+  }
+
+  .serious-item:last-child {
+    border-bottom: none;
+  }
+
+  .serious-total {
+    grid-column: auto;
+    border-top: none;
+  }
+
+  .report-title-card h3 {
+    font-size: 24px;
+  }
+}
