@@ -109,8 +109,55 @@ function criterionName(id){
   return c?.name||"Assessment Criterion";
 }
 
+function normalizeArea(v){
+  return String(v??"").trim().toLowerCase().replace(/\s+/g," ");
+}
+
+function isDisciplineArea(v){
+  return normalizeArea(v)==="discipline";
+}
+
 function recordRowsForClass(c,s){
   return records().filter(r=>gradeOf(r.class??r.grade)===c&&sectionOf(r.section??r.stream)===s);
+}
+
+// Some earlier SAMS versions stored Discipline records in a separate key.
+// Read both formats so old and new deductions appear in the reports.
+function legacyDisciplineRowsForClass(c,s){
+  const legacy=read("sams_discipline_records",[]);
+  if(!Array.isArray(legacy)) return [];
+  return legacy.filter(r=>
+    gradeOf(r.class??r.grade??r.Class)===c &&
+    sectionOf(r.section??r.stream??r.Section)===s
+  );
+}
+
+function disciplineRowsForClass(c,s){
+  const current=recordRowsForClass(c,s).filter(r=>isDisciplineArea(r.area));
+  const legacy=legacyDisciplineRowsForClass(c,s);
+  return [...current,...legacy];
+}
+
+function disciplineItems(row){
+  if(Array.isArray(row?.records)) return row.records;
+  // Support flat legacy discipline records as well.
+  if(row && (row.point!==undefined || row.points!==undefined)) return [row];
+  return [];
+}
+
+function disciplinePoint(item){
+  const point=Number(item?.point??item?.points);
+  if(!Number.isFinite(point)) return 0;
+  // Discipline is always a deduction. If an old record was saved as +2,
+  // treat it as -2 in reports instead of accidentally adding marks.
+  return point>0 ? -point : point;
+}
+
+function studentMatchesDisciplineItem(item,sid){
+  const wanted=String(sid??"").trim();
+  if(!wanted) return false;
+  return [item?.studentId,item?.studentCode,item?.studentName]
+    .some(v=>String(v??"").trim()===wanted);
 }
 
 function assessmentBasePoints(c,s){
@@ -142,29 +189,19 @@ function disciplineForStudent(c,s,sid){
   const wantedId=String(sid??"").trim();
   if(!wantedId)return 0;
 
-  return recordRowsForClass(c,s)
-    .filter(r=>r.area==="Discipline")
-    .reduce((sum,r)=>{
-      const rows=Array.isArray(r.records)?r.records:[];
-      return sum+rows.reduce((a,x)=>{
-        if(String(x?.studentId??"").trim()!==wantedId)return a;
-        const point=Number(x?.point);
-        return a+(Number.isFinite(point)?point:0);
-      },0);
-    },0);
+  return disciplineRowsForClass(c,s)
+    .reduce((sum,r)=>sum+disciplineItems(r).reduce((a,x)=>{
+      if(!studentMatchesDisciplineItem(x,wantedId)) return a;
+      return a+disciplinePoint(x);
+    },0),0);
 }
 
 function allDisciplinePoints(c,s){
-  return recordRowsForClass(c,s)
-    .filter(r=>r.area==="Discipline")
-    .reduce((sum,r)=>{
-      const rows=Array.isArray(r.records)?r.records:[];
-      return sum+rows.reduce((a,x)=>{
-        if(x?.affectsClassTotal===false)return a;
-        const point=Number(x?.point);
-        return a+(Number.isFinite(point)?point:0);
-      },0);
-    },0);
+  return disciplineRowsForClass(c,s)
+    .reduce((sum,r)=>sum+disciplineItems(r).reduce((a,x)=>{
+      if(x?.affectsClassTotal===false)return a;
+      return a+disciplinePoint(x);
+    },0),0);
 }
 
 /* =========================================================
@@ -221,13 +258,12 @@ function seriousDisciplineIncidentCount(c,s,sid){
   const wantedId=String(sid??"").trim();
   if(!wantedId)return 0;
 
-  return recordRowsForClass(c,s)
-    .filter(r=>r.area==="Discipline")
+  return disciplineRowsForClass(c,s)
     .reduce((count,r)=>{
-      const rows=Array.isArray(r.records)?r.records:[];
+      const rows=disciplineItems(r);
 
       return count+rows.filter(x=>{
-        if(String(x?.studentId??"").trim()!==wantedId)return false;
+        if(!studentMatchesDisciplineItem(x,wantedId))return false;
 
         const name=normalizeDisciplineText(criterionName(x?.criterionId));
 
@@ -400,13 +436,12 @@ function renderIndividual(){
       }).join("")
     :`<li class="record-empty">No participation records</li>`;
 
-  const disciplineRecords=recordRowsForClass(c,s)
-    .filter(r=>r.area==='Discipline')
-    .flatMap(r=>(Array.isArray(r.records)?r.records:[])
-      .filter(x=>String(x.studentId||'')===String(sid))
+  const disciplineRecords=disciplineRowsForClass(c,s)
+    .flatMap(r=>disciplineItems(r)
+      .filter(x=>studentMatchesDisciplineItem(x,sid))
       .map(x=>({
         criterion:criterionName(x.criterionId),
-        points:Number(x.point)||0,
+        points:disciplinePoint(x),
         comment:x.comment||''
       }))
     );
