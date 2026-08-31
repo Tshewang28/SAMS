@@ -123,6 +123,12 @@ const subtitle=document.getElementById("assessmentSubtitle");
 
 const positiveAreas=["Classroom","Assembly","SUPW","Games & Sports"];
 
+// Only these three areas are limited to one completed assessment per
+// class/section in the automatically calculated current school week.
+// Discipline and Games & Sports keep their existing behaviour unchanged.
+const WEEKLY_UNIQUE_AREAS=["Classroom","Assembly","SUPW"];
+const WEEKLY_AREA_MESSAGE_ID="weeklyAreaStatusMessage";
+
 // Administration enters this page only to manage assessment criteria.
 // Do not expose assessment recording controls to Administration.
 if(administrationAccess){
@@ -453,6 +459,7 @@ function populateSections(){
   }
 
   areaSelect.value="";
+  updateAreaAvailability();
   resetAssessment();
 }
 
@@ -707,18 +714,100 @@ function getWeekKey(dateValue){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-function hasWeeklyAssessment(c,s,a){
-  if(a==="Discipline" || a==="Games & Sports") return false;
-  const currentWeek=getWeekKey(new Date());
-  return readJSON("sams_assessment_records",[]).some(record=>
-    record.class===c &&
-    record.section===s &&
-    record.area===a &&
-    getWeekKey(record.savedAt)===currentWeek
-  );
+function isWeeklyUniqueArea(area){
+  return WEEKLY_UNIQUE_AREAS.includes(String(area||"").trim());
 }
 
-function saveAssessment(){
+function getCompletedWeeklyAreas(c,s){
+  if(!c || !s) return new Set();
+
+  const currentWeek=getWeekKey(new Date());
+  const completed=new Set();
+
+  readJSON("sams_assessment_records",[]).forEach(record=>{
+    if(
+      String(record.class||"")===String(c) &&
+      String(record.section||"")===String(s) &&
+      isWeeklyUniqueArea(record.area) &&
+      getWeekKey(record.savedAt)===currentWeek
+    ){
+      completed.add(String(record.area).trim());
+    }
+  });
+
+  return completed;
+}
+
+function ensureWeeklyAreaStatusMessage(){
+  let message=document.getElementById(WEEKLY_AREA_MESSAGE_ID);
+  if(message) return message;
+
+  const field=areaSelect?.closest?.(".field");
+  if(!field) return null;
+
+  message=document.createElement("div");
+  message.id=WEEKLY_AREA_MESSAGE_ID;
+  message.className="weekly-area-status-message hidden";
+  field.appendChild(message);
+  return message;
+}
+
+function updateAreaAvailability(){
+  if(!areaSelect || principalDisciplineOnly) return;
+
+  const c=classSelect.value;
+  const s=sectionSelect.value;
+  const completed=getCompletedWeeklyAreas(c,s);
+  const previous=areaSelect.value;
+
+  [...areaSelect.options].forEach(option=>{
+    const area=String(option.value||"").trim();
+    if(!isWeeklyUniqueArea(area)) return;
+
+    const done=completed.has(area);
+    option.hidden=done;
+    option.disabled=done;
+  });
+
+  // If the currently selected weekly area has just been completed by this
+  // assessor or another assessor, clear it and close the assessment panel.
+  if(previous && isWeeklyUniqueArea(previous) && completed.has(previous)){
+    areaSelect.value="";
+    resetAssessment();
+  }
+
+  const message=ensureWeeklyAreaStatusMessage();
+  if(message){
+    if(c && s && completed.size){
+      const completedText=[...completed].join(", ");
+      if(completed.size===WEEKLY_UNIQUE_AREAS.length){
+        message.textContent=`Weekly assessments completed for this class/section: ${completedText}. Other assessment areas remain available.`;
+      }else{
+        message.textContent=`Already completed this week: ${completedText}. Completed areas are hidden from the list.`;
+      }
+      message.classList.remove("hidden");
+    }else{
+      message.textContent="";
+      message.classList.add("hidden");
+    }
+  }
+}
+
+function hasWeeklyAssessment(c,s,a){
+  if(!isWeeklyUniqueArea(a)) return false;
+  return getCompletedWeeklyAreas(c,s).has(String(a||"").trim());
+}
+
+async function saveAssessment(){
+  // Refresh shared records before checking the weekly restriction so an
+  // assessment completed by another assessor/device is not offered again.
+  try{
+    if(window.samsCloud && typeof window.samsCloud.pullAll === "function"){
+      await window.samsCloud.pullAll();
+    }
+  }catch(e){
+    console.warn("Could not refresh assessment records before saving; using current local records.",e);
+  }
   const c=classSelect.value,s=sectionSelect.value,a=areaSelect.value;
   if(principalDisciplineOnly){
     // Principal uses the hidden internal ALL values.
@@ -829,6 +918,11 @@ function saveAssessment(){
   });
   localStorage.setItem("sams_assessment_records",JSON.stringify(all));
 
+  // Immediately remove the completed Classroom / Assembly / SUPW area from
+  // the selector for this class and section. Games & Sports and Discipline
+  // are intentionally left unchanged.
+  updateAreaAvailability();
+
   const btn=document.getElementById("saveBtn");
   const old=btn.textContent;
   btn.textContent="Saved ✓";
@@ -838,10 +932,26 @@ function saveAssessment(){
 
 
 classSelect.addEventListener("change",populateSections);
-sectionSelect.addEventListener("change",()=>{ populateStudents(); renderAssessment(); });
+sectionSelect.addEventListener("change",()=>{
+  populateStudents();
+  updateAreaAvailability();
+  renderAssessment();
+});
 studentSelect?.addEventListener("change",renderAssessment);
 areaSelect.addEventListener("change",renderAssessment);
-document.getElementById("saveBtn").addEventListener("click",saveAssessment);
+
+// When assessment records are refreshed from another device/assessor, update
+// the restricted weekly areas automatically without changing other areas.
+window.addEventListener("sams-cloud-updated",event=>{
+  if(event.detail?.key!=="sams_assessment_records") return;
+  updateAreaAvailability();
+});
+document.getElementById("saveBtn").addEventListener("click",()=>{
+  saveAssessment().catch(error=>{
+    console.error("Assessment save failed:",error);
+    alert("The assessment could not be saved. Please try again.");
+  });
+});
 document.getElementById("criteriaBtn").addEventListener("click",()=>location.href="assessment.html");
 
 
@@ -869,6 +979,8 @@ document.getElementById("criteriaBtn").addEventListener("click",()=>location.hre
     .discipline-total-bar #disciplineTotal{font-size:18px;color:#b42318}
     .discipline-comment-wrap{margin-top:14px}
     .discipline-comment-wrap textarea{width:100%;box-sizing:border-box}
+    .weekly-area-status-message{margin-top:8px;padding:8px 10px;border-radius:9px;background:#fff7e6;border:1px solid #f2d7a5;color:#7a5200;font-size:12px;line-height:1.45;font-weight:600}
+    .weekly-area-status-message.hidden{display:none}
     @media(max-width:700px){.discipline-checklist-intro,.discipline-total-bar{flex-direction:column}.discipline-student-count{white-space:normal}.discipline-checklist-header,.discipline-check-row{grid-template-columns:42px 1fr 90px;padding:12px 10px}.discipline-check-point{font-size:13px}}
   `;
   document.head.appendChild(style);
@@ -896,6 +1008,7 @@ async function initializeAssessmentSelections(){
   }
 
   populateSections();
+  updateAreaAvailability();
 
   if(principalDisciplineOnly){
     // Keep the normal Class and Section selectors visible for Principal.
