@@ -868,3 +868,98 @@ if(document.readyState==='loading'){
 }else{
   init();
 }
+
+
+
+/* ===== Reports-only enhancement: Week/Month class report ===== */
+(function () {
+  "use strict";
+  const TYPE = "reportPeriodType", VALUE = "reportPeriodValue";
+  const $ = id => document.getElementById(id);
+
+  function field(o, names) {
+    if (!o || typeof o !== "object") return undefined;
+    const map = {};
+    Object.keys(o).forEach(k => map[k.toLowerCase()] = o[k]);
+    for (const n of names) if (Object.prototype.hasOwnProperty.call(map, n.toLowerCase())) return map[n.toLowerCase()];
+  }
+  function dateOf(v) { if (!v) return null; const d = new Date(v); return isNaN(d) ? null : d; }
+  function week(d) {
+    const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const day = x.getUTCDay() || 7; x.setUTCDate(x.getUTCDate() + 4 - day);
+    const y = new Date(Date.UTC(x.getUTCFullYear(), 0, 1));
+    return Math.ceil((((x-y)/86400000)+1)/7);
+  }
+  function key(type,d) { return type === "month" ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}` : `${d.getFullYear()}-W${String(week(d)).padStart(2,"0")}`; }
+  function label(type,d) { return type === "month" ? d.toLocaleDateString(undefined,{month:"long",year:"numeric"}) : `Week ${week(d)} – ${d.getFullYear()}`; }
+  function esc(v) { return String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"); }
+
+  function records() {
+    const out=[];
+    Object.keys(localStorage).forEach(k=>{
+      try {
+        const a=JSON.parse(localStorage.getItem(k));
+        if (!Array.isArray(a)) return;
+        a.forEach(r=>{
+          if (!r || typeof r!=="object") return;
+          const area=field(r,["assessmentArea","area","category","assessment","criterion","domain","type"]);
+          const mark=field(r,["mark","marks","score","points","value","rating"]);
+          const comment=field(r,["comment","comments","assessorComment","feedback","remark","remarks"]);
+          const dt=field(r,["date","assessmentDate","createdAt","timestamp","recordedAt","entryDate"]);
+          if (area!==undefined || mark!==undefined || comment!==undefined)
+            out.push({area:area==null||area===""?"Other":String(area),mark,comment:comment==null?"":String(comment),
+              date:dateOf(dt),student:field(r,["student","studentName","name","learner","learnerName"]),
+              reason:field(r,["reason","deductionReason","negativeReason","description"])});
+        });
+      } catch(e) {}
+    });
+    return out;
+  }
+
+  function populatePeriods() {
+    const t=$(TYPE), s=$(VALUE); if(!t||!s) return;
+    const map=new Map(), now=new Date();
+    records().filter(r=>r.date).forEach(r=>map.set(key(t.value,r.date),r.date));
+    map.set(key(t.value,now), map.get(key(t.value,now)) || now);
+    s.innerHTML=Array.from(map.entries()).sort((a,b)=>b[0].localeCompare(a[0]))
+      .map(x=>`<option value="${esc(x[0])}">${esc(label(t.value,x[1]))}</option>`).join("");
+  }
+
+  function render() {
+    const t=$(TYPE), s=$(VALUE), summary=$("classAssessmentSummary"), comments=$("allAssessmentComments");
+    const negSec=$("negativeMarksSection"), negList=$("negativeMarksList"), lab=$("selectedReportPeriodLabel");
+    if(!t||!s||!summary||!comments||!negSec||!negList) return;
+    const rs=records().filter(r=>r.date && key(t.value,r.date)===s.value);
+    const groups={}; rs.forEach(r=>(groups[r.area] ||= []).push(r));
+    const areas=Object.keys(groups);
+    summary.innerHTML=areas.length ? areas.map(a=>{
+      const nums=groups[a].map(r=>Number(r.mark)).filter(Number.isFinite);
+      const avg=nums.length ? (nums.reduce((x,y)=>x+y,0)/nums.length).toFixed(1) : "—";
+      return `<div class="assessment-area-card"><div class="assessment-area-name">${esc(a)}</div><div class="assessment-area-mark">${esc(avg)}</div><div class="assessment-area-meta">${nums.length} recorded mark(s)</div></div>`;
+    }).join("") : `<div class="empty-report-state">No assessment records found for the selected period.</div>`;
+
+    const seen=new Set(), all=rs.filter(r=>r.comment.trim() && !seen.has(r.area+"|"+r.comment) && seen.add(r.area+"|"+r.comment));
+    comments.innerHTML=all.length ? all.map(r=>`<article class="assessment-comment-item"><div class="comment-area">${esc(r.area)}</div><div class="comment-text">${esc(r.comment)}</div></article>`).join("") : `<div class="empty-report-state">No comments recorded for the selected period.</div>`;
+
+    const neg=rs.filter(r=>{
+      const n=Number(r.mark), txt=(r.area+" "+(r.reason||"")+" "+r.comment).toLowerCase();
+      return r.student && ((Number.isFinite(n)&&n<0) || /negative|deduct|penalt|minus/.test(txt));
+    });
+    negSec.hidden=!neg.length;
+    negList.innerHTML=neg.length ? `<div class="negative-table-wrap"><table class="negative-marks-table"><thead><tr><th>Student</th><th>Assessment Area</th><th>Deduction</th><th>Reason</th></tr></thead><tbody>${neg.map(r=>`<tr><td>${esc(r.student)}</td><td>${esc(r.area)}</td><td>${esc(r.mark)}</td><td>${esc(r.reason||r.comment||"—")}</td></tr>`).join("")}</tbody></table></div>` : "";
+    if(lab && s.selectedOptions.length) lab.textContent=s.selectedOptions[0].textContent;
+  }
+
+  function init() {
+    if(!$(TYPE)||!$(VALUE)) return;
+    populatePeriods(); render();
+    $(TYPE).addEventListener("change",()=>{populatePeriods();render();});
+    $(VALUE).addEventListener("change",render);
+    document.addEventListener("click",e=>{
+      const b=e.target.closest("button");
+      if(b && /generate report/i.test(b.textContent||"")) setTimeout(render,100);
+    });
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init); else init();
+})();
+
