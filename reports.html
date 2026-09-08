@@ -55,11 +55,16 @@
       <div class="panel-heading">
         <div><span class="eyebrow">CLASS REPORT</span><h2>Class Assessment Report</h2></div>
       </div>
-      <div class="selection-grid class-selection">
+      <div class="selection-grid class-selection class-report-selection">
         <label>Class / Grade<select id="classReportClass"><option value="">Select Class</option></select></label>
         <label>Section / Stream<select id="classReportSection" disabled><option value="">Select Section / Stream</option></select></label>
+        <label>Report Period<select id="classReportPeriodType">
+          <option value="week">Week</option>
+          <option value="month">Month</option>
+        </select></label>
+        <label>Select Period<select id="classReportPeriod" disabled><option value="">Select Class and Section first</option></select></label>
       </div>
-      <div id="classEmpty" class="empty-state">Select a class and section to view the report.</div>
+      <div id="classEmpty" class="empty-state">Select a class, section and report period to view the report.</div>
       <div id="classResult" class="result-area hidden"></div>
     </section>
   </main>
