@@ -60,24 +60,28 @@ body{margin:0;background:linear-gradient(180deg,#f8faff,#f2f5f9);font-family:Int
 
 
 
-/* ===== Reports-only UI enhancement styles ===== */
-.report-period-controls{display:flex;flex-wrap:wrap;gap:16px;margin:14px 0}
-.report-period-controls .filter-group{min-width:190px}
-.report-period-controls label{display:block;margin-bottom:6px;font-weight:600}
-.report-period-controls select{width:100%}
-.class-assessment-report{margin-top:20px}
-.class-assessment-report .report-card{margin-bottom:20px;padding:20px;border-radius:12px;background:var(--card-bg,#fff);border:1px solid var(--border-color,#e5e7eb)}
-.report-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
-.report-card-header h3{margin:0}
-.report-period-label,.report-note{font-size:.9rem;opacity:.75}
-.assessment-area-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
-.assessment-area-card{padding:16px;border-radius:10px;border:1px solid var(--border-color,#e5e7eb)}
-.assessment-area-name{font-weight:700}.assessment-area-mark{font-size:1.7rem;font-weight:700;margin-top:8px}.assessment-area-meta{font-size:.85rem;opacity:.7;margin-top:4px}
-.assessment-comments-list{display:grid;gap:10px}
-.assessment-comment-item{padding:13px 15px;border-left:4px solid currentColor;border-radius:8px;background:var(--surface-2,#f8fafc)}
-.comment-area{font-weight:700;margin-bottom:4px}.comment-text{line-height:1.5}
-.negative-table-wrap{overflow-x:auto}.negative-marks-table{width:100%;border-collapse:collapse}
-.negative-marks-table th,.negative-marks-table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border-color,#e5e7eb)}
-.empty-report-state{padding:18px;text-align:center;opacity:.7}
-@media(max-width:700px){.report-card-header{align-items:flex-start;flex-direction:column}.report-period-controls .filter-group{width:100%}}
+/* =========================================================
+   CLASS REPORT - PERIOD / AREA / COMMENT DESIGN
+   Reports section only
+   ========================================================= */
+.class-report-selection{grid-template-columns:repeat(4,1fr)}
+.period-summary{grid-template-columns:repeat(4,1fr)}
+.period-report-note{padding:13px 15px;border-radius:11px;background:#f7fbff;border:1px solid #cfe0f5;color:#34445b;font-size:12px;line-height:1.5;margin:0 0 18px}
+.class-report-section-block{margin-top:22px}
+.section-block-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 10px}
+.section-block-heading h3{margin:0;color:#142e54;font-size:18px}
+.section-block-heading span{font-size:11px;color:#66758a}
+.report-area-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.report-area-summary-card{border:1px solid #dce5ef;border-radius:14px;padding:17px;background:#fbfcfe;min-height:105px}
+.report-area-summary-title{font-size:12px;font-weight:900;color:#253b58}
+.report-area-summary-mark{font-size:27px;font-weight:900;color:#172f55;margin-top:10px;line-height:1}
+.report-area-summary-meta{font-size:10px;color:#66758a;margin-top:7px}
+.class-comments-list{display:grid;gap:10px}
+.class-comment-item{padding:13px 15px;border:1px solid #dce5ef;border-left:4px solid #2e5d8f;border-radius:10px;background:#fbfcfe}
+.class-comment-area{display:block;font-size:11px;font-weight:900;color:#253b58;margin-bottom:5px}
+.class-comment-item p{margin:0;color:#34445b;font-size:12px;line-height:1.5}
+.negative-section-block{margin-bottom:10px}
+.negative-report-table td,.negative-report-table th{vertical-align:top}
+@media(max-width:950px){.class-report-selection{grid-template-columns:repeat(2,1fr)}.report-area-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.class-report-selection,.report-area-summary-grid,.period-summary{grid-template-columns:1fr}.section-block-heading{align-items:flex-start;flex-direction:column}}
 
