@@ -706,113 +706,189 @@ function renderIndividual(){
    CLASS REPORT
    ========================================================= */
 
-function renderClass(){
-  const c=$('classReportClass').value;
-  const s=$('classReportSection').value;
+function getReportWeekKey(value){
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return "";
+  const day=d.getDay();
+  const diff=day===0 ? -6 : 1-day;
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+diff);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 
+function getReportMonthKey(value){
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+
+function reportPeriodLabel(type,key){
+  if(!key) return "";
+  if(type==="month"){
+    const [y,m]=key.split("-").map(Number);
+    return new Date(y,m-1,1).toLocaleDateString(undefined,{month:"long",year:"numeric"});
+  }
+  const d=new Date(`${key}T00:00:00`);
+  const end=new Date(d); end.setDate(end.getDate()+6);
+  return `Week: ${d.toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"})} – ${end.toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"})}`;
+}
+
+function assessmentRecordsForClassPeriod(c,s,type,key){
+  return records().filter(r=>{
+    if(gradeOf(r.class??r.grade)!==c || sectionOf(r.section??r.stream)!==s) return false;
+    const saved=r.savedAt||r.createdAt||r.date||r.timestamp;
+    if(!saved) return false;
+    return (type==="month" ? getReportMonthKey(saved) : getReportWeekKey(saved))===key;
+  });
+}
+
+function periodOptionsForClass(c,s,type){
+  const keys=new Map();
+  records().forEach(r=>{
+    if(gradeOf(r.class??r.grade)!==c || sectionOf(r.section??r.stream)!==s) return;
+    const saved=r.savedAt||r.createdAt||r.date||r.timestamp;
+    if(!saved) return;
+    const d=new Date(saved);
+    if(Number.isNaN(d.getTime())) return;
+    const key=type==="month" ? getReportMonthKey(saved) : getReportWeekKey(saved);
+    if(key && !keys.has(key)) keys.set(key,saved);
+  });
+  // Always offer the current period so the report controls are usable before a new entry is made.
+  const now=new Date();
+  const current=type==="month" ? getReportMonthKey(now) : getReportWeekKey(now);
+  if(!keys.has(current)) keys.set(current,now.toISOString());
+  return [...keys.keys()].sort((a,b)=>b.localeCompare(a));
+}
+
+function fillClassReportPeriods(){
+  const c=$("classReportClass")?.value;
+  const s=$("classReportSection")?.value;
+  const type=$("classReportPeriodType")?.value||"week";
+  const select=$("classReportPeriod");
+  if(!select) return;
+  select.innerHTML="";
   if(!c||!s){
-    clearResult('classResult','classEmpty');
+    select.disabled=true;
+    select.innerHTML='<option value="">Select Class and Section first</option>';
+    return;
+  }
+  const keys=periodOptionsForClass(c,s,type);
+  select.disabled=false;
+  select.innerHTML=keys.map(k=>`<option value="${esc(k)}">${esc(reportPeriodLabel(type,k))}</option>`).join("");
+}
+
+function renderClass(){
+  const c=$("classReportClass").value;
+  const s=$("classReportSection").value;
+  const type=$("classReportPeriodType")?.value||"week";
+  const period=$("classReportPeriod")?.value||"";
+
+  if(!c||!s||!period){
+    clearResult("classResult","classEmpty");
     return;
   }
 
-  const sts=studentsFor(c,s);
-  const assessmentBase=assessmentBasePoints(c,s);
-  const sportsClassPoints=sportsPositionPointsForClass(c,s);
-  const base=assessmentBase+sportsClassPoints;
-  const disc=allDisciplinePoints(c,s);
-  const total=base+disc;
-  const max=coreMaxPoints(c,s);
-  const gradingScore=base+disc;
-  const grade=gradeForScore(gradingScore,max);
+  const periodRows=assessmentRecordsForClassPeriod(c,s,type,period);
+  const areaMap=new Map();
+  const comments=[];
+  const negative=[];
 
-  const rows=sts.map((st,i)=>{
-    const sid=studentId(st);
-    const d=disciplineForStudent(c,s,sid);
-    const v=volunteerPointsForStudent(sid);
-    const sp=sportsPositionPointsForStudent(sid);
-    const participation=sportsParticipationPointsForStudent(sid);
-    const t=assessmentBase+d+v+sp+participation;
-    const sg=gradeForScore(assessmentBase+d+sp,max);
+  periodRows.forEach(row=>{
+    const area=String(row.area||"Other").trim()||"Other";
+    if(!areaMap.has(area)) areaMap.set(area,{points:0,count:0});
 
-    return `
-      <tr>
-        <td>${i+1}</td>
-        <td>
-          <strong>${esc(studentName(st))}</strong>
-          ${st.studentCode?`<small>${esc(st.studentCode)}</small>`:""}
-        </td>
-        <td class="num">${assessmentBase}</td>
-        <td class="num">${sp}</td>
-        <td class="num">${participation}</td>
-        <td class="num ${d<0?'negative':''}">${d}</td>
-        <td class="num"><strong>${t}</strong></td>
-        <td class="num"><strong>${sg.percent.toFixed(1)}%</strong></td>
-        <td><span class="table-grade">${sg.grade}</span></td>
-      </tr>
-    `;
-  }).join('');
+    const nested=Array.isArray(row.records)?row.records:[];
+    nested.forEach(item=>{
+      const point=Number(item?.point);
+      if(Number.isFinite(point)){
+        areaMap.get(area).points+=point;
+        areaMap.get(area).count++;
+      }
+      const comment=String(item?.comment||"").trim();
+      if(comment){
+        comments.push({area,comment});
+      }
+      // Only negative deductions reveal student identity. Assessor is never rendered.
+      const deduction=Number(item?.point);
+      if(area.toLowerCase()==="discipline" && Number.isFinite(deduction) && deduction<0){
+        const student=item?.studentName||row.studentName||"";
+        if(student){
+          negative.push({
+            student:String(student),
+            area,
+            deduction,
+            reason:String(item?.comment||"").trim() || criterionName(item?.criterionId)
+          });
+        }
+      }
+    });
+  });
 
-  $('classResult').innerHTML=`
+  // Preserve every comment; remove only exact duplicate entries.
+  const uniqueComments=[];
+  const seenComments=new Set();
+  comments.forEach(x=>{
+    const k=x.area+"|"+x.comment;
+    if(!seenComments.has(k)){seenComments.add(k);uniqueComments.push(x);}
+  });
+
+  const areaCards=[...areaMap.entries()].map(([area,data])=>{
+    const mark=data.count ? data.points : 0;
+    return `<div class="report-area-summary-card">
+      <div class="report-area-summary-title">${esc(area)}</div>
+      <div class="report-area-summary-mark">${Number.isInteger(mark)?mark:mark.toFixed(1)}</div>
+      <div class="report-area-summary-meta">${data.count} recorded mark${data.count===1?"":"s"}</div>
+    </div>`;
+  }).join("");
+
+  const commentHtml=uniqueComments.length
+    ?uniqueComments.map(x=>`<article class="class-comment-item"><span class="class-comment-area">${esc(x.area)}</span><p>${esc(x.comment)}</p></article>`).join("")
+    :'<div class="empty-state">No assessor comments recorded for this period.</div>';
+
+  const negativeHtml=negative.length
+    ?`<div class="report-table-wrap negative-report-wrap"><table class="report-table negative-report-table"><thead><tr><th>Student</th><th>Assessment Area</th><th>Negative Mark</th><th>Reason</th></tr></thead><tbody>${negative.map(x=>`<tr><td><strong>${esc(x.student)}</strong></td><td>${esc(x.area)}</td><td class="num negative">${esc(x.deduction)}</td><td>${esc(x.reason)}</td></tr>`).join("")}</tbody></table></div>`
+    :'<div class="empty-state">No negative marks or deductions affected the class during this period.</div>';
+
+  const totalMarks=[...areaMap.values()].reduce((sum,x)=>sum+x.points,0);
+  const assessedAreas=areaMap.size;
+
+  $("classResult").innerHTML=`
     <div class="report-title-card">
       <div>
         <span class="eyebrow">CLASS REPORT</span>
         <h3>Class ${esc(c)} • ${esc(s)}</h3>
-        <p>${sts.length} student${sts.length===1?'':'s'} in this class</p>
+        <p>${esc(reportPeriodLabel(type,period))}</p>
       </div>
-      <div class="grade-badge">
-        <small>Class Grade</small>
-        <strong>${grade.grade}</strong>
-        <span>${grade.label}</span>
-      </div>
+      <div class="grade-badge"><small>Assessment Areas</small><strong>${assessedAreas}</strong><span>recorded</span></div>
     </div>
 
-    <div class="class-summary">
-      <div class="summary-box"><small>Grading Score</small><strong>${gradingScore} / ${max}</strong></div>
-      <div class="summary-box"><small>Percentage</small><strong>${grade.percent.toFixed(1)}%</strong></div>
-      <div class="summary-box"><small>Performance</small><strong>${grade.label}</strong></div>
-      <div class="summary-box"><small>Final Class Total</small><strong class="${total<0?'negative':''}">${total}</strong></div>
+    <div class="class-summary period-summary">
+      <div class="summary-box"><small>Assessment Areas</small><strong>${assessedAreas}</strong></div>
+      <div class="summary-box"><small>Total Recorded Marks</small><strong>${Number.isInteger(totalMarks)?totalMarks:totalMarks.toFixed(1)}</strong></div>
+      <div class="summary-box"><small>Comments</small><strong>${uniqueComments.length}</strong></div>
+      <div class="summary-box"><small>Negative Deductions</small><strong class="${negative.length?"negative":""}">${negative.length}</strong></div>
     </div>
 
-    <div class="grade-legend">
-      <strong>Grading Scale</strong>
-      <span>A 85–100% Excellent</span>
-      <span>B 70–84% Very Good</span>
-      <span>C 55–69% Good / Satisfactory</span>
-      <span>D 40–54% Needs Improvement</span>
-      <span>E 0–39% Poor / Unsatisfactory</span>
-    </div>
+    <div class="period-report-note"><strong>Class report privacy:</strong> student names are not displayed in the normal assessment summary or comments. Student names appear only in the Negative Marks / Deductions section. Assessor names are not displayed.</div>
 
-    <div class="discipline-note">
-      Class grading uses <strong>all assessed core points − all Discipline deductions</strong>.
-      A Discipline deduction affects the student's individual grade and is also deducted once
-      from the class score. Sports Participation and Volunteer points remain individual
-      recognition points.
-    </div>
+    <section class="class-report-section-block">
+      <div class="section-block-heading"><h3>Assessment Marks by Area</h3><span>${esc(reportPeriodLabel(type,period))}</span></div>
+      <div class="report-area-summary-grid">${areaCards||'<div class="empty-state">No assessment marks recorded for this period.</div>'}</div>
+    </section>
 
-    <div class="report-table-wrap">
-      <table class="report-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Student</th>
-            <th class="num">Assessment</th>
-            <th class="num">Sports Position</th>
-            <th class="num">Participation</th>
-            <th class="num">Discipline</th>
-            <th class="num">Total Points</th>
-            <th class="num">%</th>
-            <th>Grade</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows||'<tr><td colspan="9" class="empty-state">No students found in this class.</td></tr>'}
-        </tbody>
-      </table>
-    </div>
+    <section class="class-report-section-block">
+      <div class="section-block-heading"><h3>Assessment Comments</h3><span>All comments for the selected period</span></div>
+      <div class="class-comments-list">${commentHtml}</div>
+    </section>
+
+    <section class="class-report-section-block negative-section-block">
+      <div class="section-block-heading"><h3>Negative Marks / Deductions</h3><span>Student details shown only here</span></div>
+      ${negativeHtml}
+    </section>
   `;
 
-  $('classResult').classList.remove('hidden');
-  $('classEmpty').classList.add('hidden');
+  $("classResult").classList.remove("hidden");
+  $("classEmpty").classList.add("hidden");
 }
 
 /* =========================================================
@@ -837,10 +913,21 @@ function init(){
 
   $('classReportClass').addEventListener('change',()=>{
     fillSections($('classReportClass').value,$('classReportSection'));
+    fillClassReportPeriods();
     renderClass();
   });
 
-  $('classReportSection').addEventListener('change',renderClass);
+  $('classReportSection').addEventListener('change',()=>{
+    fillClassReportPeriods();
+    renderClass();
+  });
+
+  $('classReportPeriodType').addEventListener('change',()=>{
+    fillClassReportPeriods();
+    renderClass();
+  });
+
+  $('classReportPeriod').addEventListener('change',renderClass);
 
   $('individualTab').addEventListener('click',()=>{
     $('individualTab').classList.add('active');
@@ -868,98 +955,3 @@ if(document.readyState==='loading'){
 }else{
   init();
 }
-
-
-
-/* ===== Reports-only enhancement: Week/Month class report ===== */
-(function () {
-  "use strict";
-  const TYPE = "reportPeriodType", VALUE = "reportPeriodValue";
-  const $ = id => document.getElementById(id);
-
-  function field(o, names) {
-    if (!o || typeof o !== "object") return undefined;
-    const map = {};
-    Object.keys(o).forEach(k => map[k.toLowerCase()] = o[k]);
-    for (const n of names) if (Object.prototype.hasOwnProperty.call(map, n.toLowerCase())) return map[n.toLowerCase()];
-  }
-  function dateOf(v) { if (!v) return null; const d = new Date(v); return isNaN(d) ? null : d; }
-  function week(d) {
-    const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    const day = x.getUTCDay() || 7; x.setUTCDate(x.getUTCDate() + 4 - day);
-    const y = new Date(Date.UTC(x.getUTCFullYear(), 0, 1));
-    return Math.ceil((((x-y)/86400000)+1)/7);
-  }
-  function key(type,d) { return type === "month" ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}` : `${d.getFullYear()}-W${String(week(d)).padStart(2,"0")}`; }
-  function label(type,d) { return type === "month" ? d.toLocaleDateString(undefined,{month:"long",year:"numeric"}) : `Week ${week(d)} – ${d.getFullYear()}`; }
-  function esc(v) { return String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"); }
-
-  function records() {
-    const out=[];
-    Object.keys(localStorage).forEach(k=>{
-      try {
-        const a=JSON.parse(localStorage.getItem(k));
-        if (!Array.isArray(a)) return;
-        a.forEach(r=>{
-          if (!r || typeof r!=="object") return;
-          const area=field(r,["assessmentArea","area","category","assessment","criterion","domain","type"]);
-          const mark=field(r,["mark","marks","score","points","value","rating"]);
-          const comment=field(r,["comment","comments","assessorComment","feedback","remark","remarks"]);
-          const dt=field(r,["date","assessmentDate","createdAt","timestamp","recordedAt","entryDate"]);
-          if (area!==undefined || mark!==undefined || comment!==undefined)
-            out.push({area:area==null||area===""?"Other":String(area),mark,comment:comment==null?"":String(comment),
-              date:dateOf(dt),student:field(r,["student","studentName","name","learner","learnerName"]),
-              reason:field(r,["reason","deductionReason","negativeReason","description"])});
-        });
-      } catch(e) {}
-    });
-    return out;
-  }
-
-  function populatePeriods() {
-    const t=$(TYPE), s=$(VALUE); if(!t||!s) return;
-    const map=new Map(), now=new Date();
-    records().filter(r=>r.date).forEach(r=>map.set(key(t.value,r.date),r.date));
-    map.set(key(t.value,now), map.get(key(t.value,now)) || now);
-    s.innerHTML=Array.from(map.entries()).sort((a,b)=>b[0].localeCompare(a[0]))
-      .map(x=>`<option value="${esc(x[0])}">${esc(label(t.value,x[1]))}</option>`).join("");
-  }
-
-  function render() {
-    const t=$(TYPE), s=$(VALUE), summary=$("classAssessmentSummary"), comments=$("allAssessmentComments");
-    const negSec=$("negativeMarksSection"), negList=$("negativeMarksList"), lab=$("selectedReportPeriodLabel");
-    if(!t||!s||!summary||!comments||!negSec||!negList) return;
-    const rs=records().filter(r=>r.date && key(t.value,r.date)===s.value);
-    const groups={}; rs.forEach(r=>(groups[r.area] ||= []).push(r));
-    const areas=Object.keys(groups);
-    summary.innerHTML=areas.length ? areas.map(a=>{
-      const nums=groups[a].map(r=>Number(r.mark)).filter(Number.isFinite);
-      const avg=nums.length ? (nums.reduce((x,y)=>x+y,0)/nums.length).toFixed(1) : "—";
-      return `<div class="assessment-area-card"><div class="assessment-area-name">${esc(a)}</div><div class="assessment-area-mark">${esc(avg)}</div><div class="assessment-area-meta">${nums.length} recorded mark(s)</div></div>`;
-    }).join("") : `<div class="empty-report-state">No assessment records found for the selected period.</div>`;
-
-    const seen=new Set(), all=rs.filter(r=>r.comment.trim() && !seen.has(r.area+"|"+r.comment) && seen.add(r.area+"|"+r.comment));
-    comments.innerHTML=all.length ? all.map(r=>`<article class="assessment-comment-item"><div class="comment-area">${esc(r.area)}</div><div class="comment-text">${esc(r.comment)}</div></article>`).join("") : `<div class="empty-report-state">No comments recorded for the selected period.</div>`;
-
-    const neg=rs.filter(r=>{
-      const n=Number(r.mark), txt=(r.area+" "+(r.reason||"")+" "+r.comment).toLowerCase();
-      return r.student && ((Number.isFinite(n)&&n<0) || /negative|deduct|penalt|minus/.test(txt));
-    });
-    negSec.hidden=!neg.length;
-    negList.innerHTML=neg.length ? `<div class="negative-table-wrap"><table class="negative-marks-table"><thead><tr><th>Student</th><th>Assessment Area</th><th>Deduction</th><th>Reason</th></tr></thead><tbody>${neg.map(r=>`<tr><td>${esc(r.student)}</td><td>${esc(r.area)}</td><td>${esc(r.mark)}</td><td>${esc(r.reason||r.comment||"—")}</td></tr>`).join("")}</tbody></table></div>` : "";
-    if(lab && s.selectedOptions.length) lab.textContent=s.selectedOptions[0].textContent;
-  }
-
-  function init() {
-    if(!$(TYPE)||!$(VALUE)) return;
-    populatePeriods(); render();
-    $(TYPE).addEventListener("change",()=>{populatePeriods();render();});
-    $(VALUE).addEventListener("change",render);
-    document.addEventListener("click",e=>{
-      const b=e.target.closest("button");
-      if(b && /generate report/i.test(b.textContent||"")) setTimeout(render,100);
-    });
-  }
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init); else init();
-})();
-
