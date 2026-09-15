@@ -4,21 +4,7 @@
 const RECORDS_KEY = "sams_assessment_records";
 const CLASSES_KEY = "sams_classes";
 const AREAS = ["SUPW","Assembly","Classroom","Discipline"];
-const WEEKS = [1,2,3];
-
-function read(key,fallback){
-  try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; }
-  catch(e){ return fallback; }
-}
-function records(){ const v=read(RECORDS_KEY,[]); return Array.isArray(v)?v:[]; }
-function classes(){ const v=read(CLASSES_KEY,[]); return Array.isArray(v)?v:[]; }
-function escapeHTML(v){ return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])); }
-function classKey(grade,section){ return `${String(grade||"").trim()}|${String(section||"").trim()}`; }
-function label(grade,section){ return `${grade||""}${section?` ${section}`:""}`.trim(); }
-function dateOf(record){ const d=new Date(record?.savedAt); return Number.isNaN(d.getTime())?null:d; }
-function monthKey(year,month){ return `${year}-${String(month+1).padStart(2,"0")}`; }
-function monthLabel(year,month){ return new Date(year,month,1).toLocaleDateString(undefined,{month:"long",year:"numeric"}); }
-
+const WEEKS = [1,2,3,4,5];
 function pointsForRecord(record){
   if(!record) return 0;
   // Discipline is always a class deduction. Other explicitly excluded records
@@ -30,21 +16,74 @@ function pointsForRecord(record){
   },0);
 }
 
-function weekOfMonth(date){
+// A school ranking week runs Monday-Sunday.
+// The result is declared on the following Monday.
+// The declaration Monday determines BOTH the ranking month and week number.
+// Example: Aug 31-Sep 6 -> declared Mon Sep 7 -> September Week 1.
+function mondayOfWeek(date){
   if(!date) return null;
-  // Week 1 = days 1–7, Week 2 = 8–14, Week 3 = 15–21.
-  return Math.floor((date.getDate()-1)/7)+1;
+  const d=new Date(date);
+  d.setHours(0,0,0,0);
+  const day=d.getDay(); // Sun=0, Mon=1, ... Sat=6
+  const diff=day===0 ? -6 : 1-day;
+  d.setDate(d.getDate()+diff);
+  return d;
 }
+
+function declarationMonday(date){
+  const monday=mondayOfWeek(date);
+  if(!monday) return null;
+  monday.setDate(monday.getDate()+7);
+  return monday;
+}
+
+function weekNumberForDeclaration(declarationDate){
+  if(!declarationDate) return null;
+  const first=new Date(declarationDate.getFullYear(),declarationDate.getMonth(),1);
+  const day=first.getDay();
+  const firstMonday=new Date(first);
+  firstMonday.setDate(1 + (day===0 ? 1 : (8-day)%7));
+  firstMonday.setHours(0,0,0,0);
+  if(declarationDate < firstMonday) return null;
+  return Math.floor((declarationDate-firstMonday)/(7*24*60*60*1000))+1;
+}
+
+function declarationInfo(date){
+  const declaration=declarationMonday(date);
+  if(!declaration) return null;
+  const week=weekNumberForDeclaration(declaration);
+  if(!week || week>5) return null;
+  return {
+    date: declaration,
+    year: declaration.getFullYear(),
+    month: declaration.getMonth(),
+    week
+  };
+}
+
+function declarationKey(info){
+  return info ? `${info.year}-${String(info.month+1).padStart(2,"0")}` : "";
+}
+
+function declarationLabel(info){
+  return info ? info.date.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}) : "";
+}
+
 function selectedPeriod(){
   const select=document.getElementById("monthPicker");
   const value=select?.value;
   if(value){ const [y,m]=value.split("-").map(Number); return {year:y,month:m-1}; }
-  const now=new Date(); return {year:now.getFullYear(),month:now.getMonth()};
+  const now=new Date();
+  // Default to the month in which the next Monday declaration falls.
+  const info=declarationInfo(now);
+  return info ? {year:info.year,month:info.month} : {year:now.getFullYear(),month:now.getMonth()};
 }
+
 function periodRecords(period){
   return records().filter(r=>{
-    const d=dateOf(r); if(!d) return false;
-    return d.getFullYear()===period.year && d.getMonth()===period.month;
+    const info=declarationInfo(dateOf(r));
+    if(!info) return false;
+    return info.year===period.year && info.month===period.month;
   });
 }
 
@@ -54,7 +93,9 @@ function buildRows(period){
     const key=classKey(grade,section);
     if(!grade) return null;
     if(!map[key]) map[key]={grade,section,label:label(grade,section),areas:{}};
-    AREAS.forEach(a=>{ if(!map[key].areas[a]) map[key].areas[a]={1:0,2:0,3:0,total:0}; });
+    AREAS.forEach(a=>{
+      if(!map[key].areas[a]) map[key].areas[a]={1:0,2:0,3:0,4:0,5:0,total:0,_count:{1:0,2:0,3:0,4:0,5:0,total:0}};
+    });
     return map[key];
   };
 
@@ -70,45 +111,58 @@ function buildRows(period){
     const row=ensure(grade,section); if(!row) return;
     const area=String(r.area??"").trim();
     if(!AREAS.includes(area)) return;
-    const week=weekOfMonth(dateOf(r));
-    if(!WEEKS.includes(week)) return;
+    const info=declarationInfo(dateOf(r));
+    if(!info || info.year!==period.year || info.month!==period.month || !WEEKS.includes(info.week)) return;
+    const week=info.week;
     const points=pointsForRecord(r);
     row.areas[area][week]+=points;
     row.areas[area].total+=points;
+    row.areas[area]._count[week]+=1;
+    row.areas[area]._count.total+=1;
   });
 
   return Object.values(map).map(row=>{
     const net=AREAS.reduce((sum,a)=>sum+row.areas[a].total,0);
-    return {...row,net};
+    const _recordCount=AREAS.reduce((sum,a)=>sum+(row.areas[a]._count?.total||0),0);
+    return {...row,net,_recordCount};
   }).sort((a,b)=>b.net-a.net || a.label.localeCompare(b.label));
 }
 
-function formatPoints(value){
+function formatPoints(value, empty=false){
+  if(empty) return "—";
   const n=Number(value)||0;
   return n>0?`+${n}`:String(n);
 }
-function cell(value,area,total){
+function hasWeekData(areaObj,week){
+  return Number(areaObj?._count?.[week]||0)>0;
+}
+function cell(value,area,total,hasData=true){
   const cls=[area.toLowerCase().replace(/\s+/g,"-"), total?"total-col":""].filter(Boolean).join(" ");
-  return `<td class="${cls} ${area==='Discipline'?'negative-cell':''}">${formatPoints(value)}</td>`;
+  return `<td class="${cls} ${area==='Discipline'?'negative-cell':''}">${formatPoints(value,!hasData)}</td>`;
 }
 
 function renderDetail(rows){
   const body=document.getElementById("detailBody");
   if(!body) return;
   if(!rows.length){
-    body.innerHTML='<tr><td colspan="19" class="empty-row">No classes or assessment results are available for this month.</td></tr>';
+    body.innerHTML='<tr><td colspan="27" class="empty-row">No classes or assessment results are available for this declaration month.</td></tr>';
     return;
   }
   body.innerHTML=rows.map((row,index)=>{
     const medal=index===0?'🥇':index===1?'🥈':index===2?'🥉':'';
     const rank=medal||String(index+1);
+    const weekCells=area=>{
+      const obj=row.areas[area];
+      return WEEKS.map(w=>cell(obj[w],area,false,hasWeekData(obj,w))).join("")+
+             cell(obj.total,area,true,Number(obj._count?.total||0)>0);
+    };
     return `<tr class="${index<3?'top-row':''}">
       <td class="sticky-class class-name"><strong>${escapeHTML(row.label)}</strong></td>
-      ${cell(row.areas.SUPW[1],"SUPW",false)}${cell(row.areas.SUPW[2],"SUPW",false)}${cell(row.areas.SUPW[3],"SUPW",false)}${cell(row.areas.SUPW.total,"SUPW",true)}
-      ${cell(row.areas.Assembly[1],"Assembly",false)}${cell(row.areas.Assembly[2],"Assembly",false)}${cell(row.areas.Assembly[3],"Assembly",false)}${cell(row.areas.Assembly.total,"Assembly",true)}
-      ${cell(row.areas.Classroom[1],"Classroom",false)}${cell(row.areas.Classroom[2],"Classroom",false)}${cell(row.areas.Classroom[3],"Classroom",false)}${cell(row.areas.Classroom.total,"Classroom",true)}
-      ${cell(row.areas.Discipline[1],"Discipline",false)}${cell(row.areas.Discipline[2],"Discipline",false)}${cell(row.areas.Discipline[3],"Discipline",false)}${cell(row.areas.Discipline.total,"Discipline",true)}
-      <td class="net-cell">${formatPoints(row.net)}</td>
+      ${weekCells("SUPW")}
+      ${weekCells("Assembly")}
+      ${weekCells("Classroom")}
+      ${weekCells("Discipline")}
+      <td class="net-cell">${formatPoints(row.net, row._recordCount===0)}</td>
       <td class="rank-cell">${rank}</td>
     </tr>`;
   }).join("");
@@ -135,12 +189,17 @@ function populateMonths(){
   const select=document.getElementById("monthPicker");
   if(!select || select.options.length) return;
   const set=new Set();
-  records().forEach(r=>{ const d=dateOf(r); if(d) set.add(monthKey(d.getFullYear(),d.getMonth())); });
-  const now=new Date(); set.add(monthKey(now.getFullYear(),now.getMonth()));
+  records().forEach(r=>{
+    const info=declarationInfo(dateOf(r));
+    if(info) set.add(monthKey(info.year,info.month));
+  });
+  const now=new Date();
+  const currentInfo=declarationInfo(now);
+  const currentMonth=currentInfo ? monthKey(currentInfo.year,currentInfo.month) : monthKey(now.getFullYear(),now.getMonth());
+  set.add(currentMonth);
   const months=[...set].sort().reverse();
   select.innerHTML=months.map(k=>{const [y,m]=k.split("-").map(Number);return `<option value="${k}">${monthLabel(y,m-1)}</option>`;}).join("");
-  const current=monthKey(now.getFullYear(),now.getMonth());
-  if(set.has(current)) select.value=current;
+  if(set.has(currentMonth)) select.value=currentMonth;
   select.addEventListener("change",render);
 }
 
