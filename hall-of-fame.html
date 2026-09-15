@@ -3,105 +3,96 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Class Ranking | SAMS</title>
+<title>Hall of Fame | SAMS</title>
 <link rel="stylesheet" href="css/hall-of-fame.css">
 </head>
 <body>
 <div class="hof-page">
   <header class="hof-header">
-    <div class="header-brand">
-      <div class="brand-mark">📊</div>
-      <div>
-        <div class="brand">SAMS</div>
-        <h1>Class Ranking</h1>
-        <p>Building Responsible, Respectful and Active Learners</p>
-      </div>
+    <div>
+      <div class="brand">SAMS</div>
+      <h1>Hall of Fame</h1>
+      <p>Celebrating outstanding class performance from assessment results</p>
     </div>
-    <div class="month-picker-wrap">
-      <label for="monthPicker">Select Month</label>
-      <select id="monthPicker" aria-label="Select month"></select>
-    </div>
+    <a href="dashboard.html" class="back-btn">← Back to Dashboard</a>
   </header>
 
   <main class="hof-main">
-    <section class="ranking-intro">
-      <div>
-        <span class="eyebrow">MONTHLY CLASS PERFORMANCE</span>
-        <h2 id="rankingTitle">Class Points in Detail</h2>
-        <p>Each class is ranked using weekly points from <strong>SUPW, Assembly, Classroom</strong> and <strong>Discipline deductions</strong>.</p>
+    <section class="celebration-hero">
+      <div class="spark spark-1">✦</div>
+      <div class="spark spark-2">✧</div>
+      <div class="spark spark-3">✦</div>
+      <div class="hero-crown">♛</div>
+      <div class="hero-copy">
+        <span class="hero-kicker">SAMS • CELEBRATING EXCELLENCE</span><span class="public-visibility">VISIBLE TO ALL USERS</span>
+        <h2>Where Champions Shine</h2>
+        <p>Honouring the classes that lead, inspire and make every achievement count.</p>
       </div>
-      <div class="formula-card">
-        <span>NET POINTS</span>
-        <strong>SUPW + Assembly + Classroom − Discipline deductions</strong>
+      <div class="hero-badge">🏆<span>EXCELLENCE<br>MATTERS</span></div>
+    </section>
+
+    <section class="grand-card">
+      <div class="trophy">🏆</div>
+      <div>
+        <span class="eyebrow">OVERALL TOP CLASS</span>
+        <h2>Grand Champion Class</h2>
+        <div id="grandChampion" class="champion-name">Calculating…</div>
+        <div id="grandScore" class="score">0 points</div>
+        <div id="grandPeriod" class="muted">The class that stands above the rest — every division, every achievement.</div>
+        <div class="celebrate-line">✨ <strong>Rise. Excel. Inspire.</strong> ✨</div>
       </div>
     </section>
 
-    <section class="detail-card">
+    <section class="period-card">
       <div class="section-heading">
         <div>
-          <span class="eyebrow">DETAILED ASSESSMENT</span>
-          <h2>Weekly Class Points</h2>
-          <p>Each ranking week runs Monday–Sunday and is declared on the following Monday. The declaration Monday determines the month and week.</p>
+          <span class="eyebrow">WEEKLY RECOGNITION</span>
+          <h2>Champion of the Week</h2>
+          <p class="section-tagline">A week of effort. A moment of glory. A champion emerges.</p>
         </div>
-        <div class="action-buttons"><button class="refresh-btn" id="refreshBtn" type="button">↻ Refresh</button><button class="print-btn" type="button" onclick="window.print()">🖨 Print One Page</button></div>
+        <button class="refresh-btn" id="refreshBtn">↻ Refresh</button>
       </div>
-      <div class="table-scroll">
-        <table class="ranking-table" id="detailTable">
-          <thead>
-            <tr>
-              <th rowspan="2" class="sticky-class">Class</th>
-              <th colspan="4" class="area supw">🌱 SUPW</th>
-              <th colspan="4" class="area assembly">👥 Assembly</th>
-              <th colspan="4" class="area classroom">📚 Classroom</th>
-              <th colspan="4" class="area discipline">⚠ Discipline</th>
-              <th rowspan="2" class="net-head">Net Points</th>
-              <th rowspan="2">Rank</th>
-            </tr>
-            <tr>
-              <th class="supw">W1</th><th class="supw">W2</th><th class="supw">W3</th><th class="supw">W4</th><th class="supw">W5</th><th class="supw total-col">Total</th>
-              <th class="assembly">W1</th><th class="assembly">W2</th><th class="assembly">W3</th><th class="assembly">W4</th><th class="assembly">W5</th><th class="assembly total-col">Total</th>
-              <th class="classroom">W1</th><th class="classroom">W2</th><th class="classroom">W3</th><th class="classroom">W4</th><th class="classroom">W5</th><th class="classroom total-col">Total</th>
-              <th class="discipline">W1</th><th class="discipline">W2</th><th class="discipline">W3</th><th class="discipline">W4</th><th class="discipline">W5</th><th class="discipline total-col">Total</th>
-            </tr>
-          </thead>
-          <tbody id="detailBody"></tbody>
-        </table>
-      </div>
-      <div class="declaration-rule"><span><b>Ranking rule:</b> Monday–Sunday assessment week → declared on the following Monday. The declaration Monday sets the ranking month and week.</span><span><b>Example:</b> Aug 31–Sep 6 → declared Sep 7 → September Week 1.</span></div>
-<div class="table-note">
-        <span><b>Positive points:</b> SUPW, Assembly and Classroom</span>
-        <span><b class="negative-text">Negative points:</b> Discipline deductions</span>
-        <span>Higher net points = higher rank</span>
-      </div>
+      <div class="division-grid" id="weekGrid"></div>
     </section>
 
-    <section class="summary-grid">
-      <div class="summary-card">
-        <div class="summary-head">
-          <div>
-            <span class="eyebrow">OVERALL CLASS RANKING</span>
-            <h2 id="summaryTitle">September 2026</h2>
-          </div>
-          <span class="champion-pill">🏆 Grand Champion</span>
+    <section class="period-card">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">MONTHLY RECOGNITION</span>
+          <h2>Champion of the Month</h2>
+          <p class="section-tagline">Consistency creates champions. Celebrate the class that led the month.</p>
         </div>
-        <div class="summary-list" id="summaryList"></div>
       </div>
+      <div class="division-grid" id="monthGrid"></div>
+    
+</section>
 
-      <aside class="info-card">
-        <h2>Key Information</h2>
-        <div class="info-row"><span>📅</span><p><strong>Month:</strong> <span id="infoMonth">September 2026</span></p></div>
-        <div class="info-row"><span>🌱</span><p><strong>SUPW:</strong> Positive points for service and useful work.</p></div>
-        <div class="info-row"><span>👥</span><p><strong>Assembly:</strong> Positive points for participation and conduct.</p></div>
-        <div class="info-row"><span>📚</span><p><strong>Classroom:</strong> Positive points for classroom standards.</p></div>
-        <div class="info-row"><span>⚠</span><p><strong>Discipline:</strong> Negative points only; deductions reduce the class total.</p></div>
-        <div class="info-row"><span>🏆</span><p><strong>Ranking:</strong> Classes are ordered by highest net points.</p></div>
-      </aside>
-    </section>
+    <button type="button" class="your-ranking-card" id="yourClassRankingCard" aria-expanded="false">
+      <div class="ranking-icon">📊</div>
+      <div class="ranking-content">
+        <span class="eyebrow">KNOW WHERE YOU STAND</span>
+        <h2>Your Class Ranking</h2>
+        <p>Click to see every class ranked from highest to lowest. No single class is shown until you open the ranking.</p>
+        <div id="yourClassRanking" class="ranking-result">View complete class ranking →</div>
+      </div>
+    </button>
 
-    <div class="footer-message">
-      <span>Discipline today, a better tomorrow.</span>
-      <span>Learn • Serve • Respect • Grow Together</span>
+    <div id="classRankingPanel" class="class-ranking-panel" hidden>
+      <div class="ranking-panel-head">
+        <div>
+          <span class="eyebrow">OVERALL CLASS STANDINGS</span>
+          <h2>🏆 Class Ranking</h2>
+          <p>All classes ranked by total points from Assessment Results.</p>
+        </div>
+        <button type="button" id="closeClassRanking" class="close-ranking">Close ×</button>
+      </div>
+      <div id="classRankingList" class="class-ranking-list"></div>
     </div>
+
+    <section class="info-card">
+      <strong>Automatic scoring</strong>
+      <span>All points come directly from Assessment Results. Discipline deductions are included once in the class total, including previously recorded deductions, while remaining attached only to the selected student in individual reports. Games &amp; Sports points are included.</span>
+    </section>
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
