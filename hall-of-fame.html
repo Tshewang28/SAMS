@@ -3,96 +3,214 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hall of Fame | SAMS</title>
+<title>Class Ranking | SAMS</title>
 <link rel="stylesheet" href="css/hall-of-fame.css">
+
+<style id="sams-redesign-sept-2026">
+/* SAMS Hall of Fame – September 2026 redesign */
+:root{
+  --sams-blue:#123d72; --sams-blue2:#1f5c9b; --gold:#d99a18;
+  --ink:#17355d; --muted:#61738d; --line:#dce5f0; --bg:#f4f8fc;
+  --supw:#e5f7ef; --assembly:#e8f1ff; --classroom:#fff0db; --discipline:#ffe8ee;
+}
+body{background:linear-gradient(#f7fbff,#edf4fb)!important;color:var(--ink)!important}
+.sams-new-header{background:linear-gradient(100deg,var(--sams-blue),var(--sams-blue2));color:#fff;padding:18px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px #163f711c}
+.sams-brand{display:flex;align-items:center;gap:14px}.sams-logo{width:46px;height:46px;border-radius:10px;background:#ffffff24;display:grid;place-items:center;font-size:27px}
+.sams-brand small{display:block;font-weight:800;letter-spacing:.16em;font-size:10px}.sams-brand h1{margin:1px 0 0;font-size:25px}.sams-brand p{margin:2px 0 0;font-size:11px;opacity:.9}
+.sams-month-select{background:#fff;color:#17355d;border:0;border-radius:10px;padding:11px 18px;font-weight:700;min-width:190px}
+.sams-wrap{max-width:1500px;margin:0 auto;padding:22px}
+.sams-title{display:flex;justify-content:space-between;align-items:end;margin:3px 0 14px}
+.sams-title h2{margin:0;font-size:24px}.sams-title p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.sams-cards{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.sams-card{border:1px solid var(--line);border-radius:13px;padding:16px;background:#fff;box-shadow:0 5px 18px #17355d0d;min-height:120px}
+.sams-card.month{background:linear-gradient(135deg,#fff9e8,#fff)}
+.sams-card.week{background:linear-gradient(135deg,#eef7ff,#fff)}
+.sams-card.next{background:linear-gradient(135deg,#fff0f5,#fff)}
+.sams-card.info{background:linear-gradient(135deg,#edf6ff,#fff)}
+.sams-card .label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:#4b6688}
+.sams-card h3{margin:7px 0 2px;font-size:24px}.sams-card .pts{font-size:14px;font-weight:800;color:#a76500}
+.sams-card .sub{font-size:12px;color:#536985;line-height:1.55}.sams-card .icon{font-size:25px;float:right}
+.sams-rule{background:#fff;border:1px solid #dbe7f4;border-radius:10px;padding:10px 13px;margin:0 0 15px;font-size:12px;color:#526783}
+.sams-rule b{color:#17355d}
+.sams-panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 5px 18px #17355d0d;margin-bottom:15px}
+.sams-panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sams-panel-head h2{font-size:19px;margin:0}.sams-actions{display:flex;gap:8px}.sams-actions button{border:0;border-radius:8px;padding:8px 13px;font-weight:700}
+.sams-table-wrap{overflow:auto;border:1px solid #dfe7f0;border-radius:10px}
+.sams-table-wrap table{width:100%;border-collapse:collapse;min-width:1180px}
+.sams-table-wrap th,.sams-table-wrap td{padding:7px 7px;text-align:center;border-right:1px solid #dfe7f0;border-bottom:1px solid #e4eaf1;font-size:11px;white-space:nowrap}
+.sams-table-wrap th:first-child,.sams-table-wrap td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:2}
+.sams-table-wrap thead tr:first-child th{font-size:12px;padding:8px 5px}
+.sams-table-wrap thead tr:nth-child(2) th{font-size:10px}
+.sams-table-wrap th.supw,.sams-table-wrap td.supw{background:var(--supw)}
+.sams-table-wrap th.assembly,.sams-table-wrap td.assembly{background:var(--assembly)}
+.sams-table-wrap th.classroom,.sams-table-wrap td.classroom{background:var(--classroom)}
+.sams-table-wrap th.discipline,.sams-table-wrap td.discipline{background:var(--discipline)}
+.sams-table-wrap td.net-cell{background:#f0efff;font-weight:900;color:#3527a0}.sams-table-wrap td.rank-cell{font-weight:900;background:#fff7df}
+.sams-weeks{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.sams-week{border:1px solid #d8e5f4;border-radius:9px;padding:10px 12px;background:#fff}.sams-week strong{color:#124c9c}.sams-week div{font-size:11px;line-height:1.55;color:#526783}
+@media(max-width:1000px){.sams-cards{grid-template-columns:1fr 1fr}.sams-weeks{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.sams-cards{grid-template-columns:1fr}.sams-wrap{padding:12px}}
+@media print{
+  @page{size:A4 landscape;margin:7mm}
+  body{background:#fff!important}
+  .sams-new-header{padding:7px 10px;box-shadow:none}.sams-brand h1{font-size:17px}.sams-brand p{font-size:8px}
+  .sams-wrap{max-width:none;padding:8px}.sams-title{margin:2px 0 6px}.sams-title h2{font-size:17px}.sams-title p{font-size:8px}
+  .sams-cards{gap:6px;margin-bottom:7px}.sams-card{min-height:70px;padding:7px}.sams-card h3{font-size:15px;margin:3px 0}.sams-card .label,.sams-card .sub{font-size:8px}.sams-card .icon{font-size:17px}
+  .sams-rule{padding:5px 7px;margin-bottom:6px;font-size:8px}
+  .sams-panel{padding:7px;margin-bottom:6px;box-shadow:none}.sams-panel-head{margin-bottom:4px}.sams-panel-head h2{font-size:13px}
+  .sams-table-wrap{overflow:visible}.sams-table-wrap table{min-width:0;width:100%;table-layout:fixed}
+  .sams-table-wrap th,.sams-table-wrap td{padding:3px 2px;font-size:6.5px}.sams-table-wrap thead tr:first-child th{font-size:7px;padding:3px}.sams-table-wrap thead tr:nth-child(2) th{font-size:6px}
+  .sams-weeks{gap:4px}.sams-week{padding:5px 6px}.sams-week div{font-size:7px}
+  .no-print{display:none!important}
+}
+</style>
+
 </head>
 <body>
+
+<div class="sams-new-header">
+  <div class="sams-brand"><div class="sams-logo">📊</div><div><small>SAMS</small><h1>Class Ranking</h1><p>Building Responsible, Respectful and Active Learners</p></div></div>
+  <select class="sams-month-select" id="samsMonthSelect" aria-label="Select month">
+    <option value="2026-09">September 2026</option>
+  </select>
+</div>
+<div class="sams-wrap">
+  <div class="sams-title">
+    <div><h2>🏆 Hall of Fame</h2><p>Celebrating classes that lead with service, participation and discipline.</p></div>
+    <div class="no-print"><button id="samsPrint" style="border:0;border-radius:8px;padding:9px 14px;font-weight:800;background:#123d72;color:white">🖨 Print</button></div>
+  </div>
+
+  <div class="sams-cards">
+    <div class="sams-card month">
+      <span class="icon">🏆</span><div class="label">Month Champion</div>
+      <h3 id="samsMonthChampion">—</h3><div class="pts" id="samsMonthPoints">— Points</div><div class="sub">September 2026</div>
+    </div>
+    <div class="sams-card week">
+      <span class="icon">🥇</span><div class="label">Week Champion</div>
+      <h3 id="samsWeekChampion">—</h3><div class="pts" id="samsWeekPoints">— Points</div><div class="sub">September 2026 – Week 1<br>Assessment: Aug 31 – Sep 6<br>Declared: Monday, Sep 7</div>
+    </div>
+    <div class="sams-card next">
+      <span class="icon">📅</span><div class="label">Next Week</div>
+      <h3>September 2026 – Week 2</h3><div class="sub"><b>Assessment:</b> Sep 7 – Sep 13<br><b>Declared:</b> Monday, Sep 14</div>
+      <div class="sams-rule" style="margin-top:8px"><b>Rule:</b> Each week runs Monday–Sunday. The following Monday determines the month and week.</div>
+    </div>
+    <div class="sams-card info">
+      <span class="icon">ℹ️</span><div class="label">Key Information</div>
+      <div class="sub" style="margin-top:7px"><b>🌱 SUPW:</b> Positive points<br><b>👥 Assembly:</b> Positive points<br><b>📚 Classroom:</b> Positive points<br><b>⚠ Discipline:</b> Negative deductions<br><b>🏆 Ranking:</b> Highest net points</div>
+    </div>
+  </div>
+
+  <div class="sams-panel">
+    <div class="sams-panel-head"><div><div style="font-size:10px;text-transform:uppercase;font-weight:800;color:#b27608">Detailed Class Assessment</div><h2>Monthly Class Points – September 2026</h2><div style="font-size:11px;color:#61738d">Each ranking week runs Monday–Sunday and is declared on the following Monday.</div></div></div>
+    <div id="samsExistingTableHost"></div>
+  </div>
+
+  <div class="sams-panel">
+    <div class="sams-panel-head"><h2>📅 Weekly Declaration Dates for September 2026</h2></div>
+    <div class="sams-weeks">
+      <div class="sams-week"><strong>Week 1</strong><div>Assessment: Aug 31 – Sep 6<br>Declared: Monday, Sep 7</div></div>
+      <div class="sams-week"><strong>Week 2</strong><div>Assessment: Sep 7 – Sep 13<br>Declared: Monday, Sep 14</div></div>
+      <div class="sams-week"><strong>Week 3</strong><div>Assessment: Sep 14 – Sep 20<br>Declared: Monday, Sep 21</div></div>
+      <div class="sams-week"><strong>Week 4</strong><div>Assessment: Sep 21 – Sep 27<br>Declared: Monday, Sep 28</div></div>
+      <div class="sams-week"><strong>Week 5</strong><div>Assessment: Sep 28 – Oct 4<br>Declared: Monday, Oct 5</div></div>
+    </div>
+  </div>
+</div>
+
 <div class="hof-page">
   <header class="hof-header">
-    <div>
-      <div class="brand">SAMS</div>
-      <h1>Hall of Fame</h1>
-      <p>Celebrating outstanding class performance from assessment results</p>
+    <div class="header-brand">
+      <div class="brand-mark">📊</div>
+      <div>
+        <div class="brand">SAMS</div>
+        <h1>Class Ranking</h1>
+        <p>Building Responsible, Respectful and Active Learners</p>
+      </div>
     </div>
-    <a href="dashboard.html" class="back-btn">← Back to Dashboard</a>
+    <div class="month-picker-wrap">
+      <label for="monthPicker">Select Month</label>
+      <select id="monthPicker" aria-label="Select month"></select>
+    </div>
   </header>
 
   <main class="hof-main">
-    <section class="celebration-hero">
-      <div class="spark spark-1">✦</div>
-      <div class="spark spark-2">✧</div>
-      <div class="spark spark-3">✦</div>
-      <div class="hero-crown">♛</div>
-      <div class="hero-copy">
-        <span class="hero-kicker">SAMS • CELEBRATING EXCELLENCE</span><span class="public-visibility">VISIBLE TO ALL USERS</span>
-        <h2>Where Champions Shine</h2>
-        <p>Honouring the classes that lead, inspire and make every achievement count.</p>
-      </div>
-      <div class="hero-badge">🏆<span>EXCELLENCE<br>MATTERS</span></div>
-    </section>
-
-    <section class="grand-card">
-      <div class="trophy">🏆</div>
+    <section class="ranking-intro">
       <div>
-        <span class="eyebrow">OVERALL TOP CLASS</span>
-        <h2>Grand Champion Class</h2>
-        <div id="grandChampion" class="champion-name">Calculating…</div>
-        <div id="grandScore" class="score">0 points</div>
-        <div id="grandPeriod" class="muted">The class that stands above the rest — every division, every achievement.</div>
-        <div class="celebrate-line">✨ <strong>Rise. Excel. Inspire.</strong> ✨</div>
+        <span class="eyebrow">MONTHLY CLASS PERFORMANCE</span>
+        <h2 id="rankingTitle">Class Points in Detail</h2>
+        <p>Each class is ranked using weekly points from <strong>SUPW, Assembly, Classroom</strong> and <strong>Discipline deductions</strong>.</p>
+      </div>
+      <div class="formula-card">
+        <span>NET POINTS</span>
+        <strong>SUPW + Assembly + Classroom − Discipline deductions</strong>
       </div>
     </section>
 
-    <section class="period-card">
+    <section class="detail-card">
       <div class="section-heading">
         <div>
-          <span class="eyebrow">WEEKLY RECOGNITION</span>
-          <h2>Champion of the Week</h2>
-          <p class="section-tagline">A week of effort. A moment of glory. A champion emerges.</p>
+          <span class="eyebrow">DETAILED ASSESSMENT</span>
+          <h2>Weekly Class Points</h2>
+          <p>Week 1, Week 2 and Week 3 are shown separately so progress is easy to compare.</p>
         </div>
-        <button class="refresh-btn" id="refreshBtn">↻ Refresh</button>
+        <div class="action-buttons"><button class="refresh-btn" id="refreshBtn" type="button">↻ Refresh</button><button class="print-btn" type="button" onclick="window.print()">🖨 Print One Page</button></div>
       </div>
-      <div class="division-grid" id="weekGrid"></div>
+      <div class="table-scroll">
+        <table class="ranking-table" id="detailTable">
+          <thead>
+            <tr>
+              <th rowspan="2" class="sticky-class">Class</th>
+              <th colspan="4" class="area supw">🌱 SUPW</th>
+              <th colspan="4" class="area assembly">👥 Assembly</th>
+              <th colspan="4" class="area classroom">📚 Classroom</th>
+              <th colspan="4" class="area discipline">⚠ Discipline</th>
+              <th rowspan="2" class="net-head">Net Points</th>
+              <th rowspan="2">Rank</th>
+            </tr>
+            <tr>
+              <th class="supw">W1</th><th class="supw">W2</th><th class="supw">W3</th><th class="supw total-col">Total</th>
+              <th class="assembly">W1</th><th class="assembly">W2</th><th class="assembly">W3</th><th class="assembly total-col">Total</th>
+              <th class="classroom">W1</th><th class="classroom">W2</th><th class="classroom">W3</th><th class="classroom total-col">Total</th>
+              <th class="discipline">W1</th><th class="discipline">W2</th><th class="discipline">W3</th><th class="discipline total-col">Total</th>
+            </tr>
+          </thead>
+          <tbody id="detailBody"></tbody>
+        </table>
+      </div>
+      <div class="table-note">
+        <span><b>Positive points:</b> SUPW, Assembly and Classroom</span>
+        <span><b class="negative-text">Negative points:</b> Discipline deductions</span>
+        <span>Higher net points = higher rank</span>
+      </div>
     </section>
 
-    <section class="period-card">
-      <div class="section-heading">
-        <div>
-          <span class="eyebrow">MONTHLY RECOGNITION</span>
-          <h2>Champion of the Month</h2>
-          <p class="section-tagline">Consistency creates champions. Celebrate the class that led the month.</p>
+    <section class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-head">
+          <div>
+            <span class="eyebrow">OVERALL CLASS RANKING</span>
+            <h2 id="summaryTitle">September 2026</h2>
+          </div>
+          <span class="champion-pill">🏆 Grand Champion</span>
         </div>
+        <div class="summary-list" id="summaryList"></div>
       </div>
-      <div class="division-grid" id="monthGrid"></div>
-    
-</section>
 
-    <button type="button" class="your-ranking-card" id="yourClassRankingCard" aria-expanded="false">
-      <div class="ranking-icon">📊</div>
-      <div class="ranking-content">
-        <span class="eyebrow">KNOW WHERE YOU STAND</span>
-        <h2>Your Class Ranking</h2>
-        <p>Click to see every class ranked from highest to lowest. No single class is shown until you open the ranking.</p>
-        <div id="yourClassRanking" class="ranking-result">View complete class ranking →</div>
-      </div>
-    </button>
+      <aside class="info-card">
+        <h2>Key Information</h2>
+        <div class="info-row"><span>📅</span><p><strong>Month:</strong> <span id="infoMonth">September 2026</span></p></div>
+        <div class="info-row"><span>🌱</span><p><strong>SUPW:</strong> Positive points for service and useful work.</p></div>
+        <div class="info-row"><span>👥</span><p><strong>Assembly:</strong> Positive points for participation and conduct.</p></div>
+        <div class="info-row"><span>📚</span><p><strong>Classroom:</strong> Positive points for classroom standards.</p></div>
+        <div class="info-row"><span>⚠</span><p><strong>Discipline:</strong> Negative points only; deductions reduce the class total.</p></div>
+        <div class="info-row"><span>🏆</span><p><strong>Ranking:</strong> Classes are ordered by highest net points.</p></div>
+      </aside>
+    </section>
 
-    <div id="classRankingPanel" class="class-ranking-panel" hidden>
-      <div class="ranking-panel-head">
-        <div>
-          <span class="eyebrow">OVERALL CLASS STANDINGS</span>
-          <h2>🏆 Class Ranking</h2>
-          <p>All classes ranked by total points from Assessment Results.</p>
-        </div>
-        <button type="button" id="closeClassRanking" class="close-ranking">Close ×</button>
-      </div>
-      <div id="classRankingList" class="class-ranking-list"></div>
+    <div class="footer-message">
+      <span>Discipline today, a better tomorrow.</span>
+      <span>Learn • Serve • Respect • Grow Together</span>
     </div>
-
-    <section class="info-card">
-      <strong>Automatic scoring</strong>
-      <span>All points come directly from Assessment Results. Discipline deductions are included once in the class total, including previously recorded deductions, while remaining attached only to the selected student in individual reports. Games &amp; Sports points are included.</span>
-    </section>
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -101,5 +219,53 @@
 <script src="js/auth-sync.js"></script>
 <script src="js/assessment-report-utils.js"></script>
 <script src="js/hall-of-fame.js"></script>
+
+<script id="sams-redesign-sept-2026-js">
+(function(){
+  function textOf(el){return (el?.textContent||"").trim();}
+  function findOriginalTable(){
+    const tables=[...document.querySelectorAll("table")];
+    return tables.find(t=>/SUPW/i.test(textOf(t)) && /Assembly/i.test(textOf(t)) && /Discipline/i.test(textOf(t)));
+  }
+  function moveTable(){
+    const host=document.getElementById("samsExistingTableHost");
+    const table=findOriginalTable();
+    if(!host || !table || host.dataset.done) return;
+    const wrap=document.createElement("div"); wrap.className="sams-table-wrap";
+    const clone=table.cloneNode(true);
+    // Normalize header labels to W1-W5 where possible.
+    clone.querySelectorAll("th").forEach(th=>{
+      const s=textOf(th);
+      if(/^W[1-3]$/i.test(s)) th.textContent=s;
+    });
+    wrap.appendChild(clone); host.appendChild(wrap); host.dataset.done="1";
+    table.closest("section,div")?.classList.add("no-print");
+    updateChampionsFromTable(clone);
+  }
+  function updateChampionsFromTable(table){
+    const rows=[...table.querySelectorAll("tbody tr")].filter(r=>r.children.length>3);
+    if(!rows.length) return;
+    const data=rows.map(r=>{
+      const cells=[...r.children];
+      const label=textOf(cells[0]);
+      const nums=cells.map(c=>parseFloat(textOf(c).replace(/[^\d.-]/g,""))).filter(Number.isFinite);
+      return {label, score: nums.length?nums[nums.length-2]:0};
+    }).filter(x=>x.label);
+    if(!data.length) return;
+    data.sort((a,b)=>b.score-a.score);
+    const top=data[0];
+    const mc=document.getElementById("samsMonthChampion"), mp=document.getElementById("samsMonthPoints");
+    const wc=document.getElementById("samsWeekChampion"), wp=document.getElementById("samsWeekPoints");
+    if(mc){mc.textContent=top.label; mp.textContent=(top.score>=0?"+":"")+top.score+" Points";}
+    if(wc){wc.textContent=top.label; wp.textContent=(top.score>=0?"+":"")+top.score+" Points";}
+  }
+  document.addEventListener("DOMContentLoaded",function(){
+    document.getElementById("samsPrint")?.addEventListener("click",()=>window.print());
+    setTimeout(moveTable,400);
+    setTimeout(moveTable,1200);
+  });
+})();
+</script>
+
 </body>
 </html>
