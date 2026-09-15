@@ -13,15 +13,59 @@ function read(key,fallback){try{const v=JSON.parse(localStorage.getItem(key));re
 function records(){return Array.isArray(read(RECORDS_KEY,[]))?read(RECORDS_KEY,[]):[]}
 function classes(){return Array.isArray(read(CLASSES_KEY,[]))?read(CLASSES_KEY,[]):[]}
 function dateOf(r){const d=new Date(r.savedAt);return isNaN(d)?null:d}
-function mondayStart(d){const x=new Date(d);x.setHours(0,0,0,0);const day=x.getDay();x.setDate(x.getDate()-(day===0?6:day-1));return x}
-// A ranking week runs Monday-Sunday. Its result is declared on the following Monday.
-// The declaration Monday determines the ranking month.
-function declarationMonday(d){if(!d)return null;const x=mondayStart(d);x.setDate(x.getDate()+7);return x}
-function declarationWeekNumber(decl){if(!decl)return null;const first=new Date(decl.getFullYear(),decl.getMonth(),1);first.setHours(0,0,0,0);const day=first.getDay();const firstMonday=new Date(first);firstMonday.setDate(1+(day===0?1:8-day));firstMonday.setHours(0,0,0,0);if(decl<firstMonday)return null;return Math.floor((decl-firstMonday)/(7*24*60*60*1000))+1}
-function declarationInfo(d){const decl=declarationMonday(d);const week=declarationWeekNumber(decl);return decl&&week?{date:decl,year:decl.getFullYear(),month:decl.getMonth(),week}:null}
-function currentDeclarationMonday(){const n=new Date();return mondayStart(n)}
-function isThisWeek(d){const info=declarationInfo(d);if(!info)return false;const current=currentDeclarationMonday();return info.date.getTime()===current.getTime()}
-function isThisMonth(d){const info=declarationInfo(d);if(!info)return false;const current=currentDeclarationMonday();return info.year===current.getFullYear()&&info.month===current.getMonth()}
+function mondayStart(d){
+  const x=new Date(d); x.setHours(0,0,0,0);
+  const day=x.getDay();
+  x.setDate(x.getDate()-(day===0?6:day-1));
+  return x;
+}
+
+// Assessment period: Monday-Sunday. The result is declared on the following Monday.
+// The declaration Monday determines the ranking month and week.
+function declarationMonday(d){
+  if(!d)return null;
+  const x=mondayStart(d);
+  x.setDate(x.getDate()+7);
+  return x;
+}
+function declarationWeekNumber(declarationDate){
+  if(!declarationDate)return null;
+  // Week 1 is the first Monday declaration that falls in the month.
+  const first=new Date(declarationDate.getFullYear(),declarationDate.getMonth(),1);
+  first.setHours(0,0,0,0);
+  const day=first.getDay();
+  const firstMonday=new Date(first);
+  firstMonday.setDate(day===1 ? 1 : 1+((8-day)%7));
+  firstMonday.setHours(0,0,0,0);
+  if(declarationDate<firstMonday)return null;
+  return Math.floor((declarationDate-firstMonday)/(7*24*60*60*1000))+1;
+}
+function declarationInfo(d){
+  const declaration=declarationMonday(d);
+  const week=declarationWeekNumber(declaration);
+  return declaration&&week?{date:declaration,year:declaration.getFullYear(),month:declaration.getMonth(),week}:null;
+}
+function currentDeclarationDate(){
+  // On every day, the latest declaration Monday is the Monday of the current week.
+  return mondayStart(new Date());
+}
+function isThisWeek(d){
+  if(!d)return false;
+  const declaration=declarationMonday(d);
+  const current=currentDeclarationDate();
+  return declaration&&declaration.getTime()===current.getTime();
+}
+function isThisMonth(d){
+  const info=declarationInfo(d);
+  if(!info)return false;
+  const current=currentDeclarationDate();
+  return info.year===current.getFullYear()&&info.month===current.getMonth();
+}
+function declaredWeekLabel(){
+  const current=currentDeclarationDate();
+  const week=declarationWeekNumber(current);
+  return week||1;
+}
 function pointsForRecord(r){
   // Discipline is included in the class total even for records saved by an
   // earlier version with affectsClassTotal:false. Other explicitly excluded
@@ -164,14 +208,16 @@ function render(){
   const month=document.getElementById("monthGrid");
   if(week)week.innerHTML=DIVISIONS.map(d=>card(d,winnerForDivision(d,isThisWeek))).join("");
   if(month)month.innerHTML=DIVISIONS.map(d=>card(d,winnerForDivision(d,isThisMonth))).join("");
-  const now=new Date();
-  const declared=currentDeclarationMonday();
+
+  const declared=currentDeclarationDate();
   const declaredMonth=declared.toLocaleDateString(undefined,{month:"long",year:"numeric"});
-  const declaredWeek=declarationWeekNumber(declared);
   const weekHeading=document.querySelectorAll(".period-card h2")[0];
   const monthHeading=document.querySelectorAll(".period-card h2")[1];
-  if(weekHeading)weekHeading.textContent=`Champion of the Week • Week ${declaredWeek||1}`;
+  if(weekHeading)weekHeading.textContent=`Champion of the Week • Week ${declaredWeekLabel()}`;
   if(monthHeading)monthHeading.textContent=`Champion of the Month • ${declaredMonth}`;
+
+  const grandPeriod=document.getElementById("grandPeriod");
+  if(grandPeriod)grandPeriod.textContent="Overall standing across all recorded assessment results.";
   renderYourClassRanking();
   renderFullClassRanking();
 }
