@@ -1,229 +1,188 @@
+// Negative totals are valid and must still appear in Hall of Fame rankings.
 (function(){
 "use strict";
+const RECORDS_KEY="sams_assessment_records";
+const CLASSES_KEY="sams_classes";
+const DIVISIONS=[
+  {id:"4-6",label:"Classes 4–6",grades:["IV","V","VI"]},
+  {id:"7-9",label:"Classes 7–9",grades:["VII","VIII","IX"]},
+  {id:"10-12",label:"Classes 10–12",grades:["X","XI","XII"]}
+];
 
-const RECORDS_KEY = "sams_assessment_records";
-const CLASSES_KEY = "sams_classes";
-const AREAS = ["SUPW","Assembly","Classroom","Discipline"];
-const WEEKS = [1,2,3,4,5];
-function pointsForRecord(record){
-  if(!record) return 0;
-  // Discipline is always a class deduction. Other explicitly excluded records
-  // remain excluded, matching the existing SAMS scoring behaviour.
-  if(record.area!=="Discipline" && record.affectsClassTotal===false) return 0;
-  return (Array.isArray(record.records)?record.records:[]).reduce((sum,item)=>{
-    const p=Number(item?.point);
+function read(key,fallback){try{const v=JSON.parse(localStorage.getItem(key));return v??fallback}catch(e){return fallback}}
+function records(){return Array.isArray(read(RECORDS_KEY,[]))?read(RECORDS_KEY,[]):[]}
+function classes(){return Array.isArray(read(CLASSES_KEY,[]))?read(CLASSES_KEY,[]):[]}
+function dateOf(r){const d=new Date(r.savedAt);return isNaN(d)?null:d}
+function mondayStart(d){const x=new Date(d);x.setHours(0,0,0,0);const day=x.getDay();x.setDate(x.getDate()-(day===0?6:day-1));return x}
+// A ranking week runs Monday-Sunday. Its result is declared on the following Monday.
+// The declaration Monday determines the ranking month.
+function declarationMonday(d){if(!d)return null;const x=mondayStart(d);x.setDate(x.getDate()+7);return x}
+function declarationWeekNumber(decl){if(!decl)return null;const first=new Date(decl.getFullYear(),decl.getMonth(),1);first.setHours(0,0,0,0);const day=first.getDay();const firstMonday=new Date(first);firstMonday.setDate(1+(day===0?1:8-day));firstMonday.setHours(0,0,0,0);if(decl<firstMonday)return null;return Math.floor((decl-firstMonday)/(7*24*60*60*1000))+1}
+function declarationInfo(d){const decl=declarationMonday(d);const week=declarationWeekNumber(decl);return decl&&week?{date:decl,year:decl.getFullYear(),month:decl.getMonth(),week}:null}
+function currentDeclarationMonday(){const n=new Date();return mondayStart(n)}
+function isThisWeek(d){const info=declarationInfo(d);if(!info)return false;const current=currentDeclarationMonday();return info.date.getTime()===current.getTime()}
+function isThisMonth(d){const info=declarationInfo(d);if(!info)return false;const current=currentDeclarationMonday();return info.year===current.getFullYear()&&info.month===current.getMonth()}
+function pointsForRecord(r){
+  // Discipline is included in the class total even for records saved by an
+  // earlier version with affectsClassTotal:false. Other explicitly excluded
+  // records remain excluded.
+  if(r.area!=="Discipline" && r.affectsClassTotal===false)return 0;
+  return (Array.isArray(r.records)?r.records:[]).reduce((sum,x)=>{
+    const p=Number(x.point);
     return Number.isFinite(p)?sum+p:sum;
   },0);
 }
-
-// A school ranking week runs Monday-Sunday.
-// The result is declared on the following Monday.
-// The declaration Monday determines BOTH the ranking month and week number.
-// Example: Aug 31-Sep 6 -> declared Mon Sep 7 -> September Week 1.
-function mondayOfWeek(date){
-  if(!date) return null;
-  const d=new Date(date);
-  d.setHours(0,0,0,0);
-  const day=d.getDay(); // Sun=0, Mon=1, ... Sat=6
-  const diff=day===0 ? -6 : 1-day;
-  d.setDate(d.getDate()+diff);
-  return d;
-}
-
-function declarationMonday(date){
-  const monday=mondayOfWeek(date);
-  if(!monday) return null;
-  monday.setDate(monday.getDate()+7);
-  return monday;
-}
-
-function weekNumberForDeclaration(declarationDate){
-  if(!declarationDate) return null;
-  const first=new Date(declarationDate.getFullYear(),declarationDate.getMonth(),1);
-  const day=first.getDay();
-  const firstMonday=new Date(first);
-  firstMonday.setDate(1 + (day===0 ? 1 : (8-day)%7));
-  firstMonday.setHours(0,0,0,0);
-  if(declarationDate < firstMonday) return null;
-  return Math.floor((declarationDate-firstMonday)/(7*24*60*60*1000))+1;
-}
-
-function declarationInfo(date){
-  const declaration=declarationMonday(date);
-  if(!declaration) return null;
-  const week=weekNumberForDeclaration(declaration);
-  if(!week || week>5) return null;
-  return {
-    date: declaration,
-    year: declaration.getFullYear(),
-    month: declaration.getMonth(),
-    week
-  };
-}
-
-function declarationKey(info){
-  return info ? `${info.year}-${String(info.month+1).padStart(2,"0")}` : "";
-}
-
-function declarationLabel(info){
-  return info ? info.date.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}) : "";
-}
-
-function selectedPeriod(){
-  const select=document.getElementById("monthPicker");
-  const value=select?.value;
-  if(value){ const [y,m]=value.split("-").map(Number); return {year:y,month:m-1}; }
-  const now=new Date();
-  // Default to the month in which the next Monday declaration falls.
-  const info=declarationInfo(now);
-  return info ? {year:info.year,month:info.month} : {year:now.getFullYear(),month:now.getMonth()};
-}
-
-function periodRecords(period){
-  return records().filter(r=>{
-    const info=declarationInfo(dateOf(r));
-    if(!info) return false;
-    return info.year===period.year && info.month===period.month;
-  });
-}
-
-function buildRows(period){
+function classKey(grade,section){return `${String(grade||"").trim()}|${String(section||"").trim()}`}
+function classLabel(c){return `${c.grade||""} ${c.section||c.stream||""}`.trim()}
+function makeClassMap(){
   const map={};
-  const ensure=(grade,section)=>{
-    const key=classKey(grade,section);
-    if(!grade) return null;
-    if(!map[key]) map[key]={grade,section,label:label(grade,section),areas:{}};
-    AREAS.forEach(a=>{
-      if(!map[key].areas[a]) map[key].areas[a]={1:0,2:0,3:0,4:0,5:0,total:0,_count:{1:0,2:0,3:0,4:0,5:0,total:0}};
-    });
-    return map[key];
-  };
+  classes().forEach(c=>{map[classKey(c.grade,c.section||c.stream)]=c});
+  return map;
+}
+function divisionForGrade(grade){
+  if(["IV","V","VI"].includes(grade))return "4-6";
+  if(["VII","VIII","IX"].includes(grade))return "7-9";
+  if(["X","XI","XII"].includes(grade))return "10-12";
+  return null;
+}
+function aggregate(filterFn){
+  const map={};
+  records().forEach(r=>{
+    const d=dateOf(r); if(!filterFn(d,r))return;
+    const key=classKey(r.class,r.section);
+    if(!map[key])map[key]={grade:r.class,section:r.section,points:0};
+    map[key].points+=pointsForRecord(r);
+  });
+  return Object.values(map);
+}
+function winnerForDivision(div,filterFn){
+  const map=makeClassMap();
+  const rows=aggregate(filterFn).filter(x=>div.grades.includes(x.grade));
+  rows.forEach(x=>{if(!x.section && map[classKey(x.grade,"")])x.section=map[classKey(x.grade,"")].section});
+  rows.sort((a,b)=>b.points-a.points || String(a.grade).localeCompare(String(b.grade)) || String(a.section).localeCompare(String(b.section)));
+  return rows[0]||null;
+}
+function allTimeWinner(){
+  const rows=aggregate(()=>true);
+  rows.sort((a,b)=>b.points-a.points || String(a.grade).localeCompare(String(b.grade)) || String(a.section).localeCompare(String(b.section)));
+  return rows[0]||null;
+}
+function card(div,winner){
+  if(!winner)return `<article class="division-card"><div class="medal">🏅</div><h3>${div.label}</h3><div class="empty">No assessment results recorded yet.</div></article>`;
+  const label=`${winner.grade} ${winner.section||""}`.trim();
+  return `<article class="division-card"><div class="medal">🥇</div><h3>${div.label}</h3><div class="winner">${escapeHTML(label)}</div><div class="winner-score">${winner.points} point${winner.points===1?"":"s"} • Champion</div></article>`;
+}
+function escapeHTML(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function render(){
+  const grand=allTimeWinner();
+  document.getElementById("grandChampion").textContent=grand?`${grand.grade} ${grand.section||""}`.trim():"No results yet";
+  document.getElementById("grandScore").textContent=grand?`${grand.points} points • #1 overall`:"0 points";
+  const week=document.getElementById("weekGrid"), month=document.getElementById("monthGrid");
+  week.innerHTML=DIVISIONS.map(d=>card(d,winnerForDivision(d,isThisWeek))).join("");
+  month.innerHTML=DIVISIONS.map(d=>card(d,winnerForDivision(d,isThisMonth))).join("");
+}
+
+function allClassRankings(){
+  const map={};
 
   classes().forEach(c=>{
     const grade=String(c.grade??c.className??c.class??c.Grade??"").trim();
     const section=String(c.section??c.stream??c["Section/Stream"]??c.Section??c.Stream??"").trim();
-    ensure(grade,section);
+    if(!grade)return;
+    const key=classKey(grade,section);
+    if(!map[key])map[key]={grade,section,points:0,label:`${grade}${section?` ${section}`:""}`.trim()};
   });
 
-  periodRecords(period).forEach(r=>{
+  records().forEach(r=>{
     const grade=String(r.class??r.grade??r.Class??"").trim();
     const section=String(r.section??r.stream??r["Section/Stream"]??"").trim();
-    const row=ensure(grade,section); if(!row) return;
-    const area=String(r.area??"").trim();
-    if(!AREAS.includes(area)) return;
-    const info=declarationInfo(dateOf(r));
-    if(!info || info.year!==period.year || info.month!==period.month || !WEEKS.includes(info.week)) return;
-    const week=info.week;
-    const points=pointsForRecord(r);
-    row.areas[area][week]+=points;
-    row.areas[area].total+=points;
-    row.areas[area]._count[week]+=1;
-    row.areas[area]._count.total+=1;
+    if(!grade)return;
+    const key=classKey(grade,section);
+    if(!map[key])map[key]={grade,section,points:0,label:`${grade}${section?` ${section}`:""}`.trim()};
+    map[key].points+=pointsForRecord(r);
   });
 
-  return Object.values(map).map(row=>{
-    const net=AREAS.reduce((sum,a)=>sum+row.areas[a].total,0);
-    const _recordCount=AREAS.reduce((sum,a)=>sum+(row.areas[a]._count?.total||0),0);
-    return {...row,net,_recordCount};
-  }).sort((a,b)=>b.net-a.net || a.label.localeCompare(b.label));
+  return Object.values(map).sort((a,b)=>
+    b.points-a.points ||
+    String(a.grade).localeCompare(String(b.grade)) ||
+    String(a.section).localeCompare(String(b.section))
+  );
 }
 
-function formatPoints(value, empty=false){
-  if(empty) return "—";
-  const n=Number(value)||0;
-  return n>0?`+${n}`:String(n);
-}
-function hasWeekData(areaObj,week){
-  return Number(areaObj?._count?.[week]||0)>0;
-}
-function cell(value,area,total,hasData=true){
-  const cls=[area.toLowerCase().replace(/\s+/g,"-"), total?"total-col":""].filter(Boolean).join(" ");
-  return `<td class="${cls} ${area==='Discipline'?'negative-cell':''}">${formatPoints(value,!hasData)}</td>`;
+function renderYourClassRanking(){
+  const el=document.getElementById("yourClassRanking");
+  if(!el)return;
+  el.innerHTML="View complete class ranking →";
 }
 
-function renderDetail(rows){
-  const body=document.getElementById("detailBody");
-  if(!body) return;
+function renderFullClassRanking(){
+  const list=document.getElementById("classRankingList");
+  if(!list)return;
+  const rows=allClassRankings();
   if(!rows.length){
-    body.innerHTML='<tr><td colspan="27" class="empty-row">No classes or assessment results are available for this declaration month.</td></tr>';
+    list.innerHTML='<div class="empty">No classes have been configured yet.</div>';
     return;
   }
-  body.innerHTML=rows.map((row,index)=>{
-    const medal=index===0?'🥇':index===1?'🥈':index===2?'🥉':'';
-    const rank=medal||String(index+1);
-    const weekCells=area=>{
-      const obj=row.areas[area];
-      return WEEKS.map(w=>cell(obj[w],area,false,hasWeekData(obj,w))).join("")+
-             cell(obj.total,area,true,Number(obj._count?.total||0)>0);
-    };
-    return `<tr class="${index<3?'top-row':''}">
-      <td class="sticky-class class-name"><strong>${escapeHTML(row.label)}</strong></td>
-      ${weekCells("SUPW")}
-      ${weekCells("Assembly")}
-      ${weekCells("Classroom")}
-      ${weekCells("Discipline")}
-      <td class="net-cell">${formatPoints(row.net, row._recordCount===0)}</td>
-      <td class="rank-cell">${rank}</td>
-    </tr>`;
-  }).join("");
-}
-
-function remark(index){
-  return index===0?"Grand Champion":index===1?"Excellent":index===2?"Very Good":index<=4?"Good":index<=6?"Keep Improving":"Needs More Effort";
-}
-function renderSummary(rows){
-  const list=document.getElementById("summaryList");
-  if(!list) return;
-  if(!rows.length){ list.innerHTML='<div class="empty-summary">No ranking data for this month.</div>'; return; }
   list.innerHTML=rows.map((row,index)=>{
     const medal=index===0?'🥇':index===1?'🥈':index===2?'🥉':'';
-    return `<div class="summary-row ${index<3?'summary-top':''}">
-      <div class="summary-rank">${medal||index+1}</div>
-      <div class="summary-class">${escapeHTML(row.label)}<small>${remark(index)}</small></div>
-      <div class="summary-points">${formatPoints(row.net)} <span>pts</span></div>
+    const status=index===0?'Grand Champion Class':index===1?'2nd Place':index===2?'3rd Place':'Overall standing';
+    return `<div class="rank-row ${index<3?'top-three':''}">
+      <div class="rank-number">${medal||index+1}</div>
+      <div><div class="rank-class">${escapeHTML(row.label)}</div><small>${status}</small></div>
+      <div class="rank-points">${row.points} pts</div>
     </div>`;
   }).join("");
 }
 
-function populateMonths(){
-  const select=document.getElementById("monthPicker");
-  if(!select || select.options.length) return;
-  const set=new Set();
-  records().forEach(r=>{
-    const info=declarationInfo(dateOf(r));
-    if(info) set.add(monthKey(info.year,info.month));
+function setupClassRanking(){
+  const card=document.getElementById("yourClassRankingCard");
+  const panel=document.getElementById("classRankingPanel");
+  const close=document.getElementById("closeClassRanking");
+  if(!card||!panel)return;
+  card.addEventListener("click",()=>{
+    const opening=panel.hidden;
+    panel.hidden=!opening;
+    card.setAttribute("aria-expanded",String(opening));
+    if(opening){
+      renderFullClassRanking();
+      panel.scrollIntoView({behavior:"smooth",block:"start"});
+    }
   });
-  const now=new Date();
-  const currentInfo=declarationInfo(now);
-  const currentMonth=currentInfo ? monthKey(currentInfo.year,currentInfo.month) : monthKey(now.getFullYear(),now.getMonth());
-  set.add(currentMonth);
-  const months=[...set].sort().reverse();
-  select.innerHTML=months.map(k=>{const [y,m]=k.split("-").map(Number);return `<option value="${k}">${monthLabel(y,m-1)}</option>`;}).join("");
-  if(set.has(currentMonth)) select.value=currentMonth;
-  select.addEventListener("change",render);
+  if(close)close.addEventListener("click",()=>{
+    panel.hidden=true;
+    card.setAttribute("aria-expanded","false");
+  });
 }
 
 function render(){
-  populateMonths();
-  const period=selectedPeriod();
-  const name=monthLabel(period.year,period.month);
-  const rows=buildRows(period);
-  const title=document.getElementById("rankingTitle");
-  const summaryTitle=document.getElementById("summaryTitle");
-  const infoMonth=document.getElementById("infoMonth");
-  if(title) title.textContent=`Class Points in Detail – ${name}`;
-  if(summaryTitle) summaryTitle.textContent=name;
-  if(infoMonth) infoMonth.textContent=name;
-  renderDetail(rows);
-  renderSummary(rows);
+  const grand=allTimeWinner();
+  const grandEl=document.getElementById("grandChampion");
+  const scoreEl=document.getElementById("grandScore");
+  if(grandEl)grandEl.textContent=grand?`${grand.grade} ${grand.section||""}`.trim():"No results yet";
+  if(scoreEl)scoreEl.textContent=grand?`${grand.points} points • #1 overall`:"0 points";
+  const week=document.getElementById("weekGrid");
+  const month=document.getElementById("monthGrid");
+  if(week)week.innerHTML=DIVISIONS.map(d=>card(d,winnerForDivision(d,isThisWeek))).join("");
+  if(month)month.innerHTML=DIVISIONS.map(d=>card(d,winnerForDivision(d,isThisMonth))).join("");
+  const now=new Date();
+  const declared=currentDeclarationMonday();
+  const declaredMonth=declared.toLocaleDateString(undefined,{month:"long",year:"numeric"});
+  const declaredWeek=declarationWeekNumber(declared);
+  const weekHeading=document.querySelectorAll(".period-card h2")[0];
+  const monthHeading=document.querySelectorAll(".period-card h2")[1];
+  if(weekHeading)weekHeading.textContent=`Champion of the Week • Week ${declaredWeek||1}`;
+  if(monthHeading)monthHeading.textContent=`Champion of the Month • ${declaredMonth}`;
+  renderYourClassRanking();
+  renderFullClassRanking();
 }
 
 function init(){
   const refresh=document.getElementById("refreshBtn");
-  if(refresh) refresh.addEventListener("click",render);
-  populateMonths();
+  if(refresh)refresh.addEventListener("click",render);
+  setupClassRanking();
   render();
 }
-if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init); else init();
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);
+else init();
 window.addEventListener("storage",render);
 })();
