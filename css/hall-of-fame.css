@@ -8,7 +8,76 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-grad
 .hof-main{max-width:1480px;margin:auto;padding:28px 22px 35px}.ranking-intro{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 25px;display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:18px;box-shadow:0 8px 24px rgba(28,48,76,.06)}
 .eyebrow{font-size:10px;font-weight:900;letter-spacing:1.6px;color:#9a6b14}.ranking-intro h2{margin:5px 0 5px;font-size:24px}.ranking-intro p{margin:0;color:var(--muted);font-size:13px}.formula-card{min-width:300px;background:#eef4fc;border-radius:13px;padding:12px 15px;border-left:4px solid var(--blue)}.formula-card span{display:block;font-size:10px;font-weight:900;color:var(--blue);letter-spacing:1px}.formula-card strong{display:block;margin-top:5px;font-size:12px;line-height:1.45;color:#334b70}
 .detail-card,.summary-card,.info-card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 24px rgba(28,48,76,.06)}.detail-card{padding:20px;margin-bottom:18px}.section-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:15px;margin-bottom:16px}.section-heading h2{margin:4px 0;font-size:21px}.section-heading p{margin:0;color:var(--muted);font-size:12px}.refresh-btn{border:0;background:#edf3fb;color:var(--navy);border-radius:9px;padding:9px 13px;font-weight:800;cursor:pointer}.refresh-btn:hover{background:#e1ebf8}
+.action-buttons{display:flex;gap:8px;align-items:center}.print-btn{border:0;background:#122b52;color:#fff;border-radius:9px;padding:9px 13px;font-weight:800;cursor:pointer}.print-btn:hover{background:#1b4f8f}
 .table-scroll{overflow:auto;border:1px solid #dfe5ed;border-radius:13px}.ranking-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1230px;font-size:12px}.ranking-table th,.ranking-table td{border-right:1px solid #e1e7ee;border-bottom:1px solid #e5eaf0;padding:9px 8px;text-align:center;white-space:nowrap}.ranking-table th{font-weight:900;color:#243a5e;background:#f7f9fc}.ranking-table thead tr:first-child th{height:43px;font-size:12px}.ranking-table thead tr:nth-child(2) th{font-size:11px}.ranking-table .sticky-class{position:sticky;left:0;z-index:4;background:#fff;text-align:left;min-width:105px}.ranking-table th.sticky-class{background:#f7f9fc;text-align:left}.ranking-table .area{font-size:12px}.ranking-table .supw{background:#e5f7ed;color:#0b7650}.ranking-table .assembly{background:#e4f0ff;color:#1259bd}.ranking-table .classroom{background:#fff0dc;color:#a04409}.ranking-table .discipline{background:#ffe6ed;color:#b51643}.ranking-table .total-col{font-weight:900}.ranking-table td.supw{background:#f3fbf7}.ranking-table td.assembly{background:#f3f8ff}.ranking-table td.classroom{background:#fff9f1}.ranking-table td.discipline{background:#fff4f7}.ranking-table .negative-cell{color:var(--red);font-weight:800}.ranking-table .negative-cell:not(:empty)::first-letter{color:var(--red)}.net-head{background:#eeeafd!important;color:var(--purple)!important}.net-cell{font-weight:900;color:var(--purple);background:#f5f2ff}.rank-cell{font-weight:900;color:#283b5c;background:#fff8e3}.class-name{font-size:13px}.top-row .sticky-class{background:#fffaf0}.empty-row{padding:35px!important;color:var(--muted)!important;text-align:center!important}.table-note{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:11px 3px 0;color:#68758a;font-size:11px}.negative-text{color:var(--red)}
 .summary-grid{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(300px,.9fr);gap:18px}.summary-card{padding:20px}.summary-head{display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #e8edf3;padding-bottom:14px}.summary-head h2{margin:4px 0 0;font-size:21px}.champion-pill{background:#fff2d1;color:#95610b;padding:8px 11px;border-radius:999px;font-size:11px;font-weight:900}.summary-list{margin-top:10px}.summary-row{display:grid;grid-template-columns:48px 1fr auto;align-items:center;gap:12px;padding:10px 7px;border-bottom:1px solid #edf0f4}.summary-row:last-child{border-bottom:0}.summary-top{background:linear-gradient(90deg,#fffaf0,#fff);border-radius:10px}.summary-rank{text-align:center;font-size:19px;font-weight:900}.summary-class{font-weight:900;font-size:13px}.summary-class small{display:block;color:#788396;font-weight:600;font-size:10px;margin-top:2px}.summary-points{font-size:15px;font-weight:900;color:var(--purple)}.summary-points span{font-size:10px;color:#7a8190}.empty-summary{padding:25px;color:var(--muted);text-align:center}
 .info-card{padding:20px}.info-card h2{font-size:19px;margin:0 0 13px}.info-row{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #edf0f4}.info-row:last-child{border-bottom:0}.info-row>span{width:22px;text-align:center}.info-row p{margin:0;color:#5e6a7c;font-size:11px;line-height:1.45}.info-row strong{color:#20385f}.footer-message{display:flex;justify-content:space-between;gap:15px;margin:17px 4px 0;color:#65748b;font-size:12px;font-style:italic}
 @media(max-width:850px){.hof-header{align-items:flex-start;flex-direction:column}.month-picker-wrap{width:100%}.ranking-intro{align-items:flex-start;flex-direction:column}.formula-card{min-width:0;width:100%}.summary-grid{grid-template-columns:1fr}.footer-message{flex-direction:column}.section-heading{align-items:flex-start;flex-direction:column}.ranking-table .sticky-class{position:sticky;left:0}}
+
+@media print {
+  @page { size: A4 landscape; margin: 7mm; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  html, body { width: 100%; height: auto; background: #fff !important; }
+  body { font-family: Arial, Segoe UI, sans-serif; }
+  .hof-page { min-height: 0; }
+  .hof-header { padding: 5mm 6mm; min-height: 20mm; border-radius: 0; box-shadow: none; }
+  .brand-mark { width: 11mm; height: 11mm; border-radius: 3mm; font-size: 16px; }
+  .header-brand { gap: 3mm; }
+  .brand { font-size: 7px; letter-spacing: 1.2px; }
+  .hof-header h1 { font-size: 20px; margin: 0; }
+  .hof-header p { font-size: 8px; }
+  .month-picker-wrap { min-width: 42mm; padding: 2mm 3mm; border-radius: 2mm; box-shadow: none; }
+  .month-picker-wrap label { font-size: 7px; }
+  .month-picker-wrap select { font-size: 10px; }
+  .hof-main { max-width: none; padding: 4mm 0 0; }
+  .ranking-intro, .summary-grid, .footer-message { display: none !important; }
+  .detail-card { border: 0; border-radius: 0; box-shadow: none; padding: 0; margin: 0; }
+  .section-heading { margin: 0 0 2.5mm; padding: 0 1mm; align-items: flex-end; }
+  .section-heading .eyebrow { display: none; }
+  .section-heading h2 { font-size: 13px; margin: 0; }
+  .section-heading p { font-size: 7px; }
+  .action-buttons { display: none; }
+  .table-scroll { overflow: visible; border: 0; border-radius: 0; }
+  .ranking-table { width: 100%; min-width: 0; table-layout: fixed; font-size: 7.2px; }
+  .ranking-table th, .ranking-table td { padding: 1.55mm 0.8mm; height: 5.2mm; line-height: 1.05; }
+  .ranking-table thead tr:first-child th { height: 7mm; font-size: 7.5px; }
+  .ranking-table thead tr:nth-child(2) th { height: 5mm; font-size: 6.5px; }
+  .ranking-table .sticky-class { position: static; min-width: 0; width: 13mm; }
+  .ranking-table .area { font-size: 7.5px; }
+  .ranking-table .class-name { font-size: 7.5px; }
+  .ranking-table .net-head, .ranking-table .net-cell { width: 16mm; }
+  .ranking-table .rank-cell { width: 9mm; }
+  .table-note { padding: 2mm 1mm 0; font-size: 6.5px; }
+  .table-note span { white-space: nowrap; }
+  .ranking-table tbody tr { break-inside: avoid; page-break-inside: avoid; }
+}
+
+/* Final A4 landscape full-page print tuning */
+@media print {
+  @page { size: A4 landscape; margin: 3mm; }
+  html, body { width: 291mm !important; min-height: 204mm !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+  .hof-page { width: 291mm !important; min-height: 204mm !important; margin: 0 !important; padding: 0 !important; }
+  .hof-header { width: 100% !important; min-height: 20mm !important; height: 20mm !important; padding: 3mm 5mm !important; }
+  .brand-mark { width: 12mm !important; height: 12mm !important; font-size: 16px !important; }
+  .hof-header h1 { font-size: 21px !important; line-height: 1 !important; }
+  .hof-header p { font-size: 8.5px !important; }
+  .month-picker-wrap { min-width: 45mm !important; padding: 2mm 3mm !important; }
+  .month-picker-wrap label { font-size: 7px !important; }
+  .month-picker-wrap select { font-size: 10px !important; }
+  .hof-main { width: 100% !important; max-width: none !important; padding: 3mm 0 0 !important; margin: 0 !important; }
+  .detail-card { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+  .section-heading { margin: 0 1mm 2mm !important; padding: 0 !important; }
+  .section-heading h2 { font-size: 14px !important; }
+  .section-heading p { font-size: 7.5px !important; }
+  .table-scroll { width: 100% !important; overflow: visible !important; }
+  .ranking-table { width: 100% !important; min-width: 0 !important; table-layout: fixed !important; font-size: 8px !important; }
+  .ranking-table th, .ranking-table td { padding: 1.35mm 0.65mm !important; height: 5.65mm !important; line-height: 1.05 !important; }
+  .ranking-table thead tr:first-child th { height: 7.2mm !important; font-size: 8px !important; }
+  .ranking-table thead tr:nth-child(2) th { height: 5.4mm !important; font-size: 7px !important; }
+  .ranking-table .sticky-class { width: 14mm !important; min-width: 14mm !important; position: static !important; }
+  .ranking-table .class-name { font-size: 8.2px !important; }
+  .ranking-table .area { font-size: 8px !important; }
+  .ranking-table .net-head, .ranking-table .net-cell { width: 17mm !important; }
+  .ranking-table .rank-cell { width: 10mm !important; }
+  .table-note { padding: 1.8mm 1mm 0 !important; font-size: 7px !important; }
+}
