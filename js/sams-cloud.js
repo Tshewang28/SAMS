@@ -188,19 +188,21 @@
                 const local = localValue(key);
                 const cloudRow = byKey.get(key);
 
-                if (cloudRow) {
-                    const merged = mergeData(key, local, cloudRow.value);
-                    setLocalFromCloud(key, merged);
+               if (cloudRow) {
+    // Assessment records are cloud-authoritative.
+    // This prevents deleted assessment records from being
+    // restored from an old browser localStorage cache.
+    if (key === "sams_assessment_records") {
+        setLocalFromCloud(key, cloudRow.value);
+    } else {
+        const merged = mergeData(key, local, cloudRow.value);
+        setLocalFromCloud(key, merged);
 
-                    // If the merge added local-only records, write the merged
-                    // result back so every device receives the same dataset.
-                    if (Array.isArray(merged) && !sameJson(merged, cloudRow.value)) {
-                        await syncKey(key, merged);
-                    }
-                } else if (local !== null) {
-                    await syncKey(key, local);
-                }
-            }
+        if (Array.isArray(merged) && !sameJson(merged, cloudRow.value)) {
+            await syncKey(key, merged);
+        }
+    }
+}
 
             initialised = true;
             readyResolve(true);
