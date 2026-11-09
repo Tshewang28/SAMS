@@ -891,12 +891,178 @@ function renderClass(){
   $("classEmpty").classList.add("hidden");
 }
 
+
+/* =========================================================
+   MONTHLY CLASS SUMMARY
+   One row per class/section; no student-level details.
+   ========================================================= */
+
+function monthlyRecordDate(row){
+  return row?.savedAt||row?.createdAt||row?.date||row?.timestamp||row?.activityDate||"";
+}
+
+function monthlyClassRowsForMonth(monthKey){
+  const grouped=new Map();
+  const ensure=(grade,section)=>{
+    const key=classKey(grade,section);
+    if(!grouped.has(key)){
+      grouped.set(key,{grade,section,supw:0,assembly:0,classroom:0,discipline:0,hasEntry:false});
+    }
+    return grouped.get(key);
+  };
+
+  records().forEach(row=>{
+    const date=monthlyRecordDate(row);
+    if(!date||getReportMonthKey(date)!==monthKey)return;
+    const grade=gradeOf(row.class??row.grade);
+    const section=sectionOf(row.section??row.stream);
+    if(!grade)return;
+    const target=ensure(grade,section);
+    const area=normalizeArea(row.area);
+    const items=Array.isArray(row.records)?row.records:[];
+    const isTargetArea=area==="supw"||area.includes("supw")||area.includes("assembly")||area.includes("classroom")||area.includes("discipline");
+    if(!isTargetArea)return;
+    target.hasEntry=true;
+    const points=items.reduce((sum,item)=>{
+      const value=Number(item?.point);
+      if(!Number.isFinite(value))return sum;
+      return sum+(area==="discipline"?disciplinePoint(item):value);
+    },0);
+
+    if(area==="supw"||area.includes("supw")) target.supw+=points;
+    else if(area.includes("assembly")) target.assembly+=points;
+    else if(area.includes("classroom")) target.classroom+=points;
+    else if(area==="discipline"||area.includes("discipline")) target.discipline+=points;
+  });
+
+  // Include older discipline entries saved separately from assessment records.
+  const legacy=read("sams_discipline_records",[]);
+  if(Array.isArray(legacy)){
+    legacy.forEach(row=>{
+      const date=monthlyRecordDate(row);
+      if(!date||getReportMonthKey(date)!==monthKey)return;
+      const grade=gradeOf(row.class??row.grade??row.Class);
+      const section=sectionOf(row.section??row.stream??row.Section);
+      if(!grade)return;
+      const target=ensure(grade,section);
+      target.hasEntry=true;
+      disciplineItems(row).forEach(item=>{
+        if(item?.affectsClassTotal===false)return;
+        target.discipline+=disciplinePoint(item);
+      });
+    });
+  }
+
+  return [...grouped.values()]
+    .filter(row=>row.hasEntry)
+    .sort((a,b)=>a.grade.localeCompare(b.grade,undefined,{numeric:true})||
+      a.section.localeCompare(b.section,undefined,{numeric:true}));
+}
+
+function monthlyClassMonthOptions(){
+  const keys=new Set();
+  [...records(),...read("sams_discipline_records",[])].forEach(row=>{
+    const date=monthlyRecordDate(row);
+    const key=date?getReportMonthKey(date):"";
+    if(key)keys.add(key);
+  });
+  const now=getReportMonthKey(new Date());
+  keys.add(now);
+  return [...keys].sort((a,b)=>b.localeCompare(a));
+}
+
+function fillMonthlyClassMonths(){
+  const select=$("monthlyClassPeriod");
+  if(!select)return;
+  const current=select.value;
+  const keys=monthlyClassMonthOptions();
+  select.innerHTML='<option value="">Select Month</option>'+
+    keys.map(key=>`<option value="${esc(key)}">${esc(reportPeriodLabel("month",key))}</option>`).join("");
+  if(keys.includes(current))select.value=current;
+  else if(keys.length)select.value=keys[0];
+}
+
+function formatMonthlyPoints(value){
+  const n=Number(value)||0;
+  return Number.isInteger(n)?String(n):n.toFixed(1);
+}
+
+function renderMonthlyClassReport(){
+  const month=$("monthlyClassPeriod")?.value||"";
+  const result=$("monthlyClassResult");
+  const empty=$("monthlyClassEmpty");
+  if(!month||!result||!empty){
+    if(result)result.classList.add("hidden");
+    if(empty)empty.classList.remove("hidden");
+    return;
+  }
+  const rows=monthlyClassRowsForMonth(month);
+  const totalClasses=rows.length;
+  const totals=rows.reduce((sum,row)=>{
+    sum.supw+=row.supw;sum.assembly+=row.assembly;
+    sum.classroom+=row.classroom;sum.discipline+=row.discipline;
+    return sum;
+  },{supw:0,assembly:0,classroom:0,discipline:0});
+  const grandTotal=totals.supw+totals.assembly+totals.classroom+totals.discipline;
+
+  const body=rows.map(row=>{
+    const total=row.supw+row.assembly+row.classroom+row.discipline;
+    return `<tr>
+      <td><strong>${esc(row.grade)}</strong></td>
+      <td>${esc(row.section||"—")}</td>
+      <td class="num">${formatMonthlyPoints(row.supw)}</td>
+      <td class="num">${formatMonthlyPoints(row.assembly)}</td>
+      <td class="num">${formatMonthlyPoints(row.classroom)}</td>
+      <td class="num ${row.discipline<0?"negative":""}">${formatMonthlyPoints(row.discipline)}</td>
+      <td class="num total-points-cell"><strong>${formatMonthlyPoints(total)}</strong></td>
+    </tr>`;
+  }).join("");
+
+  result.innerHTML=`
+    <div class="monthly-report-heading">
+      <div><span class="eyebrow">CONSOLIDATED MONTHLY REPORT</span>
+        <h3>${esc(reportPeriodLabel("month",month))}</h3>
+        <p>Class-level points summary • ${totalClasses} class/section${totalClasses===1?"":"s"}</p>
+      </div>
+      <button type="button" class="monthly-print-btn" onclick="window.print()">Print Report</button>
+    </div>
+    <div class="monthly-summary-strip">
+      <div><small>Class / Sections</small><strong>${totalClasses}</strong></div>
+      <div><small>Total Points</small><strong>${formatMonthlyPoints(grandTotal)}</strong></div>
+      <div><small>Discipline Deductions</small><strong>${formatMonthlyPoints(totals.discipline)}</strong></div>
+    </div>
+    <div class="report-table-wrap monthly-class-table-wrap">
+      <table class="report-table monthly-class-table">
+        <thead><tr><th>Class</th><th>Section</th><th>SUPW</th><th>Assembly</th><th>Classroom</th><th>Discipline</th><th>Total Points</th></tr></thead>
+        <tbody>${body||'<tr><td colspan="7" class="monthly-no-data">No class results were recorded for this month.</td></tr>'}</tbody>
+        ${rows.length?`<tfoot><tr><th colspan="2">Monthly Total</th><th class="num">${formatMonthlyPoints(totals.supw)}</th><th class="num">${formatMonthlyPoints(totals.assembly)}</th><th class="num">${formatMonthlyPoints(totals.classroom)}</th><th class="num">${formatMonthlyPoints(totals.discipline)}</th><th class="num">${formatMonthlyPoints(grandTotal)}</th></tr></tfoot>`:""}
+      </table>
+    </div>
+    <p class="monthly-report-footnote">Discipline deductions are shown as negative points. Total Points is the sum of SUPW, Assembly, Classroom and Discipline.</p>
+  `;
+  result.classList.remove("hidden");
+  empty.classList.add("hidden");
+}
+
+function activateReportTab(activeId){
+  const tabs=[
+    ["individualTab","individualReport"],
+    ["classTab","classReport"],
+    ["monthlyClassTab","monthlyClassReport"]
+  ];
+  tabs.forEach(([tabId,panelId])=>{
+    $(tabId).classList.toggle("active",tabId===activeId);
+    $(panelId).classList.toggle("hidden",tabId!==activeId);
+  });
+}
+
 /* =========================================================
    INITIALISATION
    ========================================================= */
 
 function init(){
   fillClasses();
+  fillMonthlyClassMonths();
 
   $('individualClass').addEventListener('change',()=>{
     fillSections($('individualClass').value,$('individualSection'));
@@ -929,24 +1095,21 @@ function init(){
 
   $('classReportPeriod').addEventListener('change',renderClass);
 
-  $('individualTab').addEventListener('click',()=>{
-    $('individualTab').classList.add('active');
-    $('classTab').classList.remove('active');
-    $('individualReport').classList.remove('hidden');
-    $('classReport').classList.add('hidden');
+  $('individualTab').addEventListener('click',()=>activateReportTab('individualTab'));
+  $('classTab').addEventListener('click',()=>activateReportTab('classTab'));
+  $('monthlyClassTab').addEventListener('click',()=>{
+    fillMonthlyClassMonths();
+    renderMonthlyClassReport();
+    activateReportTab('monthlyClassTab');
   });
-
-  $('classTab').addEventListener('click',()=>{
-    $('classTab').classList.add('active');
-    $('individualTab').classList.remove('active');
-    $('classReport').classList.remove('hidden');
-    $('individualReport').classList.add('hidden');
-  });
+  $('monthlyClassPeriod').addEventListener('change',renderMonthlyClassReport);
 
   window.addEventListener('storage',()=>{
     fillClasses();
     renderIndividual();
     renderClass();
+    fillMonthlyClassMonths();
+    renderMonthlyClassReport();
   });
 }
 
