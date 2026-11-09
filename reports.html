@@ -36,6 +36,10 @@
         <span class="choice-icon">🏫</span>
         <span><strong>Class Report</strong><small>View every student's result in a class.</small></span>
       </button>
+      <button class="report-choice" id="monthlyClassTab" type="button">
+        <span class="choice-icon">📅</span>
+        <span><strong>Monthly Class Summary</strong><small>Compare class points for a selected month.</small></span>
+      </button>
     </section>
 
     <section id="individualReport" class="report-panel">
@@ -66,6 +70,19 @@
       </div>
       <div id="classEmpty" class="empty-state">Select a class, section and report period to view the report.</div>
       <div id="classResult" class="result-area hidden"></div>
+    </section>
+
+    <section id="monthlyClassReport" class="report-panel hidden">
+      <div class="panel-heading">
+        <div><span class="eyebrow">MONTHLY CLASS SUMMARY</span><h2>Monthly Class Report</h2>
+          <p class="monthly-report-subtitle">A consolidated view of points earned by each class and section.</p>
+        </div>
+      </div>
+      <div class="selection-grid monthly-selection">
+        <label>Report Month<select id="monthlyClassPeriod"><option value="">Select Month</option></select></label>
+      </div>
+      <div id="monthlyClassEmpty" class="empty-state">Select a month to view the monthly class summary.</div>
+      <div id="monthlyClassResult" class="result-area hidden"></div>
     </section>
   </main>
 </div>
