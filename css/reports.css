@@ -85,3 +85,43 @@ body{margin:0;background:linear-gradient(180deg,#f8faff,#f2f5f9);font-family:Int
 @media(max-width:950px){.class-report-selection{grid-template-columns:repeat(2,1fr)}.report-area-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.class-report-selection,.report-area-summary-grid,.period-summary{grid-template-columns:1fr}.section-block-heading{align-items:flex-start;flex-direction:column}}
 
+
+
+/* Monthly class summary report */
+.report-choice-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.monthly-report-subtitle{margin:7px 0 0;color:var(--muted);font-size:13px}
+.monthly-selection{grid-template-columns:minmax(220px,360px);margin-bottom:18px}
+.monthly-report-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:4px 0 16px}
+.monthly-report-heading h3{font-size:25px;margin:6px 0;color:#17375f}
+.monthly-report-heading p{margin:0;color:var(--muted);font-size:13px}
+.monthly-print-btn{border:0;border-radius:9px;background:#1e5d91;color:#fff;padding:10px 16px;font-weight:800;cursor:pointer}
+.monthly-summary-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.monthly-summary-strip>div{padding:15px 17px;background:#f4f7fb;border:1px solid #e3eaf2;border-radius:12px}
+.monthly-summary-strip small{display:block;color:#66758a;font-size:11px;font-weight:800;margin-bottom:5px}
+.monthly-summary-strip strong{font-size:23px;color:#17375f}
+.monthly-class-table-wrap{overflow-x:auto;border:1px solid #dfe6ee;border-radius:12px}
+.monthly-class-table{width:100%;border-collapse:collapse;min-width:760px;background:#fff}
+.monthly-class-table th{background:#17375f;color:#fff;text-align:left;padding:13px 14px;font-size:12px;white-space:nowrap}
+.monthly-class-table td{padding:12px 14px;border-bottom:1px solid #e8edf3;font-size:13px}
+.monthly-class-table tbody tr:nth-child(even){background:#f7f9fc}
+.monthly-class-table .num{text-align:right;font-variant-numeric:tabular-nums}
+.monthly-class-table .total-points-cell{color:#174e7c;background:#edf4fb}
+.monthly-class-table .negative{color:#b33c3c;font-weight:800}
+.monthly-class-table tfoot th{background:#e9f0f7;color:#17375f;padding:13px 14px;border-top:2px solid #cbd8e5}
+.monthly-no-data{text-align:center!important;padding:28px!important;color:var(--muted)}
+.monthly-report-footnote{margin:12px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
+@media(max-width:760px){
+  .report-choice-grid{grid-template-columns:1fr}
+  .monthly-summary-strip{grid-template-columns:1fr}
+  .monthly-report-heading{align-items:flex-start;flex-direction:column}
+}
+@media print{
+  body{background:#fff}
+  .reports-header,.report-hero,.report-choice-grid,.monthly-selection,.monthly-print-btn{display:none!important}
+  .reports-main{max-width:none;padding:0}
+  #monthlyClassReport{display:block!important;border:0;box-shadow:none;padding:0}
+  #monthlyClassReport .panel-heading{display:none}
+  #monthlyClassResult{display:block!important;margin:0}
+  .monthly-class-table{min-width:0}
+  .monthly-class-table th,.monthly-class-table td{padding:7px 8px;font-size:10px}
+}
